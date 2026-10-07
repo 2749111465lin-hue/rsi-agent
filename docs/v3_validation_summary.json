@@ -36,20 +36,21 @@
     "experience/skill ablation on independent tasks"
   ],
   "source_hashes": {
-    "code_rsi/__init__.py": "38495b69550d69888b1a6be21ac1338b66263346ae94ab2c6d565e5371641a81",
-    "code_rsi/archive.py": "c530879d29b51b4c10b50399718662bdc7af9dda16276412c8977a295b6c4756",
-    "code_rsi/budget.py": "cdf9e80cfdbf6c17da2c83236ea2642508c345d7fc728107da5f88426e8e456e",
+    "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
+    "code_rsi/archive.py": "407add6109814e59e4d1437a42e73663a172cdc10a3de800664c1c2c52587ce2",
+    "code_rsi/budget.py": "bde4f5c69c5a7bbfedc6552019edc28a26a26632cb4393f883823c9efb5a5dbe",
     "code_rsi/candidate_runner.py": "1e6ab18bbd86d6ff5f6b1fffbcd42c41a4025c9c1097340b50cd6094f28c8c1f",
     "code_rsi/sandbox.py": "821a21bf8d9efadc08d7c213c9b143e63d5083933a025d517953cfa0eb57f1ae",
     "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
-    "code_rsi/v3/__init__.py": "54ee2ee2fe9bb95f799b1cf01e849580959556517748f3f3c3a2950e73ab46f0",
-    "code_rsi/v3/__main__.py": "9a1a09ffbe233885bed21e7a066e8d179cf3d54ed38986e3b1e6faf08a3c27f4",
-    "code_rsi/v3/datasets.py": "6f46615c5f805bcd41738b488fe6894987ea94ef10e31a8e81a8ee60e31502d7",
+    "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
+    "code_rsi/v3/__main__.py": "a9f61a43be3ab068645c1304d5dd4cf694ced6ec7475cea95506484bee5d8e26",
+    "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
     "code_rsi/v3/evolution.py": "3a8fd91df460cae5371f2367d105c9572258fb955eed8a7e4e92d60bc742d43d",
-    "code_rsi/v3/execution.py": "46a755f0953067dc6c7f983d70b88b4b399fae7b7a199b02eab7f936db5322e6",
-    "code_rsi/v3/experience_policy.py": "8ce71778daed76163ebc71b5cc7a33f8db7c192e427cc47116dab1e28b6cd92d",
-    "code_rsi/v3/infrastructure.py": "ebedac5955857c26d45d072a475860c60dc120bea7665eccaded5e13dabdbcde",
-    "code_rsi/v3/offline_demo.py": "3ea5cbb0c357bef173e354ab7002c48b211a69984bc0b3756ad55cccfe2bc940",
+    "code_rsi/v3/execution.py": "c7c46aac257668848d862698809fa8fb416511473e418171ef07cb6daccb9352",
+    "code_rsi/v3/experience_policy.py": "f4a5d0b4874656d93255e53533258ec0f197860fe65c6ebeb38ffe20cf65bf00",
+    "code_rsi/v3/infrastructure.py": "61e1e702aa0fb7c3e1cf09676bc1f368d303c63ca530a54c0eef7731abe70cf1",
+    "code_rsi/v3/offline_demo.py": "89551be56add1555f9091324edb658b5c8ed30eba8b7e0dcfa18468d9f979024",
     "code_rsi/v3/rag.py": "a84ce8480d5b526e92ea107033f4f044aa5c80ecbfdcb1ad31ebef1e83e985a4"
-  }
+  },
+  "source_hash_encoding": "UTF-8 LF canonical bytes"
 }
