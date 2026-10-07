@@ -72,6 +72,8 @@ python -B -m code_rsi.v3 grade --plan <本地冻结方案.json>
 - [失败反馈契约](docs/v3_feedback_contract.md)
 - [任务评分规则](docs/v3_task_metrics.md)
 - [8题真实流程校准方案](docs/v3_calibration_protocol.md)
+- [首轮真实校准结果](docs/v3_calibration_result.md)
+- [上下文轮换修复与复测](docs/v3_rolling_protocol.md)
 - [最新验证摘要](docs/v3_validation_summary.json)
 
 MuSiQue开发适配、BrowseComp高难确认、MultiHop回归、BRIGHT检索侧轨各有不同语料与评分要求。内部EM/F1不冒充BrowseComp官方模型裁判成绩。

@@ -55,14 +55,16 @@ Full 通过缺失支持证据制造不可回答对照。不能把不同实例段
 
 ## 评分界限
 
+更新：适配器初次实现后，新增了 `task_metrics.py`，已实现MuSiQue段落EM/F1与Full配对聚合、BRIGHT nDCG@10；见[专用指标说明](v3_task_metrics.md)。Full聚合函数可离线使用，但当前候选的三字段交付接口不输出独立answerability，仍不能直接接为在线演化主指标。以下表格按更新后的模块能力说明。
+
 `evaluate_answer(prediction, reference, metric="em"|"f1") -> float` 是离线规则评分，使用小写、ASCII 标点、英文冠词和空白归一化，取所有参考别名中的最大值。空参考、未知任务、未知指标显式失败。运行器负责在评分前将未完成交付计为失败，不能从草稿或截断内容提取答案后冒充完成。
 
 | 任务 | 本模块支持 | 不应声称 |
 |---|---|---|
 | MuSiQue-Ans | 与官方答案脚本相同类型的归一化答案 EM/token F1，支持别名 | 单独答案分数不等于支持事实正确、全链条正确或 Full 成组充分性正确。[官方答案评分](https://github.com/StonyBrookNLP/musique/blob/main/metrics/answer.py) |
-| MuSiQue-Full | 对可答样本可做答案诊断；不可答样本在普通 EM/F1 中显式拒绝 | 尚未实现官方成组充分性、支持 F1；不能把不可答样本当普通字符串题计分。[官方总评分](https://github.com/StonyBrookNLP/musique/blob/main/evaluate_v1.0.py) |
+| MuSiQue-Full | 对可答样本可做答案诊断；不可答样本在普通 EM/F1 中显式拒绝 | 专用模块已实现成组充分性和支持 F1，但需明确answerability及配对输入；普通答案评分入口不能把不可答样本当字符串题。[官方总评分](https://github.com/StonyBrookNLP/musique/blob/main/evaluate_v1.0.py) |
 | BrowseComp-Plus | 可显式计算内部规则代理分数，参考标记 `official_metric="llm_judge"`、`rule_metrics_are_official=False` | 规则 EM/F1 不等于官方答案准确率。2025 论文使用 GPT-4.1，当前官方说明使用 Qwen3-32B；不同裁判版本不能混算。[裁判说明](https://github.com/texttron/BrowseComp-Plus/blob/main/docs/llm_as_judge.md) |
-| BRIGHT | 公共检索任务和排除规则 | 本模块未实现 nDCG/Recall，且拒绝 QA 答案评分；不能把检索结果当作端到端正确答案。[数据字段](https://huggingface.co/datasets/xlangai/BRIGHT/blob/main/README.md) |
+| BRIGHT | 公共检索任务和排除规则 | 专用模块提供二元相关性nDCG@10；适配器仍拒绝QA答案评分，不能把检索结果当作端到端正确答案。[数据字段](https://huggingface.co/datasets/xlangai/BRIGHT/blob/main/README.md) |
 | MultiHop-RAG | 内部归一化答案 EM/F1 代理指标，金证据保留在私有参考 | 不是对官方 QA 脚本的复制。所打开的上游脚本按预测和金答案词集合有无交集判定；项目必须固定实际使用的脚本 revision，并明确指标名。[上游 QA 脚本](https://github.com/yixuantt/MultiHop-RAG/blob/main/qa_evaluate.py) |
 
 BrowseComp-Plus 原论文的每篇文档前 512 tokens 截断属于检索阅读设置，和当前程序总输出或执行窗口截断不同。文档 ID 被召回，不证明其含答案的片段实际对模型可见；因此证据召回和可见证据覆盖应分别记录。[原论文检索设置](https://arxiv.org/html/2508.06600v1)

@@ -93,3 +93,7 @@ D_select/D_report 的顶层、显式行角色、父测量或任务角色均被�
 python -B -m unittest test_v3_diagnostics -v
 
 测试使用全部合成的问题、预测、引用与分数；不访问真实题库、参考答案或 API。覆盖角色/身份、引用与语义界线、空检索、缺阅读/最终证据、解析失败、未知结果、确定性、高信息案例、正负配对、重复次数、截断和字段白名单。它们证明实现契约，不证明 RAG 的实际提升。
+
+## 真实校准后的标签修正
+
+首轮真实校准暴露：无引用的弃答曾被粗合并为invalid_answer_citation。已拆为missing_answer_citations，仅记录来源缺席，不自动建议修理回答格式；若模型同时声称证据充分而不附引用，才标uncited_supported_claim。真正非法ID或候选引用与宿主观察不符仍属invalid_answer_citation。此修正不改变任务答案分，也不回写旧冻结报告。

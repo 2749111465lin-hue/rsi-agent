@@ -23,6 +23,8 @@ FAILURE_MODULE_PRIORS = {
     "no_observed_final_answer": {"answer_generation": 1.0},
     "answer_empty": {"answer_generation": 1.0},
     "invalid_answer_citation": {"answer_generation": 1.0, "evidence_selection": 0.5},
+    "missing_answer_citations": {},
+    "uncited_supported_claim": {"answer_generation": 1.0},
     "model_parse_failure": {"evidence_selection": 0.6, "answer_generation": 0.6,
                             "query_rewrite": 0.3},
     "repeated_query": {"query_rewrite": 1.0, "retrieval": 0.3},
@@ -199,7 +201,14 @@ def diagnose_execution(receipt):
     status = citation_check.get("status", receipt.get("citation_status"))
     if status == "no_observed_final_answer":
         add("no_observed_final_answer", "/host_citation_validation/status")
-    elif status in ("missing_citations", "invalid_model_citation_ids", "candidate_citation_mismatch"):
+    elif status == "missing_citations":
+        # A declared abstention may correctly have no citations. Record absence,
+        # not fabrication; only an inconsistent claimed-supported output gets a
+        # strong formatting-repair prior. This is not a correctness judgment.
+        add("missing_answer_citations", "/host_citation_validation/status")
+        if citation_check.get("model_claims_evidence") is True:
+            add("uncited_supported_claim", "/host_citation_validation/model_claims_evidence")
+    elif status in ("invalid_model_citation_ids", "candidate_citation_mismatch"):
         add("invalid_answer_citation", "/host_citation_validation/status")
     if trace_complete and not answer_calls and not finals:
         add("no_observed_final_answer", "/trace")

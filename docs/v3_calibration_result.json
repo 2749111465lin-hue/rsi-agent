@@ -1,0 +1,135 @@
+{
+  "schema": "v3-calibration-public-summary-1",
+  "date": "2026-10-07",
+  "source_commit": "0fcb73d04c22256aed2ee649280d97651aafecbb",
+  "plan_hash": "c0b457fc2ce4188f61844c36befe23bc46627547223e42cc9cdbace970616d0f",
+  "question_count": 8,
+  "repeats": 2,
+  "generation_complete": true,
+  "logical_outcomes": 32,
+  "physical_api_calls": 105,
+  "conservative_price_cost_cny": 1.01144848,
+  "hard_cny": 30,
+  "pending_requests": 0,
+  "official_browsecomp_score": false,
+  "arms": {
+    "loop": {
+      "delivery_rate": 1.0,
+      "diagnostic_count_unit": "answer outcome; repeats are not independent observations",
+      "logical_model_calls": 73,
+      "model_reported_counts": {
+        "evidence_conflict": 1,
+        "evidence_gap": 16,
+        "evidence_insufficient": 14,
+        "no_evidence_progress": 7,
+        "repeated_queries": 1,
+        "ungrounded_bridge_entity": 1
+      },
+      "model_reports_are_verified_truth": false,
+      "outcomes": 16,
+      "proxy_answer_em": 0.125,
+      "proxy_answer_f1": 0.125,
+      "source_valid_rate": 0.1875,
+      "structural_failure_counts": {
+        "invalid_answer_citation": 13,
+        "no_final_evidence": 7,
+        "no_verified_read_quotes": 7
+      },
+      "conservative_cost_cny": 0.85392424
+    },
+    "single": {
+      "delivery_rate": 1.0,
+      "diagnostic_count_unit": "answer outcome; repeats are not independent observations",
+      "logical_model_calls": 32,
+      "model_reported_counts": {
+        "evidence_conflict": 1,
+        "evidence_gap": 16,
+        "evidence_insufficient": 16,
+        "ungrounded_bridge_entity": 1
+      },
+      "model_reports_are_verified_truth": false,
+      "outcomes": 16,
+      "proxy_answer_em": 0.0,
+      "proxy_answer_f1": 0.0,
+      "source_valid_rate": 0.0625,
+      "structural_failure_counts": {
+        "invalid_answer_citation": 15,
+        "no_final_evidence": 14,
+        "no_verified_read_quotes": 14
+      },
+      "conservative_cost_cny": 0.15752424
+    }
+  },
+  "information_flow": {
+    "loop": {
+      "abstentions_reported": 14,
+      "all_reads_unchanged_outcomes": 16,
+      "execution_successes": 16,
+      "final_evidence_nonempty": 9,
+      "host_citation_statuses": {
+        "missing_citations": 13,
+        "source_and_presentation_verified": 3
+      },
+      "isolation_verified": 16,
+      "model_error_outcomes": 0,
+      "multi_read_outcomes": 16,
+      "outcomes": 16,
+      "post_first_read_new_sources": 0,
+      "post_first_read_searches": 49,
+      "source_budget_outcomes": 16
+    },
+    "single": {
+      "abstentions_reported": 16,
+      "all_reads_unchanged_outcomes": 0,
+      "execution_successes": 16,
+      "final_evidence_nonempty": 2,
+      "host_citation_statuses": {
+        "missing_citations": 15,
+        "source_and_presentation_verified": 1
+      },
+      "isolation_verified": 16,
+      "model_error_outcomes": 0,
+      "multi_read_outcomes": 0,
+      "outcomes": 16,
+      "post_first_read_new_sources": 0,
+      "post_first_read_searches": 0,
+      "source_budget_outcomes": 0
+    }
+  },
+  "anonymous_question_mean_em": {
+    "Q01": {
+      "single": 0.0,
+      "loop": 0.0
+    },
+    "Q02": {
+      "single": 0.0,
+      "loop": 0.0
+    },
+    "Q03": {
+      "single": 0.0,
+      "loop": 0.0
+    },
+    "Q04": {
+      "single": 0.0,
+      "loop": 0.0
+    },
+    "Q05": {
+      "single": 0.0,
+      "loop": 0.0
+    },
+    "Q06": {
+      "single": 0.0,
+      "loop": 1.0
+    },
+    "Q07": {
+      "single": 0.0,
+      "loop": 0.0
+    },
+    "Q08": {
+      "single": 0.0,
+      "loop": 0.0
+    }
+  },
+  "claim": "One used development question matched twice in loop; no causal or independent generalization claim. All post-first-read new source admission was blocked.",
+  "diagnostic_label_correction_note": "Frozen invalid_answer_citation counted missing_citations: single15/loop13, all declared abstentions. Actual invalid IDs or candidate citation mismatches:0. New code separates these labels; original scores unchanged."
+}

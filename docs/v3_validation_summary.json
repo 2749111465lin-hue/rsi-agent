@@ -2,8 +2,8 @@
   "schema": "rag-rsi-v3-validation-summary-1",
   "date": "2026-10-07",
   "unit_tests": {
-    "run": 251,
-    "passed": 251,
+    "run": 270,
+    "passed": 270,
     "failed": 0,
     "command": "python -B -m unittest discover -s . -p test_v3_*.py -q"
   },
@@ -30,13 +30,13 @@
     "scope": "real fixed corpus connectivity, not answer quality",
     "status": "pass"
   },
-  "new_paid_api_calls": 0,
-  "new_api_cost_cny": 0,
+  "new_paid_api_calls": 105,
+  "new_api_cost_cny": 1.01144848,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "new authorization and real DeepSeek workflow calibration",
-    "official BrowseComp semantic judging and independent confirmation",
-    "experience/skill ablation on independent tasks"
+    "authorized real-model retest of the repaired context window",
+    "real LLM program-development comparison",
+    "independent task confirmation and experience/skill ablation"
   ],
   "source_hashes": {
     "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
@@ -50,13 +50,13 @@
     "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
     "code_rsi/v3/calibration.py": "7fdc0046e1a6b6d6d64f1e950ef28725504ec9b02d826270f08e4c393e0b1769",
     "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
-    "code_rsi/v3/diagnostics.py": "700091648aa90f5bef5e6d326d67eff43bc7e96a4a9fb233aea2d949dc60c46c",
+    "code_rsi/v3/diagnostics.py": "84599ca4b7b86bf9f23e730b93e49b2e928babcc69a5e50204b76cf03d4400ee",
     "code_rsi/v3/evolution.py": "4ca0a7c5f5a5a2b3f31ea158938ab4ffd5ac88b9ea79b2074ee400b105271990",
     "code_rsi/v3/execution.py": "a212923afc95752f3062f1861fcc73f2c765c14793c13897f0624beeee64e240",
     "code_rsi/v3/experience_policy.py": "fb376c5481edb083f533a3854f5ca48d84d661da69ac7555a95ff66d57f07c6b",
     "code_rsi/v3/infrastructure.py": "03ffa076c76e723f3d1987b12a60a4570da78cdbd04d6ce4641bf6ded7f21bb0",
     "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
-    "code_rsi/v3/rag.py": "477230fa18e9bca31c1adb1db3c56ce214e1183612102b8982e2468c0a88147e",
+    "code_rsi/v3/rag.py": "2ccacf3cf5c820b01631c676151ac694231ca8cccc19bd076e096660fa249a2b",
     "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
   },
   "source_hash_encoding": "UTF-8 LF canonical bytes",
@@ -87,5 +87,35 @@
     "same_realized_cost": false,
     "same_resource_ceiling": true,
     "status": "ready_for_explicit_execution"
-  }
+  },
+  "current_full_window_wsl": {
+    "final_retains_old_and_new_quotes": true,
+    "host_citation_source_verified": true,
+    "new_second_round_docids_present": true,
+    "quality_claim": "mechanism regression, not real model improvement",
+    "read_source_chars": [
+      24000,
+      6000
+    ],
+    "real_api_calls": 0,
+    "real_api_cost_cny": 0,
+    "real_wsl": true,
+    "status": "pass",
+    "synthetic": true
+  },
+  "live_calibration": {
+    "status": "complete",
+    "source_commit": "0fcb73d04c22256aed2ee649280d97651aafecbb",
+    "question_count": 8,
+    "logical_outcomes": 32,
+    "physical_calls": 105,
+    "conservative_cost_cny": 1.01144848,
+    "single_proxy_em": 0,
+    "loop_proxy_em": 0.125,
+    "improved_independent_questions": 1,
+    "later_searches": 49,
+    "later_new_sources_presented": 0,
+    "official_metric": false
+  },
+  "new_api_cost_note": "conservative peak-price ledger estimate, not supplier invoice"
 }

@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections import deque
 from collections.abc import Mapping
 
 
@@ -171,8 +172,10 @@ class RagEngine:
                  "rounds": 0, "consecutive_stagnant_rounds": 0,
                  "support_status": "model_assessed_only"}
         usage = {"model_calls": 0, "search_calls": 0, "read_calls": 0,
-                 "final_calls": 0, "source_chars": 0, "final_call_reserved": True}
+                 "final_calls": 0, "source_chars": 0, "context_source_chars": 0,
+                 "peak_context_source_chars": 0, "final_call_reserved": True}
         source_keys, citation_keys, claim_keys = set(), {}, set()
+        source_sequence = 0
 
         def fail(kind):
             if kind not in failures:
@@ -190,6 +193,12 @@ class RagEngine:
                 fail("payload_budget")
                 trace.append({"stage": stage, "status": "payload_budget_rejected"})
                 return None
+            if stage == "read":
+                # Deduplicate only spans actually passed to a read call. A fetched
+                # candidate dropped from the working window must remain eligible.
+                source_keys.update((item["docid"], item["start"], item["end"], item["text_sha256"])
+                                   for item in material["sources"])
+                usage["source_chars"] += sum(len(item["text"]) for item in material["sources"])
             usage["model_calls"] += 1
             if stage == "answer":
                 usage["final_calls"] += 1
@@ -225,20 +234,46 @@ class RagEngine:
                 return None
 
         def search(queries):
-            added = 0
+            nonlocal source_sequence
+            # Full source text is a per-read working window. Durable claims,
+            # citations, bridges, gaps and unresolved conflicts remain separate.
+            previous = {(item["docid"], item["start"], item["end"], item["text_sha256"]): item
+                        for item in state["sources"]}
+            state["sources"] = []
+            usage["context_source_chars"] = 0
+            batches = []
+            window_keys = set()
+            fallback, fallback_keys = [], set()
             for query in queries[:cfg["max_queries_per_round"]]:
                 key = _query_key(query)
                 if key in {_query_key(item) for item in state["queries_tried"]}:
                     continue
                 state["queries_tried"].append(query)
                 usage["search_calls"] += 1
-                event = {"stage": "search", "query": query, "source_ids": []}
+                event = {"stage": "search", "query": query, "source_ids": [], "reused_source_ids": []}
                 trace.append(event)
                 try:
                     rows = self.backend.search(query, cfg["search_limit"])
                     if not isinstance(rows, list):
                         raise RagContractError("search must return a list")
-                    for row in rows[:cfg["search_limit"]]:
+                    batches.append((event, deque(rows[:cfg["search_limit"]])))
+                    event["status"] = "complete"
+                except Exception as error:
+                    event["status"] = "backend_failure"
+                    event["error_type"] = type(error).__name__
+                    fail("backend_failure")
+
+            active = [batch for batch in batches if batch[1]]
+            while active and usage["context_source_chars"] < cfg["max_context_chars"]:
+                # Interleave result ranks across queries. A large first result
+                # also leaves a share for other queries in the current turn.
+                for index, (event, rows) in enumerate(active):
+                    room = cfg["max_context_chars"] - usage["context_source_chars"]
+                    if room <= 0:
+                        break
+                    allowance = max(1, room // (len(active) - index))
+                    row = rows.popleft()
+                    try:
                         if not isinstance(row, dict):
                             fail("invalid_source")
                             continue
@@ -260,30 +295,58 @@ class RagEngine:
                         if type(end) is not int or end != start + len(text):
                             fail("invalid_source")
                             continue
-                        original_identity = (str(docid), start, end, hashlib.sha256(text.encode("utf-8")).hexdigest())
-                        if original_identity in source_keys:
-                            continue
-                        room = cfg["max_context_chars"] - usage["source_chars"]
-                        presented = text[:min(cfg["max_source_chars"], room)]
-                        if not presented:
-                            fail("source_budget")
-                            break
+                        presented = text[:min(cfg["max_source_chars"], allowance)]
                         presented_sha256 = hashlib.sha256(presented.encode("utf-8")).hexdigest()
-                        source_keys.add(original_identity)
-                        item = {"source_id": "s" + str(len(state["sources"]) + 1),
-                                "docid": str(docid), "start": start,
-                                "end": start + len(presented), "text": presented,
+                        identity = (str(docid), start, start + len(presented), presented_sha256)
+                        if identity in source_keys:
+                            # A new query may retrieve the same useful window.
+                            # Retain only a matching span from the previous read,
+                            # returned by this round; do not keep a full-text pool.
+                            if identity in previous and identity not in fallback_keys:
+                                fallback.append((event, previous[identity]))
+                                fallback_keys.add(identity)
+                            continue
+                        if identity in window_keys:
+                            continue
+                        source_sequence += 1
+                        item = {"source_id": "s" + str(source_sequence), "docid": str(docid),
+                                "start": start, "end": start + len(presented), "text": presented,
                                 "text_sha256": presented_sha256, "source_truncated": len(presented) != len(text)}
                         state["sources"].append(item)
                         event["source_ids"].append(item["source_id"])
-                        usage["source_chars"] += len(presented)
-                        added += 1
-                    event["status"] = "complete"
-                except Exception as error:
-                    event["status"] = "backend_failure"
-                    event["error_type"] = type(error).__name__
-                    fail("backend_failure")
-            return added
+                        window_keys.add(identity)
+                        usage["context_source_chars"] += len(presented)
+                    except Exception as error:
+                        event["status"] = "backend_failure"
+                        event["error_type"] = type(error).__name__
+                        fail("backend_failure")
+                active = [batch for batch in batches if batch[1]]
+            novel_ids = [item["source_id"] for item in state["sources"]]
+            reused_ids = []
+            if not state["sources"]:
+                for event, old in fallback:
+                    room = cfg["max_context_chars"] - usage["context_source_chars"]
+                    if len(old["text"]) > room:
+                        continue
+                    # Stable reuse is safe only because content and offsets are
+                    # identical; never assign an old ID to a different span.
+                    state["sources"].append(dict(old))
+                    usage["context_source_chars"] += len(old["text"])
+                    event["source_ids"].append(old["source_id"])
+                    event["reused_source_ids"].append(old["source_id"])
+                    reused_ids.append(old["source_id"])
+            for event, rows in batches:
+                event["unpresented_candidates"] = len(rows)
+            if active:
+                fail("source_budget")
+            usage["peak_context_source_chars"] = max(usage["peak_context_source_chars"],
+                                                     usage["context_source_chars"])
+            trace.append({"stage": "context_window", "round": state["rounds"] + 1,
+                          "source_chars": usage["context_source_chars"],
+                          "max_context_chars": cfg["max_context_chars"],
+                          "source_ids": [item["source_id"] for item in state["sources"]],
+                          "novel_source_ids": novel_ids, "reused_source_ids": reused_ids})
+            return len(novel_ids)
 
         def consume_read(value):
             # Validate the entire structural schema before mutating evidence.
@@ -332,6 +395,9 @@ class RagEngine:
                                             "support_status": "model_assessed"})
             grounding = task["question"].casefold() + "\n" + "\n".join(item["text"].casefold() for item in state["sources"])
             for entity in value["bridge_entities"]:
+                # Previously grounded bridges survive eviction of their full text.
+                if entity in state["bridge_entities"]:
+                    continue
                 if entity.casefold() not in grounding:
                     fail("ungrounded_bridge_entity")
                 elif entity not in state["bridge_entities"] and len(state["bridge_entities"]) < 24:

@@ -52,6 +52,24 @@ def tasks(rows):
 
 
 class ExecutionDiagnosticsTests(unittest.TestCase):
+    def test_declared_abstention_without_citations_is_not_invalid_citation(self):
+        receipt=row()
+        receipt["host_citation_validation"].update(status="missing_citations",model_claims_evidence=False,raw_citation_ids=[])
+        receipt["host_evidence_trace"]["final_observations"][0]["response"]["evidence_sufficient"]=False
+        result=diagnose_execution(receipt)
+        self.assertIn("missing_answer_citations",result["host_observed"])
+        self.assertNotIn("invalid_answer_citation",result["host_observed"])
+        self.assertNotIn("uncited_supported_claim",result["host_observed"])
+        self.assertLessEqual(max(result["module_priors"].values()),0.35)
+
+    def test_claimed_supported_answer_without_citations_needs_format_repair(self):
+        receipt=row()
+        receipt["host_citation_validation"].update(status="missing_citations",model_claims_evidence=True,raw_citation_ids=[])
+        result=diagnose_execution(receipt)
+        self.assertIn("uncited_supported_claim",result["host_observed"])
+        self.assertNotIn("invalid_answer_citation",result["host_observed"])
+        self.assertEqual(result["module_priors"]["answer_generation"],1)
+
     def test_valid_quote_is_not_a_semantic_verdict(self):
         result = diagnose_execution(row())
         self.assertEqual(result["host_observed"], [])
