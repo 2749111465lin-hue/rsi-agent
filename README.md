@@ -47,8 +47,19 @@ python -B -m code_rsi.v3 offline-demo --out D:\Codex\Projects\rsi-agent\runs\off
 - `code_rsi/v3/execution.py`：复用已验证的 WSL 隔离执行和宿主测量。
 - `code_rsi/v3/experience_policy.py`：经验驱动的父代和改进模块选择。
 - `code_rsi/v3/evolution.py`：单一程序演化、交付选择和报告流程。
+- `code_rsi/v3/diagnostics.py`：从执行记录提取失败与父子配对反馈，区分观测和模型自报。
+- `code_rsi/v3/task_metrics.py`：任务专用指标，缺失标注明确不可评分。
+- `code_rsi/v3/calibration.py`：固定两臂真实调用入口，完整生成冻结后再解锁评分。
 
-正式运行由显式 `manifest`、任务适配器、评分器、模型/语料身份与费用账本组成，再实例化 `EvolutionRunner`。当前命令行只公开零 API 演示入口；真实模型试跑需冻结具体方案与授权范围。没有默认凭据文件读取，也不在导入时发请求。
+正式运行由显式 `manifest`、任务适配器、评分器、模型/语料身份与费用账本组成，再实例化 `EvolutionRunner`。真实模型试跑需冻结具体方案与授权范围。没有默认凭据文件读取，也不在导入时发请求。
+
+```powershell
+python -B -m code_rsi.v3 preflight --plan <本地冻结方案.json>
+python -B -m code_rsi.v3 calibrate --plan <本地冻结方案.json> --execute --approved-plan-hash <已审核方案哈希>
+python -B -m code_rsi.v3 grade --plan <本地冻结方案.json>
+```
+
+`preflight` 只检查文件、语料、源码与费用上界，不读取密钥或发送请求。`calibrate` 需要用户已经授权该方案；命令行哈希本身不能替代授权。成功生成后自动完成本地代理评分和盲评包；未知调用结果会停止。相同方案重启使用已冻结结果，不重复购买请求。
 
 ## 文档
 
@@ -58,6 +69,9 @@ python -B -m code_rsi.v3 offline-demo --out D:\Codex\Projects\rsi-agent\runs\off
 - [SkillOpt / SkillRL / ACE / MemEvolve](docs/v3_supplement_skills_memory.md)
 - [R-Zero / Hyperagents / Harness / CORAL](docs/v3_supplement_harness.md)
 - [题库决定与官方指标边界](docs/v3_benchmark_decision.md)
+- [失败反馈契约](docs/v3_feedback_contract.md)
+- [任务评分规则](docs/v3_task_metrics.md)
+- [8题真实流程校准方案](docs/v3_calibration_protocol.md)
 - [最新验证摘要](docs/v3_validation_summary.json)
 
 MuSiQue开发适配、BrowseComp高难确认、MultiHop回归、BRIGHT检索侧轨各有不同语料与评分要求。内部EM/F1不冒充BrowseComp官方模型裁判成绩。

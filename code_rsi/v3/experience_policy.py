@@ -27,7 +27,7 @@ DEFAULT_MODULES = (
 FIT_ROLES = frozenset(("D_fit", "fit"))
 FAILURE_STATUSES = frozenset(("failed", "error", "invalid", "execution_failed"))
 COST_KEYS = ("cny", "usd", "seconds", "calls", "model_invocations", "tokens")
-POLICY_VERSION = "rag-rsi-v3-experience-1"
+POLICY_VERSION = "rag-rsi-v3-experience-2"
 
 
 def _number(value: Any) -> float | None:
@@ -271,13 +271,20 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
         }
     known = [m for m in modules if stats[m]["utility"] is not None]
     unknown = [m for m in modules if stats[m]["utility"] is None]
+    raw_priors=(parent.get("diagnostics") or {}).get("module_priors",{}) if parent else {}
+    priors={m:v for m in modules if (v:=_number(raw_priors.get(m))) is not None and 0<v<=1}
+    def diagnostic_choice(pool, rotation):
+        ranked=[m for m in pool if m in priors]
+        return max(ranked,key=lambda m:(priors[m],-modules.index(m))) if ranked else pool[rotation%len(pool)]
     debug_hint = _debug_hint(parent, modules) if parent and operator == "Debug" else None
     if debug_hint:
         target, module_reason = debug_hint, "failed_module_requires_repair"
     elif not known:
-        target, module_reason = modules[step % len(modules)], "deterministic_cold_start_rotation"
+        target = diagnostic_choice(modules,step)
+        module_reason = "observed_failure_cold_start_prior" if priors else "deterministic_cold_start_rotation"
     elif unknown and (step % 4 == 0 or max(stats[m]["mean_signed_gain"] for m in known) <= 0):
-        target, module_reason = unknown[(step // 4) % len(unknown)], "deterministic_unmeasured_module_exploration"
+        target = diagnostic_choice(unknown,step//4)
+        module_reason = "diagnostic_unmeasured_module_exploration" if any(m in priors for m in unknown) else "deterministic_unmeasured_module_exploration"
     else:
         target = max(known, key=lambda m: (stats[m]["utility"], -modules.index(m)))
         module_reason = "matched_failure_signed_gain_uncertainty_and_cost"
@@ -295,6 +302,7 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
             "parent_expansion_counts": {c["node_id"]: expansion_counts[c["node_id"]] for c in measured},
             "failure_context_is_diagnostic_not_reward": True,
             "module_statistics": stats, "allowed_modules": list(modules),
+            "cold_start_module_priors":priors,"priors_added_to_answer_reward":False,
             "cost_unit": cost_key, "missing_cost_imputation": missing_cost if cost_key else None,
             "quality_basis": "host_answer_score_only",
             "uncertainty_is_calibrated_confidence_bound": False,
@@ -342,6 +350,7 @@ def memory_for_action(cards: Iterable[Mapping[str, Any]], decision: Mapping[str,
             "failure_classes": list(_failures(card)),
             "failure_assessment_source": card.get("failure_assessment_source", card.get("failure_provenance")),
             "failure_receipts": (card.get("failure_receipts") or [])[-4:],
+            "diagnostics": card.get("diagnostics"),
             "resource_usage": card.get("resource_usage"),
         }))
     return output

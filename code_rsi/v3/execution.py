@@ -13,6 +13,8 @@ from ..budget import LimitExceeded, digest, save, stable
 from ..sandbox import Sandbox, SandboxExecutionError
 from .datasets import validate_public_task, evaluate_answer, filter_documents
 from .infrastructure import LocalCorpus, UnknownProviderOutcome, ModelResponseError
+from .rag import ground_quote
+from .task_metrics import score_task
 
 
 def root_files(config=None):
@@ -155,9 +157,12 @@ class HostBroker:
                 if not isinstance(citation, dict) or not isinstance(citation.get("source_id"), str):
                     continue
                 source = sources.get(citation["source_id"])
-                if source is None:
+                # This helper is imported from trusted host code, never from the
+                # candidate's mutable rag_core.py. Only this call's window counts.
+                grounded = ground_quote(citation, source)
+                if grounded is None:
                     continue
-                item = {**citation, "docid": source["docid"]}
+                item = {**grounded, "docid": source["docid"]}
                 if _matches_source(item, [source], quote=True):
                     identity = _source_identity(item, quote=True)
                     self.verified_read_quotes.add(identity)
@@ -351,14 +356,14 @@ def execute(archive, node_id, task, backend, model, directory, *, limits=None, s
 
 
 def _cell_record(identity, payload):
-    return {"schema":"rag-rsi-v3-measured-cell-1","identity":identity,
+    return {"schema":"rag-rsi-v3-measured-cell-2","identity":identity,
             "identity_sha256":digest(identity),"payload":payload,"payload_sha256":digest(payload)}
 
 
 def _verified_cell(path, expected):
     record=json.loads(Path(path).read_text(encoding="utf-8"))
     if (not isinstance(record,dict) or set(record)!={"schema","identity","identity_sha256","payload","payload_sha256"}
-            or record["schema"]!="rag-rsi-v3-measured-cell-1"
+            or record["schema"]!="rag-rsi-v3-measured-cell-2"
             or record["identity"]!=expected or record["identity_sha256"]!=digest(expected)
             or not isinstance(record["payload"],dict)
             or record["payload_sha256"]!=digest(record["payload"])):
@@ -371,15 +376,34 @@ def _verified_cell(path, expected):
         raise ValueError("cached score outside unit interval")
     if type(row.get("execution_ok")) is not bool or type(row.get("answer_usable")) is not bool:
         raise ValueError("cached cell lacks execution validity")
+    metrics=row.get("task_metrics")
+    names=("answer_em","answer_f1","support_em","support_f1","answerability")
+    if (not isinstance(metrics,dict) or not set(names)<=set(metrics)
+            or metrics.get("question_id")!=expected["question_id"]
+            or metrics.get("dataset")!=expected["dataset"]
+            or not isinstance(metrics.get("protocol"),str) or not metrics["protocol"]
+            or not isinstance(metrics.get("metric_status"),dict)):
+        raise ValueError("cached cell lacks matching task metrics")
+    for name in names:
+        value=metrics[name]
+        if value is not None and (type(value) not in (int,float) or not 0<=value<=1):
+            raise ValueError("cached task metric outside unit interval")
+        if not isinstance(metrics["metric_status"].get(name),str) or not metrics["metric_status"][name]:
+            raise ValueError("cached task metric lacks availability status")
     return row
 
 
 class Measurement:
-    def __init__(self, archive, directory, model_factory, backend_factory=None, *, metric="em", scorer=None, limits=None):
+    def __init__(self, archive, directory, model_factory, backend_factory=None, *, metric="em", scorer=None, limits=None,
+                 allow_proxy_metrics=False):
+        if type(allow_proxy_metrics) is not bool:
+            raise ValueError("allow_proxy_metrics must be explicitly boolean")
         self.archive,self.directory=archive,Path(directory)
         self.model_factory,self.backend_factory=model_factory,backend_factory
         self.metric,self.scorer,self.limits=metric,scorer,limits
-        self.epoch="task-rule-"+metric+"-v3" if scorer is None else "external-"+metric
+        self.allow_proxy_metrics=allow_proxy_metrics
+        primary="task-rule-"+metric if scorer is None else "external-"+metric
+        self.epoch=primary+"-v4-task-metrics-1-proxy-"+str(int(allow_proxy_metrics))
 
     def backend(self, task):
         if task["corpus_scope"]=="question_local" or task["documents"]:
@@ -400,6 +424,10 @@ class Measurement:
             ref=references[task["question_id"]]
             if ref["question_id"]!=task["question_id"] or ref["dataset"]!=task["dataset"]:
                 raise ValueError("reference identity mismatch")
+            if task["dataset"]=="musique" and ref.get("answerable") is False:
+                raise ValueError("MuSiQue-Full requires explicit paired sufficiency evaluation; scalar Measurement cannot score Full")
+            if task["dataset"]=="browsecomp-plus" and self.scorer is None and not self.allow_proxy_metrics:
+                raise ValueError("BCP default rule score requires explicit allow_proxy_metrics; it is not an official judge")
         stored=self.archive.load_node(node["node_id"])
         if stored["program_id"]!=node["program_id"]:
             raise ValueError("node and program identities differ")
@@ -421,7 +449,8 @@ class Measurement:
         identity=digest({"node":node["node_id"],"program":node["program_id"],"panel":panel,
             "reference_hash":digest(references),"epoch":self.epoch,"role":role,"bank":bank,
             "repeats":repeats,"limits":self.limits,"environments":environments,
-            "cell_schema":"rag-rsi-v3-measured-cell-1"})
+            "allow_proxy_metrics":self.allow_proxy_metrics,
+            "cell_schema":"rag-rsi-v3-measured-cell-2"})
         folder=self.directory/identity
         rows=[]
         for task in public_tasks:
@@ -430,7 +459,8 @@ class Measurement:
                 cell=folder/(digest(qid)[:16]+"_"+str(rep))
                 done=cell/"measured.json"
                 expected={"measurement_identity_hash":identity,"node_id":node["node_id"],
-                    "program_id":node["program_id"],"question_id":qid,"role":role,"bank":bank,"repeat":rep,
+                    "program_id":node["program_id"],"question_id":qid,"dataset":task["dataset"],
+                    "role":role,"bank":bank,"repeat":rep,
                     "task_hash":digest(task),"reference_hash":digest(references[qid]),
                     "evaluator_epoch":self.epoch,"backend_identity":environments[qid]["backend"],
                     "model_identity":environments[qid]["models"][str(rep)]}
@@ -442,11 +472,12 @@ class Measurement:
                         raise HostError("measurement environment changed before execution")
                     receipt=execute(self.archive,node["node_id"],task,backend,model,cell,limits=self.limits)
                     ref=references[qid]
+                    metrics=score_task(receipt,ref,task=task,allow_proxy_metrics=self.allow_proxy_metrics)
                     score=(self.scorer(receipt["answer"],ref) if self.scorer else
                            evaluate_answer(receipt["answer"],ref,self.metric)) if receipt["answer_usable"] else 0.0
                     if type(score) not in (int,float) or not 0<=score<=1:
                         raise ValueError("scorer must return unit score")
-                    row={**receipt,"score":score,"repeat":rep,"role":role}
+                    row={**receipt,"score":score,"task_metrics":metrics,"repeat":rep,"role":role}
                     save(done,_cell_record(expected,row))
                 rows.append(row)
         per_question={task["question_id"]:sum(x["score"] for x in rows if x["question_id"]==task["question_id"])/repeats for task in public_tasks}

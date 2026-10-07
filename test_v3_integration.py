@@ -104,9 +104,9 @@ class IntegrationTests(unittest.TestCase):
 
     def test_signed_negative_reward_survives(self):
         common={'node_id':'child','program_id':'p','panel_hash':'panel','evaluator_epoch':'em','valid_program':True,
-                'resource_usage':{'calls':2},'rows':[{'failure_classes':[],'answer_usable':True,'citation_source_valid':False,'answer':'wrong'}]}
+                'role':'D_fit','complete':True,'metric':'em','resource_usage':{'calls':2},'rows':[{'question_id':'q','score':0,'failure_classes':[],'answer_usable':True,'citation_source_valid':False,'answer':'wrong'}]}
         result={**common,'score':0,'per_question':{'q':0}}
-        parent={**common,'node_id':'parent','score':1,'per_question':{'q':1}}
+        parent={**common,'node_id':'parent','score':1,'per_question':{'q':1},'rows':[{**common['rows'][0],'score':1}]}
         card=experience_card(result,parent,operator='Improve',module='answer_generation',step=1,mechanism='test')
         self.assertEqual(card['signed_delta_vs_best_parent'],-1)
         self.assertFalse(card['reward']['proxy_added_to_terminal_quality'])

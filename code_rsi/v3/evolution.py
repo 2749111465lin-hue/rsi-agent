@@ -13,6 +13,7 @@ from ..budget import digest, save, stable
 from .datasets import validate_task_collection
 from .execution import Measurement, root_files, validate_sources
 from .experience_policy import choose_next, memory_for_action
+from .diagnostics import compact_feedback
 
 
 def freeze(path, value):
@@ -109,19 +110,9 @@ class ProgramDeveloper:
     def propose(self, program, decision, experience, result, tasks, references):
         if result["role"]!="D_fit":
             raise ValueError("developer receives D_fit only")
-        by_id={t["question_id"]:t for t in tasks}
-        failures=[r for r in result["rows"] if r["score"]<1 or not r["execution_ok"]]
-        examples=[]
-        for row in failures[:4]:
-            qid=row["question_id"]
-            reported=row.get("candidate_reported") or {}
-            examples.append({"question":by_id[qid]["question"],"reference_not_sent":True,
-                "prediction":row["answer"],"host_score":row["score"],
-                "host_failures":row["failure_classes"],"model_errors":row["model_errors"],
-                "evidence_state":reported.get("state"),"failure_reported":reported.get("failure_types"),
-                "failure_reported_is_not_verified":True})
+        feedback=compact_feedback(result,tasks,max_cases=4)
         output=self.model.complete("develop",{"source_files":program["files"],"decision":decision,
-             "experience":experience,"feedback":{"role":"D_fit","score":result["score"],"examples":examples},
+             "experience":experience,"feedback":feedback,
              "edit_boundary":"Change reusable module behavior, do not embed examples/answers. Return complete changed files."})
         _proposal_files(program,decision,output)
         return output
@@ -129,8 +120,17 @@ class ProgramDeveloper:
 
 def experience_card(result, parent, *, operator, module, step, mechanism):
     per=result["per_question"]
+    feedback=compact_feedback({**result,**({"parent_measurement":parent} if parent else {})},
+              [{"question_id":qid,"question":""} for qid in per],max_cases=0)
+    if feedback["measurement_status"]!="complete":
+        raise ValueError("unavailable outcome cannot enter experience")
     paired={qid:score-parent["per_question"][qid] for qid,score in per.items()} if parent else {}
-    failures=sorted(set(f for row in result["rows"] for f in row["failure_classes"]))
+    failures=sorted(set(f for row in result["rows"] for f in row.get("failure_classes",[]))
+                    | set(feedback["summary"]["host_observed"]))
+    diagnostic={"host_observed":sorted(feedback["summary"]["host_observed"]),
+                "model_reported":sorted(feedback["summary"]["model_reported"]),
+                "module_priors":feedback["module_priors"],"priors_are_design_heuristics":True,
+                "semantic_support":"not_host_verified","paired_summary":feedback["paired_summary"]}
     if any(x<1 for x in per.values()): failures.append("answer_quality")
     return {"node_id":result["node_id"],"program_id":result["program_id"],"role":"D_fit",
       "panel_hash":result["panel_hash"],"evaluator_epoch":result["evaluator_epoch"],
@@ -138,7 +138,7 @@ def experience_card(result, parent, *, operator, module, step, mechanism):
       "signed_delta_vs_best_parent":result["score"]-parent["score"] if parent else None,
       "signed_deltas":{parent["node_id"]:result["score"]-parent["score"]} if parent else {},
       "parent_node_ids":[parent["node_id"]] if parent else [],"operator":operator,"target_module":module,
-      "step":step,"hypothesis":mechanism,"failure_classes":failures,
+      "step":step,"hypothesis":mechanism,"failure_classes":failures,"diagnostics":diagnostic,
       "failure_assessment_source":"host_execution_and_fit_answer_scores",
       "paired_deltas":paired,"resource_usage":result["resource_usage"],
       "behavior":{"group_hash":digest([r["answer"] for r in result["rows"]])},
@@ -188,7 +188,8 @@ class EvolutionRunner:
         freeze(self.directory/"manifest.json",self._frozen_manifest)
         self.archive=ProgramArchive(self.directory/"archive")
         self.measure=Measurement(self.archive,self.directory/"measurements",model_factory,backend_factory,
-             metric=manifest["metric"],scorer=scorer,limits=manifest.get("limits"))
+             metric=manifest["metric"],scorer=scorer,limits=manifest.get("limits"),
+             allow_proxy_metrics=manifest.get("allow_proxy_metric",False))
 
     def _snapshot(self):
         return {**deepcopy(self.manifest),
@@ -243,8 +244,11 @@ class EvolutionRunner:
                 if child is not None:
                     raise ValueError("child receipt has no proposal")
                 try:
+                    development_result=deepcopy(results[parent["node_id"]])
+                    if parent.get("parent_node_id") in results:
+                        development_result["parent_measurement"]=deepcopy(results[parent["parent_node_id"]])
                     proposal=deepcopy(self.developer.propose(deepcopy(program),deepcopy(decision),
-                      memory_for_action(cards,decision),deepcopy(results[parent["node_id"]]),
+                      memory_for_action(cards,decision),development_result,
                       deepcopy(self.panels["D_fit"]),deepcopy(self.references["D_fit"])))
                     self._assert_frozen()
                     proposed=_proposal_files(program,decision,proposal)

@@ -2,8 +2,8 @@
   "schema": "rag-rsi-v3-validation-summary-1",
   "date": "2026-10-07",
   "unit_tests": {
-    "run": 116,
-    "passed": 116,
+    "run": 251,
+    "passed": 251,
     "failed": 0,
     "command": "python -B -m unittest discover -s . -p test_v3_*.py -q"
   },
@@ -15,7 +15,10 @@
     "synthetic_model": true,
     "synthetic_questions": true,
     "predefined_edit": true,
-    "quality_claim": "engineering plumbing only, not LLM or benchmark improvement"
+    "quality_claim": "engineering plumbing only, not LLM or benchmark improvement",
+    "quote_without_model_offsets": true,
+    "task_metrics_present": true,
+    "structured_failure_feedback": true
   },
   "fixed_corpus_smoke": {
     "all_source_windows_exact": true,
@@ -31,8 +34,8 @@
   "new_api_cost_cny": 0,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "real DeepSeek fixed-budget calibration",
-    "official task-specific metrics beyond internal EM/F1",
+    "new authorization and real DeepSeek workflow calibration",
+    "official BrowseComp semantic judging and independent confirmation",
     "experience/skill ablation on independent tasks"
   ],
   "source_hashes": {
@@ -40,17 +43,49 @@
     "code_rsi/archive.py": "407add6109814e59e4d1437a42e73663a172cdc10a3de800664c1c2c52587ce2",
     "code_rsi/budget.py": "bde4f5c69c5a7bbfedc6552019edc28a26a26632cb4393f883823c9efb5a5dbe",
     "code_rsi/candidate_runner.py": "1e6ab18bbd86d6ff5f6b1fffbcd42c41a4025c9c1097340b50cd6094f28c8c1f",
+    "code_rsi/linux_launcher.sh": "2ca86a174e52229a4a4f45ae85a5bbe3be5f2bf77c6ea10450a838f1a783cc1c",
     "code_rsi/sandbox.py": "821a21bf8d9efadc08d7c213c9b143e63d5083933a025d517953cfa0eb57f1ae",
     "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
     "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
-    "code_rsi/v3/__main__.py": "a9f61a43be3ab068645c1304d5dd4cf694ced6ec7475cea95506484bee5d8e26",
+    "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
+    "code_rsi/v3/calibration.py": "7fdc0046e1a6b6d6d64f1e950ef28725504ec9b02d826270f08e4c393e0b1769",
     "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
-    "code_rsi/v3/evolution.py": "3a8fd91df460cae5371f2367d105c9572258fb955eed8a7e4e92d60bc742d43d",
-    "code_rsi/v3/execution.py": "c7c46aac257668848d862698809fa8fb416511473e418171ef07cb6daccb9352",
-    "code_rsi/v3/experience_policy.py": "f4a5d0b4874656d93255e53533258ec0f197860fe65c6ebeb38ffe20cf65bf00",
-    "code_rsi/v3/infrastructure.py": "61e1e702aa0fb7c3e1cf09676bc1f368d303c63ca530a54c0eef7731abe70cf1",
-    "code_rsi/v3/offline_demo.py": "89551be56add1555f9091324edb658b5c8ed30eba8b7e0dcfa18468d9f979024",
-    "code_rsi/v3/rag.py": "a84ce8480d5b526e92ea107033f4f044aa5c80ecbfdcb1ad31ebef1e83e985a4"
+    "code_rsi/v3/diagnostics.py": "700091648aa90f5bef5e6d326d67eff43bc7e96a4a9fb233aea2d949dc60c46c",
+    "code_rsi/v3/evolution.py": "4ca0a7c5f5a5a2b3f31ea158938ab4ffd5ac88b9ea79b2074ee400b105271990",
+    "code_rsi/v3/execution.py": "a212923afc95752f3062f1861fcc73f2c765c14793c13897f0624beeee64e240",
+    "code_rsi/v3/experience_policy.py": "fb376c5481edb083f533a3854f5ca48d84d661da69ac7555a95ff66d57f07c6b",
+    "code_rsi/v3/infrastructure.py": "03ffa076c76e723f3d1987b12a60a4570da78cdbd04d6ce4641bf6ded7f21bb0",
+    "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
+    "code_rsi/v3/rag.py": "477230fa18e9bca31c1adb1db3c56ce214e1183612102b8982e2468c0a88147e",
+    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
   },
-  "source_hash_encoding": "UTF-8 LF canonical bytes"
+  "source_hash_encoding": "UTF-8 LF canonical bytes",
+  "real_wsl_calibration_smoke": {
+    "frozen_outcomes": 2,
+    "quality_claim": "engineering only, not benchmark performance",
+    "real_api_calls": 0,
+    "real_api_cost_cny": 0,
+    "real_wsl": true,
+    "reference_access_after_complete_generation": true,
+    "scripted_model": true,
+    "status": "pass",
+    "synthetic_tasks": true,
+    "synthetic_transport_calls": 6
+  },
+  "live_preflight": {
+    "answer_outcomes": 32,
+    "conservative_cny_upper_bound": 28.594176,
+    "credentials_read": false,
+    "hard_cny": 30,
+    "max_calls": 112,
+    "new_api_calls": 0,
+    "plan_hash": "c0b457fc2ce4188f61844c36befe23bc46627547223e42cc9cdbace970616d0f",
+    "primary_claim": "development calibration; no independent benchmark generalization",
+    "question_count": 8,
+    "references_parsed": false,
+    "repeats": 2,
+    "same_realized_cost": false,
+    "same_resource_ceiling": true,
+    "status": "ready_for_explicit_execution"
+  }
 }

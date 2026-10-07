@@ -52,7 +52,7 @@ class FakeMeasurement:
         result={'node_id':node['node_id'],'program_id':node['program_id'],
                 'role':role,'panel_hash':panel_hash,'evaluator_epoch':self.epoch,
                 'score':score,'per_question':{t['question_id']:score for t in tasks},
-                'valid_program':True,'resource_usage':{'calls':0},'rows':rows}
+                'complete':True,'metric':'em','valid_program':True,'resource_usage':{'calls':0},'rows':rows}
         save(path,result)
         if role=='D_report' and self.audit.crash_report_after_save:
             self.audit.crash_report_after_save=False

@@ -38,7 +38,7 @@ class FixtureModel:
             return {"constraints":["discoverer and birthplace"],"queries":[f"{comet} comet discovery"]}
         if stage=="read":
             found=any("was born" in s["text"] for s in payload["sources"])
-            return {"claims":[{"text":s["text"],"citations":[{"source_id":s["source_id"],"start":s["start"],"end":s["end"],"quote":s["text"]}]} for s in payload["sources"]],
+            return {"claims":[{"text":s["text"],"citations":[{"source_id":s["source_id"],"quote":s["text"]}]} for s in payload["sources"]],
                 "bridge_entities":[person],"gaps":[] if found else ["birthplace"],"conflicts":[],
                 "queries":[] if found else [person+" birthplace"],"ready":found}
         cited=[e["citation_id"] for e in payload["evidence"] if "was born" in e["quote"]]
