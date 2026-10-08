@@ -1,0 +1,199 @@
+{
+  "schema": "rag-rsi-musique-calibration-preparation-1",
+  "date": "2026-10-08",
+  "status": "ready_pending_specific_paid_scope_approval",
+  "base_commit": "fb469aca15b4e05f12a697178a6c38a74af702eb",
+  "plan_hash": "a1539cbaf64512a3ce407e13cc024b8026d92b00cb2b04ae2d8f235259d3c697",
+  "plan_file_sha256": "114f97ce4606d2b345947fbfb419d55ee3002364399bb2af664e4b289034968c",
+  "unit_tests": {
+    "run": 632,
+    "passed": 632,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 125.088,
+    "real_wsl_opt_in": true,
+    "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+    "local_log_sha256": "e29be2bd01acac5fc969924aed9546a400cef14c05c4b01e909e36361faf436d",
+    "ci_note": "Default CI skips explicit real-WSL opt-in; this local result includes it."
+  },
+  "actual_api_calls": 0,
+  "actual_api_cost_cny": 0,
+  "credentials_read": false,
+  "question_count": 24,
+  "repeats": 2,
+  "answer_outcomes": 144,
+  "question_use": "used_development",
+  "data_role": "D_fit",
+  "reserved_roles_measured": false,
+  "arms": {
+    "planned": "planned_single",
+    "loop": "iterative",
+    "support": "planned_single"
+  },
+  "normal_primary_comparison": [
+    {
+      "baseline": "planned",
+      "candidate": "loop",
+      "name": "iteration"
+    }
+  ],
+  "support_arm_is_diagnostic_only": true,
+  "support_labels_projected_before_generation": true,
+  "answer_map_parsed_by_generation": false,
+  "dependency_summary": {
+    "component_hop_composition_counts": {
+      "2": 8,
+      "3": 6,
+      "3/3": 1,
+      "4": 8
+    },
+    "component_size_distribution": {
+      "1": 22,
+      "2": 1
+    },
+    "hop_counts": {
+      "2": 8,
+      "3": 8,
+      "4": 8
+    },
+    "known_dependency_components": 23,
+    "known_relations_exhaust_all_dependencies": false,
+    "questions": 24,
+    "shared_question_pairs_by_relation": {
+      "normalized_subquestion": 1,
+      "singlehop_id": 1,
+      "support_paragraph": 1
+    },
+    "shared_question_pairs_union": 1
+  },
+  "model": {
+    "max_input_bytes": 120000,
+    "name": "deepseek-flash",
+    "output_limits": {
+      "answer": 800,
+      "plan": 1200,
+      "read": 2200
+    },
+    "prices": {
+      "input_hit": 0.04,
+      "input_miss": 2,
+      "output": 8
+    },
+    "temperature": 0,
+    "thinking": "disabled"
+  },
+  "limits": {
+    "max_models": 7,
+    "max_reads": 8,
+    "max_searches": 8
+  },
+  "common_config": {
+    "max_answer_chars": 1000,
+    "max_context_chars": 24000,
+    "max_evidence_items": 24,
+    "max_model_calls": 7,
+    "max_output_chars": 30000,
+    "max_payload_chars": 64000,
+    "max_queries_per_round": 2,
+    "max_rounds": 3,
+    "max_source_chars": 6000,
+    "max_stagnant_rounds": 2,
+    "prompts": {},
+    "search_limit": 5
+  },
+  "max_calls": 528,
+  "hard_cny": 135,
+  "conservative_cny_upper_bound": 134.329344,
+  "expected_invoice_claimed": false,
+  "budget_relies_on_cache_savings": false,
+  "price_source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "price_checked_date": "2026-10-08",
+  "scripted_wsl": {
+    "all_answer_origin_verified": true,
+    "all_isolation_verified": true,
+    "cells": 12,
+    "claim": "engineering integration only; synthetic answers do not show real LLM improvement",
+    "credentials_read": false,
+    "full_support_material_cells": 4,
+    "main_analysis_cells": 8,
+    "plan_hash": "25c44ad67c201d9a12e747c543c6e9b0384c06875849aa8285e7a52058da2342",
+    "real_api_calls": 0,
+    "real_wsl": true,
+    "resume_new_responses": 0,
+    "schema": "musique-scripted-wsl-validation-1",
+    "scripted_model": true,
+    "scripted_responses": 24,
+    "scripted_stage_counts": {
+      "answer": 8,
+      "plan": 4,
+      "read": 12
+    },
+    "synthetic_tasks": true,
+    "verified_prefix_pairs": 4
+  },
+  "capacity_check": {
+    "scenarios": {
+      "schema_maximum_unicode": {
+        "all_below_frozen_bounds": true,
+        "all_complete_support_material_present": true,
+        "max_complete_request_utf8_bytes": 110785,
+        "max_payload_chars_observed": 31622,
+        "max_source_chars": 2960,
+        "questions": 24
+      },
+      "short_public_question_plan": {
+        "all_below_frozen_bounds": true,
+        "all_complete_support_material_present": true,
+        "max_complete_request_utf8_bytes": 6977,
+        "max_payload_chars_observed": 5832,
+        "max_source_chars": 2960,
+        "questions": 24
+      }
+    },
+    "bounds": {
+      "complete_request_utf8_bytes": 120000,
+      "payload_chars": 64000
+    },
+    "api_calls": 0,
+    "references_file_opened": false,
+    "answer_fields_accessed": false,
+    "model_effectiveness_tested": false
+  },
+  "local_artifact_sha256": {
+    "support_materials.json": "af8b426e7c6e1caead1735074a594a0ffb85d75a5158e821ac2f537796295147",
+    "dependency_groups.json": "c9274e2d16b11ca6f9e98ce1fb53220011ba2880444f0cee5751a54a4ded665c",
+    "capacity_check.json": "7bc9c3e81e79efac570a2676b49c1867bedf49dda71dc4bc0839cd8b9e945ec7",
+    "scripted_wsl/summary.json": "d5da33034311e1429298276cf3ad004bb6ed39ed7fa3a383ed5007af67bca1b1",
+    "preparation_receipt.json": "5b094981b9c74097014a84cef6c753727333b07068bf6be16ae2b011b9b0283a"
+  },
+  "runtime_source_hashes": {
+    "archive.py": "beb3b95644532e482b1c372484023017e8542a45605273d59f4bc3490298d675",
+    "budget.py": "eeb444d0e32456a3642bfe4b391eeb57585d1a7485ef7a985aeba0dd0fea1e73",
+    "candidate_runner.py": "ace9b1715d26f8c0d7432c766d00ba1bc47dee174b49bd5d34a989edb97617de",
+    "linux_launcher.sh": "8f76de1477d80097d47b49c154ab6d83068ab6d93a5625c48f766c531a264921",
+    "sandbox.py": "146084015add89112f7b1ec42b18dd7dca84e63813d662b7cf8ddfee78fc8889",
+    "sdk.py": "65cffb80a77f643853fa8d54fef8a60f88ae6ac08dad4a460524e559c2e95b49",
+    "v3\\__init__.py": "997c6c0fb5c807b4d2a45395faab8e0c9ca16751ae58e8a71fce920e9e30681d",
+    "v3\\__main__.py": "be4107909b66d2aa2d138f5b0759afbca1f3f6641282830a62010e5ccb602944",
+    "v3\\browsecomp_data.py": "d8fdbc2171d39e79886440b0817e5d2c04547c8f87a6fd92b2b6394fc49ac4c0",
+    "v3\\calibration.py": "055452fe80b0caaa1f37c0a1cec456bce75d6e098de9146ee31e7df3a2a50e8e",
+    "v3\\datasets.py": "c4f6ccff85dacb4e632f87095099dd85e1f94b8387f119230cf673b36ecc650b",
+    "v3\\diagnostics.py": "776cd7417f5a0de0501beba864622e7ee7b37e12eadf3e13c68a6d7a857958ae",
+    "v3\\edit_scope.py": "e6849fa102584d6bed803c2fecdac7970ee555f69cc1ff99df83981a33c3e060",
+    "v3\\evolution.py": "c807a2ecf9b124d1995bf59221faec0de8ccf8804d2fedfa6634a5b91b73596d",
+    "v3\\execution.py": "a5aafbe47b7d9c253d655ff20667347fd815ffe19ad99fe25c380786e2015727",
+    "v3\\experience_policy.py": "d568a0b3e31c383494abad61ee2de38cc483650a96c58b2efdb2d9be641c7eab",
+    "v3\\fit_literal_audit.py": "9220965f03311a789b728188f8a9ab21dc5a273d601dbabe5465e74930d24d57",
+    "v3\\infrastructure.py": "caa1a1e3e22734751547a621bcbcc7328360262bfab9591ca4c28388aa53353e",
+    "v3\\musique_calibration.py": "4024bb1194ec7cef277fb60e0e9dbb7468685e5803b50483d628dbc05c9d26e3",
+    "v3\\offline_demo.py": "6b7ee2c7e8c6a1ea6fce3033bef6225b56d83f3f7987f9f659b2e712e5cd9f8d",
+    "v3\\paired_analysis.py": "8a2e2bdedb00af04057f0753597685e64bef4a66aa8cee5f14630c14808f439c",
+    "v3\\rag.py": "af7de7a5892894b37ee0e3c5642c6a5ba55ce65dfef803aead50177e87013ba3",
+    "v3\\reader_probe.py": "a3774ed1580b10142aeccfbc8ceb13c6ea7f1f7d63d112623c9f7356873e848f",
+    "v3\\reader_replay.py": "238277e80062c42f35578ee4a01436c654fd93fea32027ac6f8ccdcce5e96312",
+    "v3\\request_recovery.py": "fd2ee2f6e3ea263ab5372b005093ec256110181e709b2a9971a07c22b6ed463c",
+    "v3\\task_metrics.py": "1e86984ba904fc7a226bf803323254885f8f4142669cc164135f2025d6219c4a"
+  },
+  "real_llm_improvement_verified": false,
+  "boundary": "Engineering and real-material capacity validation only; no MuSiQue LLM results or RSI gain yet."
+}

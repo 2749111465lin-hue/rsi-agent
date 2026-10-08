@@ -22,7 +22,8 @@ from .evolution import freeze, read, recoverable_record, _runtime_source_hashes
 from .execution import execute, root_files, validate_sources, EXECUTION_SCHEMA, validate_answer_origin
 from .infrastructure import BrowseCompCorpus, StructuredModel, deepseek_transport
 from .rag import RagEngine, DEFAULTS
-from .paired_analysis import validate_analysis, paired_analysis
+from .paired_analysis import validate_analysis, paired_analysis, SINGLE_CONTRAST_SCHEMA
+from . import musique_calibration as musique
 from .request_recovery import check_request_recovery, check_request_accounting
 from .browsecomp_data import validate_source, acquire_references, DECODER_VERSION
 
@@ -69,7 +70,10 @@ def _task_snapshot(plan):
     if sorted(t["question_id"] for t in tasks)!=sorted(plan["question_ids"]):
         raise ValueError("declared question scope differs")
     for task in tasks:
-        if task["dataset"]!="browsecomp-plus" or task["corpus_ref"]!=plan["corpus_ref"]:
+        if plan.get("schema")==musique.SCHEMA:
+            if task["dataset"]!="musique" or task["corpus_scope"]!="question_local" or task["excluded_docids"]:
+                raise ValueError("MuSiQue calibration requires complete question-local Ans inputs")
+        elif task["dataset"]!="browsecomp-plus" or task["corpus_ref"]!=plan["corpus_ref"]:
             raise ValueError("this initial live calibration binds the fixed BrowseComp corpus")
     return tasks
 
@@ -115,7 +119,7 @@ class _PreflightServices:
 
 def load_plan(path):
     plan=read(path)
-    if not isinstance(plan,dict) or plan.get("schema") not in {SCHEMA,THREE_ARM_SCHEMA}:
+    if not isinstance(plan,dict) or plan.get("schema") not in {SCHEMA,THREE_ARM_SCHEMA,musique.SCHEMA}:
         raise ValueError("unknown calibration plan")
     return plan
 
@@ -127,10 +131,12 @@ def preflight(plan, *, verify_corpus=True):
 
 def _preflight(plan, *, verify_corpus=True):
     three_arm=plan.get("schema")==THREE_ARM_SCHEMA
-    if plan.get("schema") not in {SCHEMA,THREE_ARM_SCHEMA} or plan.get("purpose") != (
-            "workflow_decomposition_calibration" if three_arm else "used_development_calibration"):
+    local=plan.get("schema")==musique.SCHEMA
+    purpose="musique_mechanism_calibration" if local else (
+        "workflow_decomposition_calibration" if three_arm else "used_development_calibration")
+    if plan.get("schema") not in {SCHEMA,THREE_ARM_SCHEMA,musique.SCHEMA} or plan.get("purpose")!=purpose:
         raise ValueError("calibration purpose must be explicit")
-    if three_arm:
+    if three_arm or local:
         if plan.get("request_coupling")!=REQUEST_COUPLING:
             raise ValueError("three-arm exact-request coupling must be frozen")
         if plan.get("question_use") not in {"used_development","unused_declared","synthetic"}:
@@ -140,10 +146,16 @@ def _preflight(plan, *, verify_corpus=True):
     tasks=_task_snapshot(plan)
     # Existing reference bytes may be hashed; deferred sources are metadata only.
     _reference_contract(plan,tasks)
-    if verify_corpus:
+    if local:
+        if plan.get("data_role")!="D_fit" or plan.get("corpus") is not None or plan.get("corpus_ref") is not None:
+            raise ValueError("MuSiQue calibration is D_fit only with null shared corpus")
+        if "reference_acquisition" in plan:
+            raise ValueError("MuSiQue uses a frozen local reference map")
+        materials=musique.validate_support_materials(json.loads(_verified_bytes(plan["support_materials_file"])),tasks)
+    elif verify_corpus:
         _verified_file(plan["corpus"])
     arms=plan["arms"]
-    arm_count=3 if three_arm else 2
+    arm_count=3 if three_arm or local else 2
     if (not isinstance(arms,list) or len(arms)!=arm_count
             or any(not isinstance(a,dict) or not isinstance(a.get("name"),str)
                    or not a["name"] or not isinstance(a.get("config"),dict) for a in arms)
@@ -189,7 +201,8 @@ def _preflight(plan, *, verify_corpus=True):
             raise ValueError("host search budget cannot cover declared workflow queries")
         calls += maximum
         output += plan_calls*model["output_limits"]["plan"]+rounds*model["output_limits"]["read"]+model["output_limits"]["answer"]
-    expected_modes={"single_pass","planned_single","iterative"} if three_arm else {"single_pass","iterative"}
+    expected_modes=({"planned_single","iterative"} if local else
+        {"single_pass","planned_single","iterative"} if three_arm else {"single_pass","iterative"})
     if set(modes)!=expected_modes:
         raise ValueError("comparison requires exactly the declared workflow modes")
     if three_arm:
@@ -204,6 +217,21 @@ def _preflight(plan, *, verify_corpus=True):
             ("iteration",mode_to_name["planned_single"],mode_to_name["iterative"])}
         if {(c["name"],c["baseline"],c["candidate"]) for c in analysis["comparisons"]}!=expected_comparisons:
             raise ValueError("freeze planning A-to-B and iteration B-to-C comparisons")
+    if local:
+        if {a["name"]:a["config"].get("mode") for a in arms}!=musique.ARMS:
+            raise ValueError("MuSiQue requires planned, loop and diagnostic support arms")
+        analysis=validate_analysis(plan.get("analysis"),question_ids=plan["question_ids"],arm_names=["planned","loop"])
+        if (analysis["schema"]!=SINGLE_CONTRAST_SCHEMA or analysis["comparisons"]!=[
+                {"name":"iteration","baseline":"planned","candidate":"loop"}]):
+            raise ValueError("only normal planned-to-loop is the primary comparison")
+        cfg={**DEFAULTS,**arms[0]["config"]}
+        if cfg["max_rounds"]<2:
+            raise ValueError("normal iteration must permit at least two rounds")
+        for docs in materials.values():
+            longest=max(len(d["text"]) for d in docs)
+            if (cfg["search_limit"]<len(docs) or cfg["max_source_chars"]<longest
+                    or cfg["max_context_chars"]<sum(len(d["text"]) for d in docs)+longest*cfg["max_queries_per_round"]):
+                raise ValueError("profile cannot present the full supplied support material")
     # Same per-question envelope; realized expenditure is reported separately.
     base={k:v for k,v in arms[0]["config"].items() if k!="mode"}
     if any(base!={k:v for k,v in arm["config"].items() if k!="mode"} for arm in arms[1:]):
@@ -212,7 +240,7 @@ def _preflight(plan, *, verify_corpus=True):
     if type(plan["max_calls"]) is not int or plan["max_calls"]!=calls:
         raise ValueError("call ceiling differs from derived exact structural bound")
     worst=((model["max_input_bytes"]+1024)*calls*prices["input_miss"]+output*prices["output"])/1e6
-    if type(plan["hard_cny"]) not in (float,int) or not math.isfinite(plan["hard_cny"]) or not worst<=plan["hard_cny"]<=100:
+    if type(plan["hard_cny"]) not in (float,int) or not math.isfinite(plan["hard_cny"]) or not worst<=plan["hard_cny"]<=(200 if local else 100):
         raise ValueError("hard cap cannot cover conservative complete-plan envelope")
     expected=_runtime_source_hashes()
     if plan.get("runtime_source_hashes")!=expected:
@@ -224,10 +252,13 @@ def _preflight(plan, *, verify_corpus=True):
         "reference_binding":"deferred_official_acquisition" if "reference_acquisition" in plan else "frozen_local_file",
         "reference_source_verified_before_generation":"metadata_only" if "reference_acquisition" in plan else "file_sha256_only",
         "same_resource_ceiling":True,"same_realized_cost":False,
-        "primary_claim":"workflow decomposition; declared newness is not independent confirmation" if three_arm else "development calibration; no independent benchmark generalization",
+        "primary_claim":"MuSiQue development calibration; support arm is diagnostic only" if local else (
+            "workflow decomposition; declared newness is not independent confirmation" if three_arm else "development calibration; no independent benchmark generalization"),
+        "support_labels_used_for_diagnostic":local,
+        "support_materials_are_reference_answers":False,
         "request_coupling":REQUEST_COUPLING,"prefix_coupling_includes_identical_final_requests":True,
         "question_use":plan.get("question_use","used_development"),
-        "independent_groups":len(set(plan["analysis"]["question_groups"].values())) if three_arm else len(tasks)},tasks
+        "independent_groups":len(set(plan["analysis"]["question_groups"].values())) if three_arm or local else len(tasks)},tasks
 
 
 @contextmanager
@@ -335,6 +366,12 @@ def _cell_path(out, relative):
     return path
 
 
+def _musique_environment(plan, tasks=None):
+    tasks=_task_snapshot(plan) if tasks is None else tasks
+    materials=json.loads(_verified_bytes(plan["support_materials_file"]))
+    return musique.build_backends(tasks,materials)
+
+
 def _validated_generation(plan, frozen, *, expected_backend=None):
     """Validate all completion evidence before resume or private-reference access.
 
@@ -354,6 +391,10 @@ def _validated_generation(plan, frozen, *, expected_backend=None):
         raise ValueError("runtime or scorer changed since generation plan freeze")
     if expected_backend is not None and frozen["corpus_identity"]!=expected_backend:
         raise ValueError("frozen backend identity differs")
+    local=plan.get("schema")==musique.SCHEMA
+    local_backends,panel_identity=_musique_environment(plan) if local else ({},None)
+    if local and frozen["corpus_identity"]!=panel_identity:
+        raise ValueError("frozen MuSiQue input environment differs")
     expected={(qid,arm["name"],rep) for qid in plan["question_ids"]
               for arm in plan["arms"] for rep in range(plan["repeats"])}
     cells=frozen.get("cells")
@@ -382,11 +423,13 @@ def _validated_generation(plan, frozen, *, expected_backend=None):
                 or not isinstance(identity["question_id"],str) or not isinstance(identity["arm"],str)
                 or type(identity["repeat"]) is not int
                 or identity["plan_hash"]!=digest(plan)
-                or identity["backend"]!=frozen["corpus_identity"]):
+                or (not local and identity["backend"]!=frozen["corpus_identity"])):
             raise ValueError("frozen generation identity mismatch")
         key=(identity["question_id"],identity["arm"],identity["repeat"])
         if key not in expected or key in seen:
             raise ValueError("duplicate or out-of-panel generation cell")
+        if local and identity["backend"]!=local_backends[(key[0],key[1])].identity:
+            raise ValueError("MuSiQue cell backend or material scope differs")
         seen.add(key)
         relative=_cell_relative(*key)
         if cell["file"]!=relative:
@@ -421,6 +464,10 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
     check,tasks=_preflight(plan,verify_corpus=backend is None)
     if approved_plan_hash!=check["plan_hash"]:
         raise ValueError("execution hash differs from reviewed plan")
+    local=plan.get("schema")==musique.SCHEMA
+    if local and backend is not None:
+        raise ValueError("MuSiQue backend is derived from frozen per-question inputs")
+    local_backends,panel_identity=_musique_environment(plan,tasks) if local else ({},None)
     out=Path(plan["output_dir"])
     with run_lock(out):
         freeze(out/"plan.json",plan)
@@ -429,10 +476,12 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
         check_request_accounting(records,ledger)
         frozen=read(out/"generation_freeze.json")
         if frozen is not None:
-            _validated_generation(plan,frozen,expected_backend=backend.identity if backend is not None else None)
+            _validated_generation(plan,frozen,expected_backend=panel_identity if local else backend.identity if backend is not None else None)
             return frozen
         if transport is None: transport=deepseek_transport(credential_from_plan(plan))
-        if backend is None: backend=BrowseCompCorpus(plan["corpus"]["path"],corpus_hash=plan["corpus"]["sha256"])
+        if not local:
+            if backend is None: backend=BrowseCompCorpus(plan["corpus"]["path"],corpus_hash=plan["corpus"]["sha256"])
+            panel_identity=backend.identity
         archive=ProgramArchive(out/"archive")
         nodes={}
         for i,arm in enumerate(plan["arms"]):
@@ -452,16 +501,17 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
                 if _runtime_source_hashes()!=plan["runtime_source_hashes"]:
                     raise ValueError("runtime changed during generation")
                 node=nodes[arm["name"]]
+                cell_backend=local_backends[(task["question_id"],arm["name"])] if local else backend
                 relative=_cell_relative(task["question_id"],arm["name"],rep)
                 done=_cell_path(out,relative)
                 cell=done.parent
                 identity={"plan_hash":approved_plan_hash,"node_id":node["node_id"],"program_id":node["program_id"],
-                    "question_id":task["question_id"],"arm":arm["name"],"repeat":rep,"backend":backend.identity}
+                    "question_id":task["question_id"],"arm":arm["name"],"repeat":rep,"backend":cell_backend.identity}
                 receipt=_saved_execution(done,identity)
                 if receipt is None:
                     model=StructuredModel(out/"requests",ledger,transport,bank=f"calibration/{task['question_id']}/{rep}",
                        prices=plan["model"]["prices"],model=plan["model"]["name"],max_input_bytes=plan["model"]["max_input_bytes"],limits=plan["model"]["output_limits"])
-                    receipt=executor(archive,node["node_id"],deepcopy(task),backend,model,cell,limits=deepcopy(plan["limits"]))
+                    receipt=executor(archive,node["node_id"],deepcopy(task),cell_backend,model,cell,limits=deepcopy(plan["limits"]))
                     _execution_facts(receipt,identity)
                     save(done,{"identity":identity,"payload":receipt,"payload_hash":digest(receipt)})
                 cells.append({"file":relative,"sha256":file_hash(done),"identity":identity})
@@ -473,8 +523,8 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
         # Corpus verification after live execution detects an externally changed index.
         if isinstance(backend,BrowseCompCorpus): _verified_file(plan["corpus"])
         frozen={"schema":"rag-rsi-v3-generation-freeze-1","plan_hash":approved_plan_hash,"cells":cells,
-                "references_parsed_by_runner":False,"ledger":ledger.summary(),"corpus_identity":backend.identity}
-        _validated_generation(plan,frozen,expected_backend=backend.identity)
+                "references_parsed_by_runner":False,"ledger":ledger.summary(),"corpus_identity":panel_identity}
+        _validated_generation(plan,frozen,expected_backend=panel_identity)
         freeze(out/"generation_freeze.json",frozen)
         save(out/"progress.json",{"status":"generation_complete","completed":len(cells),"total":len(order),"ledger":ledger.summary()})
         return frozen
@@ -482,7 +532,8 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
 
 def _shared_prefix_diagnostic(cells, plan):
     """Observe matched successful plan/read requests; missing evidence stays unknown."""
-    names={a["config"]["mode"]:a["name"] for a in plan["arms"]}
+    names={a["config"]["mode"]:a["name"] for a in plan["arms"]
+           if plan.get("schema")!=musique.SCHEMA or a["name"]!="support"}
     grouped={(c["identity"]["question_id"],c["identity"]["repeat"],c["identity"]["arm"]):c["payload"] for c in cells}
     def first(receipt,stage):
         return next((e for e in receipt["trace"] if e.get("name")=="complete"
@@ -599,7 +650,8 @@ def grade(plan):
     from .task_metrics import score_task
     plan=deepcopy(plan)
     out=Path(plan["output_dir"])
-    if plan.get("schema")==THREE_ARM_SCHEMA:
+    local=plan.get("schema")==musique.SCHEMA
+    if plan.get("schema")==THREE_ARM_SCHEMA or local:
         _,task_list=_preflight(plan,verify_corpus=False)
     else:
         task_list=_task_snapshot(plan)
@@ -607,24 +659,45 @@ def grade(plan):
     frozen=read(out/"generation_freeze.json")
     cells=_validated_generation(plan,frozen)
     # This is the first parsing/acquisition of private references, after full generation proof.
-    if "reference_acquisition" in plan:
+    if local:
+        byid=json.loads(_verified_bytes(plan["references_file"]))
+        if not isinstance(byid,dict) or set(byid)!=set(tasks):
+            raise ValueError("MuSiQue references must cover the full original question panel")
+        expected_material=musique.build_support_materials(task_list,byid)
+        if expected_material!=json.loads(_verified_bytes(plan["support_materials_file"])):
+            raise ValueError("diagnostic support material differs from frozen reference annotations")
+        reference_provenance={"binding":"frozen_local_map","reference_file_sha256":plan["references_file"]["sha256"],
+            "parsed_only_after_complete_generation":True,"references_returned_to_generation":False,
+            "support_labels_projected_before_generation":True,"diagnostic_only":True}
+    elif "reference_acquisition" in plan:
         refs,reference_provenance=_deferred_references(plan,frozen,tasks)
     else:
         refs=[json.loads(line) for line in _verified_bytes(plan["references_file"]).decode("utf-8").splitlines() if line.strip()]
         reference_provenance={"binding":"frozen_local_file","reference_file_sha256":plan["references_file"]["sha256"],
                               "parsed_only_after_complete_generation":True,"references_returned_to_generation":False}
-    byid={str(r["query_id"]):r for r in refs}
-    if len(byid)!=len(refs): raise ValueError("duplicate reference question")
+    if not local:
+        byid={str(r["query_id"]):r for r in refs}
+        if len(byid)!=len(refs): raise ValueError("duplicate reference question")
     rows=[]; blind=[]; mapping=[]
     for item in cells:
         identity=item["identity"]; receipt=item["payload"]
         qid=identity["question_id"]; task=tasks[qid]; reference=byid[qid]
-        if reference["question"]!=task["question"]: raise ValueError("reference question differs")
-        if not isinstance(reference.get("reference_answer"),str) or not reference["reference_answer"].strip():
-            raise ValueError("calibration reference answer unavailable")
-        private={"question_id":qid,"dataset":"browsecomp-plus","answers":[reference["reference_answer"]],
-                 "reference_available":True,"official_metric":"llm_judge"}
-        metrics=score_task(receipt,private,task=task,allow_proxy_metrics=True)
+        if local:
+            if (reference.get("question_id")!=qid or reference.get("dataset")!="musique"
+                    or reference.get("answerable") is not True or reference.get("reference_available") is not True
+                    or not isinstance(reference.get("answers"),list) or not reference["answers"]
+                    or any(not isinstance(x,str) or not x.strip() for x in reference["answers"])):
+                raise ValueError("complete answerable MuSiQue reference required")
+            private=reference
+            reference_answer=reference["answers"][0]
+        else:
+            if reference["question"]!=task["question"]: raise ValueError("reference question differs")
+            if not isinstance(reference.get("reference_answer"),str) or not reference["reference_answer"].strip():
+                raise ValueError("calibration reference answer unavailable")
+            reference_answer=reference["reference_answer"]
+            private={"question_id":qid,"dataset":"browsecomp-plus","answers":[reference_answer],
+                     "reference_available":True,"official_metric":"llm_judge"}
+        metrics=score_task(receipt,private,task=task,allow_proxy_metrics=not local)
         for name in ("answer_em","answer_f1"):
             value=metrics.get(name)
             if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=1:
@@ -635,9 +708,11 @@ def grade(plan):
              "program_eligible":receipt["execution_ok"] and receipt["answer_origin_valid"] and receipt["answer_usable"],
              "metrics":metrics,"logical_usage":receipt["resource_usage"],
              "diagnostics":diagnose_execution(receipt)}
+        if local:
+            row["evidence_stages"]=musique.evidence_stages(receipt,task,reference)
         rows.append(row)
         blind_id=digest({"plan":digest(plan),"cell":item["file"],"blind":True})[:16]
-        blind.append({"blind_id":blind_id,"question":task["question"],"reference_answer":reference["reference_answer"],
+        blind.append({"blind_id":blind_id,"question":task["question"],"reference_answer":reference_answer,
                       "answer":receipt["answer"],"answer_usable":receipt["answer_usable"],
                       "answer_origin_valid":receipt["answer_origin_valid"]})
         mapping.append({"blind_id":blind_id,**identity})
@@ -658,7 +733,8 @@ def grade(plan):
               for code in set(r["diagnostics"]["model_reported"])).items())),
           "diagnostic_count_unit":"answer outcome; repeats are not independent observations",
           "model_reports_are_verified_truth":False}
-    quality_valid=all(r["program_eligible"] for r in rows)
+    primary_rows=[r for r in rows if not local or r["arm"]!="support"]
+    quality_valid=all(r["program_eligible"] for r in primary_rows)
     report={"schema":"rag-rsi-v3-calibration-report-3" if plan["schema"]==THREE_ARM_SCHEMA else "rag-rsi-v3-calibration-report-2",
       "status":"local_proxy_scored" if quality_valid else "protocol_invalid",
       "quality_comparison_valid":quality_valid,"arms":summary,
@@ -674,8 +750,9 @@ def grade(plan):
           "logical_calls_by_arm":{name:data["logical_model_calls"] for name,data in summary.items()},
           "per_arm_physical_cost_attribution":"not_identifiable_with_shared_cache",
           "same_realized_cost":False,"repeat_is_independent_unit":False}}
-    if plan["schema"]==THREE_ARM_SCHEMA:
-        report["analysis"]=paired_analysis(rows,plan["analysis"],arm_names=[a["name"] for a in plan["arms"]],expected_repeats=plan["repeats"])
+    if plan["schema"]==THREE_ARM_SCHEMA or local:
+        report["analysis"]=paired_analysis(primary_rows,plan["analysis"],
+            arm_names=["planned","loop"] if local else [a["name"] for a in plan["arms"]],expected_repeats=plan["repeats"])
         report["independent_units"]=len(set(plan["analysis"]["question_groups"].values()))
         report["question_use"]=plan["question_use"]
         report["question_newness_independently_verified"]=False
@@ -685,19 +762,75 @@ def grade(plan):
         report["mechanism_comparison_valid"]=prefix["all_successful_prefixes_verified"] if quality_valid else False
         report["mechanism_claim"]=("shared_prefix_verified; effectiveness not established" if report["mechanism_comparison_valid"] is True
              else "prefix_unverified_or_protocol_invalid; no isolated_iteration_effect_claim")
-        if prefix["mismatched_pairs"]:
+        if prefix["mismatched_pairs"] or (local and prefix["all_successful_prefixes_verified"] is not True):
             # Keep every raw outcome, but do not infer the pre-registered contrasts
             # after an observed violation of their shared-prefix protocol.
             report["quality_comparison_valid"]=False
             report["status"]="protocol_invalid"
             report["analysis"].update(status="protocol_invalid",quality_comparison_valid=False,qualified=None,
-                                      protocol_failure="observed_shared_prefix_mismatch")
+                                      protocol_failure="observed_shared_prefix_mismatch" if prefix["mismatched_pairs"] else "unavailable_shared_prefix")
     else:
         raw_deltas={qid:sum(r["metrics"]["answer_f1"]*(1 if r["arm"]==plan["arms"][1]["name"] else -1)
                            for r in rows if r["question_id"]==qid)/plan["repeats"] for qid in tasks}
         report.update(paired_order=plan["arms"][1]["name"]+" minus "+plan["arms"][0]["name"],
           paired_question_f1_deltas=raw_deltas if quality_valid else None,
           raw_paired_question_f1_deltas=raw_deltas)
+    if local:
+        report.update(schema="rag-rsi-v3-musique-calibration-report-1",
+            status="local_scored" if report["quality_comparison_valid"] else "protocol_invalid",
+            quality_comparison_scope="planned_and_loop_only",support_arm_is_diagnostic_only=True,
+            all_execution_outcomes_valid=all(r["program_eligible"] for r in rows),
+            claim="MuSiQue development subset; no independent RSI or full official benchmark claim")
+        for summary_arm in summary.values():
+            for metric in ("answer_em","answer_f1"):
+                summary_arm[metric]=summary_arm.pop("proxy_"+metric)
+        for name,summary_arm in summary.items():
+            arm_rows=[r for r in rows if r["arm"]==name]
+            scores=[r["metrics"]["support_f1"] for r in arm_rows]
+            summary_arm["support_f1"]=sum(scores)/len(scores) if all(x is not None for x in scores) else None
+            summary_arm["evidence_stages"]={}
+            for stage in ("retrieval","presented","quoted","final_seen","full_support_presented"):
+                values=[r["evidence_stages"]["stages"][stage] for r in arm_rows]
+                complete=all(x["complete"] for x in values)
+                summary_arm["evidence_stages"][stage]={"all_cells_complete":complete,
+                    "known_cells":sum(x["complete"] for x in values),"total_cells":len(values),
+                    "mean_support_document_recall":sum(x["support_recall"] for x in values)/len(values) if complete else None,
+                    "successful_subset_analysis":False}
+        report["support_diagnostic"]=_support_diagnostic(cells,rows,tasks,byid)
     freeze(out/"grading/rows.json",rows); freeze(out/"grading/blind_packet.json",sorted(blind,key=lambda r:r["blind_id"]))
     freeze(out/"grading/private_map.json",mapping); freeze(out/"report.json",report)
     return report
+
+
+def _support_diagnostic(cells, rows, tasks, refs):
+    """Full spans, not just document IDs, determine supplied-context exposure."""
+    details=[]
+    metrics={(r["question_id"],r["repeat"]):r for r in rows if r["arm"]=="support"}
+    for cell in cells:
+        identity=cell["identity"]
+        if identity["arm"]!="support":
+            continue
+        qid=identity["question_id"]; receipt=cell["payload"]
+        expected={d["docid"]:d["text"] for d in tasks[qid]["documents"]
+                  if d["docid"] in refs[qid]["supporting_docids"]}
+        reads=receipt["host_evidence_trace"]["read_presentations"]
+        # The fixed diagnostic has one read: spreading material over later reads
+        # would be a different condition and must not masquerade as this one.
+        sources=reads[0]["sources"] if len(reads)==1 else []
+        complete={s["docid"] for s in sources if s.get("docid") in expected
+            and s.get("start")==0 and s.get("end")==len(expected[s["docid"]])
+            and s.get("text")==expected[s["docid"]]
+            and s.get("text_sha256")==hashlib.sha256(expected[s["docid"]].encode()).hexdigest()}
+        unexpected=any(s.get("docid") not in expected for s in sources)
+        row=metrics[(qid,identity["repeat"])]
+        details.append({"question_id":qid,"repeat":identity["repeat"],
+            "expected_documents":len(expected),"fully_presented_documents":len(complete),
+            "full_material_presented":bool(expected) and complete==set(expected) and not unexpected,
+            "program_eligible":row["program_eligible"],"answer_em":row["metrics"]["answer_em"],
+            "answer_f1":row["metrics"]["answer_f1"],"support_f1":row["metrics"]["support_f1"]})
+    valid=bool(details) and all(r["full_material_presented"] and r["program_eligible"] for r in details)
+    return {"status":"observed_full_material" if valid else "incomplete_material_or_execution",
+        "qualified_material_diagnostic":valid,"cells":details,"cell_count":len(details),
+        "all_cells_retained":True,"successful_subset_analysis":False,
+        "semantic_sufficiency_verified":False,"used_for_selection":False,
+        "claim":"Support-label-conditioned reading and synthesis; not a deployable policy or a guaranteed ceiling."}

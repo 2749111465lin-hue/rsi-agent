@@ -16,6 +16,7 @@ import random
 from statistics import NormalDist, fmean, stdev
 
 SPEC_SCHEMA = "rag-rsi-paired-analysis-1"
+SINGLE_CONTRAST_SCHEMA = "rag-rsi-paired-analysis-single-1"
 METRICS = ("answer_em", "answer_f1")
 FIELDS = {"schema", "primary_metric", "comparisons", "question_groups", "confidence_level",
           "bootstrap_samples", "bootstrap_seed", "target_effect", "power"}
@@ -49,15 +50,18 @@ def validate_analysis(spec, *, question_ids, arm_names):
     arms = _names(arm_names, "arm_names")
     if len(arms) < 2 or not isinstance(spec, Mapping) or set(spec) != FIELDS:
         raise ValueError("analysis requires its exact nine fields and at least two arms")
-    if spec["schema"] != SPEC_SCHEMA or spec["primary_metric"] not in METRICS:
+    if spec["schema"] not in (SPEC_SCHEMA, SINGLE_CONTRAST_SCHEMA) or spec["primary_metric"] not in METRICS:
         raise ValueError("unsupported analysis schema or primary metric")
     groups = spec["question_groups"]
     if (not isinstance(groups, Mapping) or set(groups) != set(questions)
             or any(not isinstance(g, str) or not g.strip() or g != g.strip() for g in groups.values())):
         raise ValueError("question_groups must cover every question exactly with nonblank group IDs")
     comparisons = spec["comparisons"]
-    if not isinstance(comparisons, list) or len(comparisons) != 2:
-        raise ValueError("exactly two pre-registered comparisons are required")
+    # A new contract permits one primary contrast without weakening older plans.
+    count = 1 if spec["schema"] == SINGLE_CONTRAST_SCHEMA else 2
+    if not isinstance(comparisons, list) or len(comparisons) != count:
+        word = "one" if count == 1 else "two"
+        raise ValueError("exactly " + word + " pre-registered comparisons are required")
     names, pairs = set(), set()
     for item in comparisons:
         if not isinstance(item, Mapping) or set(item) != {"name", "baseline", "candidate"}:
@@ -80,7 +84,7 @@ def validate_analysis(spec, *, question_ids, arm_names):
         raise ValueError("bootstrap_samples must be an integer from 1000 to 100000")
     if type(spec["bootstrap_seed"]) is not int or spec["bootstrap_seed"] < 0:
         raise ValueError("bootstrap_seed must be a nonnegative integer")
-    return {"schema": SPEC_SCHEMA, "primary_metric": spec["primary_metric"],
+    return {"schema": spec["schema"], "primary_metric": spec["primary_metric"],
             "comparisons": [dict(x) for x in comparisons],
             "question_groups": {q: groups[q] for q in sorted(questions)},
             "confidence_level": float(spec["confidence_level"]),
