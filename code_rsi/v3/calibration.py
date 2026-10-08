@@ -24,11 +24,14 @@ from .infrastructure import BrowseCompCorpus, StructuredModel, deepseek_transpor
 from .rag import RagEngine, DEFAULTS
 from .paired_analysis import validate_analysis, paired_analysis
 from .request_recovery import check_request_recovery, check_request_accounting
+from .browsecomp_data import validate_source, acquire_references, DECODER_VERSION
 
 
 SCHEMA="rag-rsi-v3-calibration-1"
 THREE_ARM_SCHEMA="rag-rsi-v3-calibration-2"
 REQUEST_COUPLING="shared_exact_request_per_question_repeat"
+REFERENCE_ACQUISITION_SCHEMA="rag-rsi-bcp-reference-acquisition-1"
+ACQUIRED_REFERENCES_SCHEMA="rag-rsi-bcp-acquired-references-1"
 
 
 def file_hash(path):
@@ -71,6 +74,36 @@ def _task_snapshot(plan):
     return tasks
 
 
+def _reference_contract(plan, tasks):
+    """Validate exactly one source without touching deferred reference values.
+
+    Deferred source validation checks frozen metadata only, not network bytes or
+    whole-file Parquet hashes. The acquisition helper records its actual range
+    reads after generation; it must not claim full-file validation from ranges.
+    """
+    bound="references_file" in plan
+    deferred="reference_acquisition" in plan
+    if bound==deferred:
+        raise ValueError("exactly one of references_file and reference_acquisition required")
+    if bound:
+        _verified_file(plan["references_file"])
+        return None
+    if plan.get("schema")!=THREE_ARM_SCHEMA:
+        raise ValueError("deferred references require the three-arm schema")
+    contract=plan["reference_acquisition"]
+    if (not isinstance(contract,dict) or set(contract)!={"schema","source","decoder_version","question_hashes"}
+            or contract.get("schema")!=REFERENCE_ACQUISITION_SCHEMA
+            or contract.get("decoder_version")!=DECODER_VERSION):
+        raise ValueError("invalid frozen reference acquisition contract")
+    source=validate_source(deepcopy(contract["source"]))
+    if not 1<=len(tasks)<=128 or any(len(task["question_id"])>128 for task in tasks):
+        raise ValueError("deferred acquisition requires 1-128 bounded question IDs")
+    expected={task["question_id"]:hashlib.sha256(task["question"].encode("utf-8")).hexdigest() for task in tasks}
+    if contract["question_hashes"]!=expected:
+        raise ValueError("reference acquisition question hashes differ from public tasks")
+    return source
+
+
 class _PreflightServices:
     """Callable dependency stubs; configuration validation must never use I/O."""
     def search(self, query, limit=5):
@@ -105,8 +138,8 @@ def _preflight(plan, *, verify_corpus=True):
         if type(plan.get("schedule_seed")) is not int or plan["schedule_seed"]<0:
             raise ValueError("nonnegative integer schedule seed required")
     tasks=_task_snapshot(plan)
-    # Hashing freezes bytes; no reference values are parsed before generation.
-    _verified_file(plan["references_file"])
+    # Existing reference bytes may be hashed; deferred sources are metadata only.
+    _reference_contract(plan,tasks)
     if verify_corpus:
         _verified_file(plan["corpus"])
     arms=plan["arms"]
@@ -188,6 +221,8 @@ def _preflight(plan, *, verify_corpus=True):
         "repeats":repeats,"answer_outcomes":len(tasks)*repeats*arm_count,"arm_count":arm_count,"max_calls":calls,
         "conservative_cny_upper_bound":round(worst,6),"hard_cny":plan["hard_cny"],
         "new_api_calls":0,"credentials_read":False,"references_parsed":False,
+        "reference_binding":"deferred_official_acquisition" if "reference_acquisition" in plan else "frozen_local_file",
+        "reference_source_verified_before_generation":"metadata_only" if "reference_acquisition" in plan else "file_sha256_only",
         "same_resource_ceiling":True,"same_realized_cost":False,
         "primary_claim":"workflow decomposition; declared newness is not independent confirmation" if three_arm else "development calibration; no independent benchmark generalization",
         "request_coupling":REQUEST_COUPLING,"prefix_coupling_includes_identical_final_requests":True,
@@ -476,6 +511,90 @@ def _shared_prefix_diagnostic(cells, plan):
             "claim":"request/response identity only; missing/failed prefix is unknown, not a quality zero"}
 
 
+def _validated_reference_rows(rows, tasks):
+    """Require the exact frozen panel; missing answers are not quality zeros."""
+    if not isinstance(rows,list) or len(rows)!=len(tasks):
+        raise ValueError("acquired references do not cover the exact question panel")
+    byid={}
+    for row in rows:
+        if (not isinstance(row,dict) or set(row)!={"query_id","question","reference_answer"}
+                or not isinstance(row.get("query_id"),str) or row["query_id"] not in tasks
+                or row["query_id"] in byid):
+            raise ValueError("invalid, duplicate or out-of-panel acquired reference")
+        if row["question"]!=tasks[row["query_id"]]["question"]:
+            raise ValueError("acquired reference question differs from frozen public question")
+        if not isinstance(row["reference_answer"],str) or not row["reference_answer"].strip():
+            raise ValueError("acquired reference answer unavailable")
+        byid[row["query_id"]]=deepcopy(row)
+    if set(byid)!=set(tasks):
+        raise ValueError("acquired references missing a frozen question")
+    return [byid[qid] for qid in sorted(byid)]
+
+
+def _validated_reference_receipt(receipt, source, tasks, decoder_version):
+    """Bind acquisition identity to the frozen contract, not only to itself."""
+    fields={"schema","source","source_sha256","decoder_version","columns","question_ids",
+            "decoded_question_count","decoded_answer_count","observed_unique_source_ids","files",
+            "full_file_sha256_verified","semantic_column_projection_only","scope"}
+    if (not isinstance(receipt,dict) or set(receipt)!=fields
+            or receipt.get("schema")!="rag-rsi-bcp-column-acquisition-1"):
+        raise ValueError("invalid reference acquisition source receipt")
+    if (validate_source(receipt["source"])!=source
+            or receipt["source_sha256"]!=digest(source)
+            or receipt["decoder_version"]!=decoder_version
+            or receipt["columns"]!=["query_id","query","answer"]
+            or receipt["question_ids"]!=sorted(tasks)
+            or any(type(receipt[name]) is not int or receipt[name]!=len(tasks)
+                   for name in ("decoded_question_count","decoded_answer_count"))
+            or receipt["full_file_sha256_verified"] is not False
+            or receipt["semantic_column_projection_only"] is not True):
+        raise ValueError("reference acquisition receipt differs from frozen source, decoder or question scope")
+
+
+def _deferred_references(plan, frozen, tasks):
+    """Called only after complete generation validation; never by preflight.
+
+    One atomically frozen record holds both rows and acquisition evidence, so an
+    interruption cannot leave a trusted receipt bound to missing reference rows.
+    The existing run lock and freeze/save primitives handle concurrent graders
+    and an interrupted temporary write; recovery never requests new generation.
+    """
+    contract=plan["reference_acquisition"]
+    source=_reference_contract(plan,list(tasks.values()))
+    bindings={"schema":ACQUIRED_REFERENCES_SCHEMA,"plan_hash":digest(plan),
+              "contract_hash":digest(contract),"generation_freeze_hash":digest(frozen)}
+    path=_cell_path(Path(plan["output_dir"]),"references/acquired.json")
+    with run_lock(plan["output_dir"]):
+        record=read(path)
+        if record is None:
+            rows,source_receipt=acquire_references(source,sorted(tasks))
+            rows=_validated_reference_rows(rows,tasks)
+            _validated_reference_receipt(source_receipt,source,tasks,contract["decoder_version"])
+            record={**bindings,"rows":rows,"rows_sha256":digest(rows),
+                    "source_receipt":source_receipt,"source_receipt_sha256":digest(source_receipt)}
+            freeze(path,record)
+        expected_fields=set(bindings)|{"rows","rows_sha256","source_receipt","source_receipt_sha256"}
+        if (not isinstance(record,dict) or set(record)!=expected_fields
+                or any(record.get(key)!=value for key,value in bindings.items())
+                or not isinstance(record.get("source_receipt"),dict)
+                or digest(record["source_receipt"])!=record["source_receipt_sha256"]
+                or digest(record.get("rows"))!=record["rows_sha256"]):
+            raise ValueError("frozen acquired-reference integrity or generation binding differs")
+        _validated_reference_receipt(record["source_receipt"],source,tasks,contract["decoder_version"])
+        rows=_validated_reference_rows(record["rows"],tasks)
+        if rows!=record["rows"]:
+            raise ValueError("frozen acquired-reference order is not canonical")
+    provenance={"binding":"deferred_official_acquisition",
+                "acquired_only_after_complete_generation":True,
+                "source_repo":source["repo"],"source_revision":source["revision"],
+                "source_manifest_sha256":digest(source),"decoder_version":contract["decoder_version"],
+                "contract_sha256":digest(contract),"acquired_record_sha256":digest(record),
+                "rows_sha256":record["rows_sha256"],
+                "source_verification":"frozen revision and recorded ranges; not a full-file SHA verification",
+                "references_returned_to_generation":False}
+    return rows,provenance
+
+
 def grade(plan):
     from .task_metrics import score_task
     plan=deepcopy(plan)
@@ -487,8 +606,13 @@ def grade(plan):
     tasks={t["question_id"]:t for t in task_list}
     frozen=read(out/"generation_freeze.json")
     cells=_validated_generation(plan,frozen)
-    # This is the first parsing of private references, after full generation proof.
-    refs=[json.loads(line) for line in _verified_bytes(plan["references_file"]).decode("utf-8").splitlines() if line.strip()]
+    # This is the first parsing/acquisition of private references, after full generation proof.
+    if "reference_acquisition" in plan:
+        refs,reference_provenance=_deferred_references(plan,frozen,tasks)
+    else:
+        refs=[json.loads(line) for line in _verified_bytes(plan["references_file"]).decode("utf-8").splitlines() if line.strip()]
+        reference_provenance={"binding":"frozen_local_file","reference_file_sha256":plan["references_file"]["sha256"],
+                              "parsed_only_after_complete_generation":True,"references_returned_to_generation":False}
     byid={str(r["query_id"]):r for r in refs}
     if len(byid)!=len(refs): raise ValueError("duplicate reference question")
     rows=[]; blind=[]; mapping=[]
@@ -539,6 +663,7 @@ def grade(plan):
       "status":"local_proxy_scored" if quality_valid else "protocol_invalid",
       "quality_comparison_valid":quality_valid,"arms":summary,
       "official_browsecomp_score":False,"semantic_judging":"not performed",
+      "reference_provenance":reference_provenance,
       "question_count":len(tasks),"independent_units":len(tasks),
       "all_outcomes_retained":True,"ledger":frozen["ledger"],
       "claim":"workflow calibration; proxy scores are not official quality evidence",

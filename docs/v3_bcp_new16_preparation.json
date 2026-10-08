@@ -1,0 +1,71 @@
+{
+  "schema": "rag-rsi-bcp-new16-preparation-1",
+  "date": "2026-10-08",
+  "status": "frozen_pending_explicit_paid_scope_approval",
+  "plan_hash": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+  "plan_file_sha256": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+  "question_count": 16,
+  "repeats": 2,
+  "arms": [
+    "raw",
+    "planned",
+    "loop"
+  ],
+  "answer_outcomes": 96,
+  "max_calls": 320,
+  "hard_cny": 82,
+  "conservative_cny_upper_bound": 81.50016,
+  "preparation": {
+    "columns": [
+      "query_id",
+      "query"
+    ],
+    "decoded_answer_count": 0,
+    "full_file_sha256_verified": false,
+    "new_api_calls": 0,
+    "observed_unique_source_ids": 830,
+    "question_count": 16,
+    "range_bytes": 1040327,
+    "range_requests": 18,
+    "references_acquired": false
+  },
+  "question_selection": {
+    "candidate_count_before_acquisition": 758,
+    "excluded_id_count": 72,
+    "quality_based_selection": false,
+    "replacement_performed": false,
+    "all_history_newness_verified": false
+  },
+  "overlap": {
+    "historical_hash_count": 64,
+    "historical_public_text_count": 8,
+    "flagged_pairs": 0,
+    "maximum_observed_similarity": {
+      "sequence_ratio": 0.36879432624113473,
+      "token_jaccard": 0.24324324324324326
+    },
+    "scope": "lexical check only; no semantic/full-history independence guarantee"
+  },
+  "source_revision": "144cff8e35b5eaef7e526346aa60774a9deb941f",
+  "reference_binding": "official source frozen before generation; no reference answers acquired yet",
+  "generation_started": false,
+  "real_api_calls": 0,
+  "credential_read": false,
+  "primary_metric": "internal_answer_f1_proxy",
+  "official_benchmark_metric": false,
+  "comparisons": [
+    "planning: planned - raw",
+    "iteration: loop - planned"
+  ],
+  "legacy_budget_reused": false,
+  "price_source": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "local_artifact_hashes": {
+    "selection.json": "156caa7ee6f8b71236cf720954833d2fb54ed885de7279a41780857457954d6e",
+    "source.json": "bd79f6c7f208c1ad12d999691a456a60e5883d74da46c163d3cf7ad60f96310e",
+    "question_acquisition.json": "590a174de62f1b9b9fad55a6d447fdf51f1d7c89d2f89081858e4ecd2298e085",
+    "public_tasks.json": "987b2c2512738a743abbe14b71834adc8908ce2a778bb222048c3a5c60014c5c",
+    "overlap_check.json": "84e31cc7421299d2a80bf6b6a4a7a7efa52782f806abdde919bea803177ca719",
+    "preflight.json": "7e2549039a6ff47b0185f68f70f7283c2b9a2dd96713337bde3b8b46037a2ab7",
+    "readiness.json": "42dc65127e09b7c25f2fdf6e284f686ecc33924f5ee6493d6ea4c8f7385df9d3"
+  }
+}
