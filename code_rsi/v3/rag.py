@@ -146,7 +146,7 @@ class RagEngine:
         if set(config) - set(DEFAULTS):
             raise RagContractError("unknown config fields")
         self.config = {**DEFAULTS, **config}
-        if self.config["mode"] not in {"iterative", "single_pass"}:
+        if self.config["mode"] not in {"iterative", "single_pass", "planned_single"}:
             raise RagContractError("unknown mode")
         for key in DEFAULTS:
             if key in {"mode", "prompts"}:
@@ -156,6 +156,8 @@ class RagEngine:
                 raise RagContractError("invalid config " + key)
         if self.config["max_model_calls"] < 2:
             raise RagContractError("reserve at least one read/planning call and one final call")
+        if self.config["mode"] == "planned_single" and self.config["max_model_calls"] < 3:
+            raise RagContractError("planned_single requires plan, read and final call capacity")
         prompts = self.config["prompts"]
         if not isinstance(prompts, dict) or set(prompts) - set(INSTRUCTIONS):
             raise RagContractError("prompts must use plan/read/answer stages")
@@ -414,7 +416,7 @@ class RagEngine:
 
         stop = "round_limit"
         queries = [task["question"]]
-        if cfg["mode"] == "iterative":
+        if cfg["mode"] in {"iterative", "planned_single"}:
             plan = call("plan", {})
             try:
                 if plan is None:
@@ -425,7 +427,7 @@ class RagEngine:
             except RagContractError:
                 fail("plan_schema_failure")
                 # A failed planner still permits original-question retrieval and final.
-        rounds = 1 if cfg["mode"] == "single_pass" else cfg["max_rounds"]
+        rounds = cfg["max_rounds"] if cfg["mode"] == "iterative" else 1
         for round_index in range(rounds):
             fresh = [query for query in queries if _query_key(query) not in
                      {_query_key(item) for item in state["queries_tried"]}]
@@ -458,8 +460,8 @@ class RagEngine:
             if value["ready"]:
                 stop = "model_ready"
                 break
-            if cfg["mode"] == "single_pass":
-                stop = "single_pass"
+            if cfg["mode"] in {"single_pass", "planned_single"}:
+                stop = cfg["mode"]
                 break
             if state["consecutive_stagnant_rounds"] >= cfg["max_stagnant_rounds"]:
                 stop = "no_evidence_progress"

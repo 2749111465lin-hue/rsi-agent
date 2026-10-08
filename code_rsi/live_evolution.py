@@ -20,6 +20,8 @@ from .v3.execution import HostError
 from .v3.infrastructure import (BrowseCompCorpus, StructuredModel, UnknownProviderOutcome,
                                 deepseek_transport, PROMPTS)
 from .v3.rag import RagEngine
+from .v3.request_recovery import (check_request_recovery as _check_request_recovery,
+                                   check_request_accounting as _check_request_accounting)
 
 SCHEMA = "rag-rsi-live-evolution-1"
 ROLES = ("D_fit", "D_select", "D_report")
@@ -144,8 +146,13 @@ def _prepare(plan):
         raise ValueError("complete host limits required")
     for name, value in plan["limits"].items():
         _integer(value, 1, 64, name)
-    rounds = 1 if config["mode"] == "single_pass" else config["max_rounds"]
-    root_calls = int(config["mode"] == "iterative") + rounds + 1
+    rounds = config["max_rounds"] if config["mode"] == "iterative" else 1
+    if config["search_limit"]>30:
+        raise ValueError("search_limit exceeds host maximum of 30")
+    searches=1 if config["mode"]=="single_pass" else rounds*min(config["max_queries_per_round"],24)
+    if plan["limits"]["max_searches"]<searches:
+        raise ValueError("root search budget cannot cover declared workflow queries")
+    root_calls = int(config["mode"] in {"iterative", "planned_single"}) + rounds + 1
     if min(config["max_model_calls"], plan["limits"]["max_models"]) < root_calls:
         raise ValueError("root profile cannot reserve all declared rounds and final")
     repeats = _integer(plan["repeats"], 1, 8, "repeats")
@@ -234,48 +241,6 @@ class _BoundModel:
             raise HostError("model role cannot call this stage")
         self._verify()
         return self._model.complete(stage, payload)
-
-
-def _check_request_recovery(directory):
-    """Unknown physical outcomes stop the whole run, even if the next key changes."""
-    directory = Path(directory)
-    requests = directory / "requests"
-    caches = list(requests.glob("*.json"))
-    records = {}
-    for path in caches:
-        if path.name == "returned_model.json":
-            continue
-        try:
-            record = json.loads(path.read_bytes())
-        except (ValueError, OSError) as exc:
-            raise HostError("unreadable request cache; reconcile before resume") from exc
-        if not isinstance(record, dict) or record.get("state") not in {"pending", "response_received", "settled"}:
-            raise HostError("invalid request cache; reconcile before resume")
-        if record["state"] != "settled":
-            raise UnknownProviderOutcome("unresolved request anywhere in this run; reconcile before resume")
-        records[path.stem] = record
-    if caches and not (directory / "ledger.jsonl").is_file():
-        raise HostError("request cache has no complete ledger; reconcile before resume")
-    status = directory / "live_status.json"
-    if status.exists():
-        previous = json.loads(status.read_bytes())
-        if previous.get("reason_type") == "UnknownProviderOutcome":
-            raise UnknownProviderOutcome("previous run stopped with unknown provider outcome; reconcile before resume")
-    return records
-
-
-def _check_request_accounting(records, ledger):
-    reservations = {e["id"]: e for e in ledger.events if e["event"] == "reserve"}
-    settled = {e["id"] for e in ledger.events if e["event"] == "settle"}
-    if len(records) != len(reservations) or set(reservations) != settled:
-        raise HostError("request cache and complete ledger differ; reconcile before resume")
-    for key, record in records.items():
-        reserve = reservations.get(record.get("reservation"))
-        metadata = reserve.get("metadata", {}) if reserve else {}
-        if (record.get("key") != key or metadata.get("request_key") != key
-                or "body" not in record or "response" not in record
-                or digest({"body": record["body"], "bank": metadata.get("bank")}) != key):
-            raise HostError("request identity differs from its ledger reservation; reconcile before resume")
 
 
 def run(plan, *, approved_plan_hash, execute=False, transport_factory=None):

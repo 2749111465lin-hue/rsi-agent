@@ -1,4 +1,4 @@
-"""Frozen two-arm RAG calibration; generation finishes before references are parsed.
+"""Frozen RAG workflow calibration; generation finishes before references are parsed.
 
 The CLI preflight is free of API/credential access. Execution requires the exact
 reviewed plan hash. It shares the real program archive, WSL, ledger and models
@@ -22,9 +22,13 @@ from .evolution import freeze, read, recoverable_record, _runtime_source_hashes
 from .execution import execute, root_files, validate_sources, EXECUTION_SCHEMA, validate_answer_origin
 from .infrastructure import BrowseCompCorpus, StructuredModel, deepseek_transport
 from .rag import RagEngine, DEFAULTS
+from .paired_analysis import validate_analysis, paired_analysis
+from .request_recovery import check_request_recovery, check_request_accounting
 
 
 SCHEMA="rag-rsi-v3-calibration-1"
+THREE_ARM_SCHEMA="rag-rsi-v3-calibration-2"
+REQUEST_COUPLING="shared_exact_request_per_question_repeat"
 
 
 def file_hash(path):
@@ -78,7 +82,7 @@ class _PreflightServices:
 
 def load_plan(path):
     plan=read(path)
-    if not isinstance(plan,dict) or plan.get("schema")!=SCHEMA:
+    if not isinstance(plan,dict) or plan.get("schema") not in {SCHEMA,THREE_ARM_SCHEMA}:
         raise ValueError("unknown calibration plan")
     return plan
 
@@ -89,19 +93,29 @@ def preflight(plan, *, verify_corpus=True):
 
 
 def _preflight(plan, *, verify_corpus=True):
-    if plan.get("schema")!=SCHEMA or plan.get("purpose")!="used_development_calibration":
+    three_arm=plan.get("schema")==THREE_ARM_SCHEMA
+    if plan.get("schema") not in {SCHEMA,THREE_ARM_SCHEMA} or plan.get("purpose") != (
+            "workflow_decomposition_calibration" if three_arm else "used_development_calibration"):
         raise ValueError("calibration purpose must be explicit")
+    if three_arm:
+        if plan.get("request_coupling")!=REQUEST_COUPLING:
+            raise ValueError("three-arm exact-request coupling must be frozen")
+        if plan.get("question_use") not in {"used_development","unused_declared","synthetic"}:
+            raise ValueError("question use must be declared; unused is not independently verified")
+        if type(plan.get("schedule_seed")) is not int or plan["schedule_seed"]<0:
+            raise ValueError("nonnegative integer schedule seed required")
     tasks=_task_snapshot(plan)
     # Hashing freezes bytes; no reference values are parsed before generation.
     _verified_file(plan["references_file"])
     if verify_corpus:
         _verified_file(plan["corpus"])
     arms=plan["arms"]
-    if (not isinstance(arms,list) or len(arms)!=2
+    arm_count=3 if three_arm else 2
+    if (not isinstance(arms,list) or len(arms)!=arm_count
             or any(not isinstance(a,dict) or not isinstance(a.get("name"),str)
                    or not a["name"] or not isinstance(a.get("config"),dict) for a in arms)
-            or len({a["name"] for a in arms})!=2):
-        raise ValueError("exactly two named frozen arms required")
+            or len({a["name"] for a in arms})!=arm_count):
+        raise ValueError("exactly "+str(arm_count)+" named frozen arms required")
     modes=[]; calls=0; output=0
     model=plan["model"]
     if model["name"]!="deepseek-flash" or model.get("thinking")!="disabled" or model.get("temperature")!=0:
@@ -117,6 +131,10 @@ def _preflight(plan, *, verify_corpus=True):
         cap=model["output_limits"][stage]
         if type(cap) is not int or not 1<=cap<=32768:
             raise ValueError("output limit required")
+    limits=plan.get("limits")
+    if (not isinstance(limits,dict) or set(limits)!={"max_models","max_searches","max_reads"}
+            or any(type(v) is not int or not 1<=v<=1000000 for v in limits.values())):
+        raise ValueError("positive integer host model/search/read limits required")
     repeats=plan["repeats"]
     if type(repeats) is not int or not 1<=repeats<=5:
         raise ValueError("repeats outside calibration profile")
@@ -125,19 +143,37 @@ def _preflight(plan, *, verify_corpus=True):
         services=_PreflightServices()
         RagEngine(services,services,config=config)
         cfg={**DEFAULTS,**config}
+        if cfg["search_limit"]>30:
+            raise ValueError("search_limit exceeds host maximum of 30")
         modes.append(cfg["mode"])
-        rounds=1 if cfg["mode"]=="single_pass" else cfg["max_rounds"]
-        plan_calls=int(cfg["mode"]=="iterative")
+        rounds=cfg["max_rounds"] if cfg["mode"]=="iterative" else 1
+        plan_calls=int(cfg["mode"] in {"planned_single","iterative"})
         maximum=plan_calls+rounds+1
         if plan["limits"]["max_models"]<maximum or cfg["max_model_calls"]<maximum:
             raise ValueError("profile cannot reserve all declared rounds and final")
+        searches=1 if cfg["mode"]=="single_pass" else rounds*min(cfg["max_queries_per_round"],24)
+        if limits["max_searches"]<searches:
+            raise ValueError("host search budget cannot cover declared workflow queries")
         calls += maximum
         output += plan_calls*model["output_limits"]["plan"]+rounds*model["output_limits"]["read"]+model["output_limits"]["answer"]
-    if set(modes)!={"single_pass","iterative"}:
-        raise ValueError("this comparison requires one single-pass and one iterative arm")
+    expected_modes={"single_pass","planned_single","iterative"} if three_arm else {"single_pass","iterative"}
+    if set(modes)!=expected_modes:
+        raise ValueError("comparison requires exactly the declared workflow modes")
+    if three_arm:
+        if any("mode" not in arm["config"] for arm in arms):
+            raise ValueError("three-arm modes must be explicit")
+        mode_to_name={arm["config"]["mode"]:arm["name"] for arm in arms}
+        if next({**DEFAULTS,**a["config"]}["max_rounds"] for a in arms if a["config"]["mode"]=="iterative")<2:
+            raise ValueError("iteration comparison must permit at least two reads")
+        analysis=validate_analysis(plan.get("analysis"),question_ids=plan["question_ids"],arm_names=[a["name"] for a in arms])
+        expected_comparisons={
+            ("planning",mode_to_name["single_pass"],mode_to_name["planned_single"]),
+            ("iteration",mode_to_name["planned_single"],mode_to_name["iterative"])}
+        if {(c["name"],c["baseline"],c["candidate"]) for c in analysis["comparisons"]}!=expected_comparisons:
+            raise ValueError("freeze planning A-to-B and iteration B-to-C comparisons")
     # Same per-question envelope; realized expenditure is reported separately.
     base={k:v for k,v in arms[0]["config"].items() if k!="mode"}
-    if base!={k:v for k,v in arms[1]["config"].items() if k!="mode"}:
+    if any(base!={k:v for k,v in arm["config"].items() if k!="mode"} for arm in arms[1:]):
         raise ValueError("only the iterative workflow switch may differ between arms")
     calls*=len(tasks)*repeats; output*=len(tasks)*repeats
     if type(plan["max_calls"]) is not int or plan["max_calls"]!=calls:
@@ -149,11 +185,14 @@ def _preflight(plan, *, verify_corpus=True):
     if plan.get("runtime_source_hashes")!=expected:
         raise ValueError("runtime changed since plan freeze")
     return {"status":"ready_for_explicit_execution","plan_hash":digest(plan),"question_count":len(tasks),
-        "repeats":repeats,"answer_outcomes":len(tasks)*repeats*2,"max_calls":calls,
+        "repeats":repeats,"answer_outcomes":len(tasks)*repeats*arm_count,"arm_count":arm_count,"max_calls":calls,
         "conservative_cny_upper_bound":round(worst,6),"hard_cny":plan["hard_cny"],
         "new_api_calls":0,"credentials_read":False,"references_parsed":False,
         "same_resource_ceiling":True,"same_realized_cost":False,
-        "primary_claim":"development calibration; no independent benchmark generalization"},tasks
+        "primary_claim":"workflow decomposition; declared newness is not independent confirmation" if three_arm else "development calibration; no independent benchmark generalization",
+        "request_coupling":REQUEST_COUPLING,"prefix_coupling_includes_identical_final_requests":True,
+        "question_use":plan.get("question_use","used_development"),
+        "independent_groups":len(set(plan["analysis"]["question_groups"].values())) if three_arm else len(tasks)},tasks
 
 
 @contextmanager
@@ -286,6 +325,11 @@ def _validated_generation(plan, frozen, *, expected_backend=None):
     if not isinstance(cells,list) or len(cells)!=len(expected) or not expected:
         raise ValueError("generation freeze does not cover the complete question/arm/repeat panel")
     out=Path(plan["output_dir"])
+    records=check_request_recovery(out,status_filename="progress.json")
+    ledger=Ledger(out/"ledger.jsonl",{"run":{"cny":plan["hard_cny"],"calls":plan["max_calls"]}})
+    check_request_accounting(records,ledger)
+    if frozen["ledger"]!=ledger.summary():
+        raise ValueError("frozen generation accounting differs from settled run")
     if read(out/"plan.json")!=plan:
         raise ValueError("stored generation plan differs")
     if not (out/"archive").is_dir():
@@ -345,11 +389,13 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
     out=Path(plan["output_dir"])
     with run_lock(out):
         freeze(out/"plan.json",plan)
+        records=check_request_recovery(out,status_filename="progress.json")
+        ledger=Ledger(out/"ledger.jsonl",{"run":{"cny":plan["hard_cny"],"calls":plan["max_calls"]}})
+        check_request_accounting(records,ledger)
         frozen=read(out/"generation_freeze.json")
         if frozen is not None:
             _validated_generation(plan,frozen,expected_backend=backend.identity if backend is not None else None)
             return frozen
-        ledger=Ledger(out/"ledger.jsonl",{"run":{"cny":plan["hard_cny"],"calls":plan["max_calls"]}})
         if transport is None: transport=deepseek_transport(credential_from_plan(plan))
         if backend is None: backend=BrowseCompCorpus(plan["corpus"]["path"],corpus_hash=plan["corpus"]["sha256"])
         archive=ProgramArchive(out/"archive")
@@ -388,6 +434,7 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
         except BaseException as exc:
             save(out/"progress.json",{"status":"stopped","completed":len(cells),"total":len(order),"reason_type":type(exc).__name__,"ledger":ledger.summary()})
             raise
+        check_request_accounting(check_request_recovery(out,status_filename="progress.json"),ledger)
         # Corpus verification after live execution detects an externally changed index.
         if isinstance(backend,BrowseCompCorpus): _verified_file(plan["corpus"])
         frozen={"schema":"rag-rsi-v3-generation-freeze-1","plan_hash":approved_plan_hash,"cells":cells,
@@ -398,11 +445,46 @@ def generate(plan, *, approved_plan_hash, transport=None, backend=None, executor
         return frozen
 
 
+def _shared_prefix_diagnostic(cells, plan):
+    """Observe matched successful plan/read requests; missing evidence stays unknown."""
+    names={a["config"]["mode"]:a["name"] for a in plan["arms"]}
+    grouped={(c["identity"]["question_id"],c["identity"]["repeat"],c["identity"]["arm"]):c["payload"] for c in cells}
+    def first(receipt,stage):
+        return next((e for e in receipt["trace"] if e.get("name")=="complete"
+                     and e.get("request",{}).get("stage")==stage),None)
+    pairs=[]
+    for qid in sorted(plan["question_ids"]):
+        for repeat in range(plan["repeats"]):
+            pair={"question_id":qid,"repeat":repeat}
+            for stage in ("plan","read"):
+                left=first(grouped[(qid,repeat,names["planned_single"])],stage)
+                right=first(grouped[(qid,repeat,names["iterative"])],stage)
+                observed=all(e and e.get("model_completed") is True and isinstance(e.get("payload_sha256"),str)
+                             and isinstance(e.get("response_hash"),str) for e in (left,right))
+                pair[stage+"_payload_equal"]=left["payload_sha256"]==right["payload_sha256"] if observed else None
+                pair[stage+"_response_equal"]=left["response_hash"]==right["response_hash"] if observed else None
+            values=[pair[k] for k in ("plan_payload_equal","plan_response_equal","read_payload_equal","read_response_equal")]
+            pair["prefix_verified"]=False if False in values else True if all(v is True for v in values) else None
+            pairs.append(pair)
+    counts={"verified_pairs":sum(p["prefix_verified"] is True for p in pairs),
+            "unknown_pairs":sum(p["prefix_verified"] is None for p in pairs),
+            "mismatched_pairs":sum(p["prefix_verified"] is False for p in pairs)}
+    valid=False if counts["mismatched_pairs"] else None if counts["unknown_pairs"] else True
+    return {"pairs":pairs,"pair_count":len(pairs),**counts,
+            "status":"verified" if valid is True else "mismatch" if valid is False else "unknown",
+            "all_successful_prefixes_verified":valid,
+            "claim":"request/response identity only; missing/failed prefix is unknown, not a quality zero"}
+
+
 def grade(plan):
     from .task_metrics import score_task
     plan=deepcopy(plan)
     out=Path(plan["output_dir"])
-    tasks={t["question_id"]:t for t in _task_snapshot(plan)}
+    if plan.get("schema")==THREE_ARM_SCHEMA:
+        _,task_list=_preflight(plan,verify_corpus=False)
+    else:
+        task_list=_task_snapshot(plan)
+    tasks={t["question_id"]:t for t in task_list}
     frozen=read(out/"generation_freeze.json")
     cells=_validated_generation(plan,frozen)
     # This is the first parsing of private references, after full generation proof.
@@ -453,16 +535,44 @@ def grade(plan):
           "diagnostic_count_unit":"answer outcome; repeats are not independent observations",
           "model_reports_are_verified_truth":False}
     quality_valid=all(r["program_eligible"] for r in rows)
-    raw_deltas={qid:sum(r["metrics"]["answer_f1"]*(1 if r["arm"]==plan["arms"][1]["name"] else -1)
-                       for r in rows if r["question_id"]==qid)/plan["repeats"] for qid in tasks}
-    report={"schema":"rag-rsi-v3-calibration-report-2",
+    report={"schema":"rag-rsi-v3-calibration-report-3" if plan["schema"]==THREE_ARM_SCHEMA else "rag-rsi-v3-calibration-report-2",
       "status":"local_proxy_scored" if quality_valid else "protocol_invalid",
       "quality_comparison_valid":quality_valid,"arms":summary,
-      "official_browsecomp_score":False,"semantic_judging":"not performed","independent_units":len(tasks),
-      "all_outcomes_retained":True,"paired_order":plan["arms"][1]["name"]+" minus "+plan["arms"][0]["name"],
-      "paired_question_f1_deltas":raw_deltas if quality_valid else None,
-      "raw_paired_question_f1_deltas":raw_deltas,
-      "ledger":frozen["ledger"],"claim":"used-development workflow calibration; proxy scores are not official quality evidence"}
+      "official_browsecomp_score":False,"semantic_judging":"not performed",
+      "question_count":len(tasks),"independent_units":len(tasks),
+      "all_outcomes_retained":True,"ledger":frozen["ledger"],
+      "claim":"workflow calibration; proxy scores are not official quality evidence",
+      "cost_accounting":{
+          "request_coupling":REQUEST_COUPLING,
+          "physical_calls":frozen["ledger"].get("used",{}).get("run",{}).get("calls",0),
+          "physical_cost_cny":frozen["ledger"].get("used",{}).get("run",{}).get("cny",0),
+          "logical_calls_by_arm":{name:data["logical_model_calls"] for name,data in summary.items()},
+          "per_arm_physical_cost_attribution":"not_identifiable_with_shared_cache",
+          "same_realized_cost":False,"repeat_is_independent_unit":False}}
+    if plan["schema"]==THREE_ARM_SCHEMA:
+        report["analysis"]=paired_analysis(rows,plan["analysis"],arm_names=[a["name"] for a in plan["arms"]],expected_repeats=plan["repeats"])
+        report["independent_units"]=len(set(plan["analysis"]["question_groups"].values()))
+        report["question_use"]=plan["question_use"]
+        report["question_newness_independently_verified"]=False
+        prefix=_shared_prefix_diagnostic(cells,plan)
+        report["shared_prefix_diagnostic"]=prefix
+        report["execution_comparison_valid"]=quality_valid
+        report["mechanism_comparison_valid"]=prefix["all_successful_prefixes_verified"] if quality_valid else False
+        report["mechanism_claim"]=("shared_prefix_verified; effectiveness not established" if report["mechanism_comparison_valid"] is True
+             else "prefix_unverified_or_protocol_invalid; no isolated_iteration_effect_claim")
+        if prefix["mismatched_pairs"]:
+            # Keep every raw outcome, but do not infer the pre-registered contrasts
+            # after an observed violation of their shared-prefix protocol.
+            report["quality_comparison_valid"]=False
+            report["status"]="protocol_invalid"
+            report["analysis"].update(status="protocol_invalid",quality_comparison_valid=False,qualified=None,
+                                      protocol_failure="observed_shared_prefix_mismatch")
+    else:
+        raw_deltas={qid:sum(r["metrics"]["answer_f1"]*(1 if r["arm"]==plan["arms"][1]["name"] else -1)
+                           for r in rows if r["question_id"]==qid)/plan["repeats"] for qid in tasks}
+        report.update(paired_order=plan["arms"][1]["name"]+" minus "+plan["arms"][0]["name"],
+          paired_question_f1_deltas=raw_deltas if quality_valid else None,
+          raw_paired_question_f1_deltas=raw_deltas)
     freeze(out/"grading/rows.json",rows); freeze(out/"grading/blind_packet.json",sorted(blind,key=lambda r:r["blind_id"]))
     freeze(out/"grading/private_map.json",mapping); freeze(out/"report.json",report)
     return report

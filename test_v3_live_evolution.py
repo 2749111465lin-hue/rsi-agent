@@ -150,6 +150,35 @@ class LiveEvolutionTests(unittest.TestCase):
         self.plan['root_config'].update(mode='single_pass', max_rounds=64, max_model_calls=2)
         self.assertEqual(live.preflight(self.plan)['max_calls'], 43)
 
+    def test_root_retrieval_profile_fits_host(self):
+        for problem in ('limit','budget'):
+            plan=deepcopy(self.plan)
+            if problem=='limit':plan['root_config']['search_limit']=31
+            else:plan['limits']['max_searches']=1
+            with self.subTest(problem=problem),self.assertRaisesRegex(ValueError,'search'):
+                live.preflight(plan)
+
+    def test_planned_single_requires_exactly_three_root_model_calls(self):
+        # max_rounds does not create extra reads in planned_single mode. Its
+        # planner, one read and final answer must fit both independent budgets.
+        for rounds in (1, 64):
+            with self.subTest(max_rounds=rounds):
+                plan = deepcopy(self.plan)
+                plan['root_config'].update(mode='planned_single', max_rounds=rounds, max_model_calls=3)
+                plan['limits']['max_models'] = 3
+                plan['max_calls'] = 19  # Six QA outcomes * three calls + one developer call.
+                report = live.preflight(plan)
+                self.assertEqual(report['qa_call_ceiling'], 18)
+                self.assertEqual(report['max_calls'], 19)
+                for budget in ('host', 'rag'):
+                    insufficient = deepcopy(plan)
+                    if budget == 'host':
+                        insufficient['limits']['max_models'] = 2
+                    else:
+                        insufficient['root_config']['max_model_calls'] = 2
+                    with self.subTest(budget=budget), self.assertRaises(ValueError):
+                        live.preflight(insufficient)
+
     def test_exact_approval_and_execute_before_output_creation(self):
         for execute, approved in ((False, digest(self.plan)), (True, 'wrong')):
             with self.subTest(execute=execute, approved=approved):
