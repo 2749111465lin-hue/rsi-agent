@@ -21,6 +21,7 @@ FAILURE_MODULE_PRIORS = {
     "no_verified_read_quotes": {"evidence_selection": 0.9, "query_rewrite": 0.3},
     "no_final_evidence": {"evidence_selection": 1.0, "answer_generation": 0.8},
     "no_observed_final_answer": {"answer_generation": 1.0},
+    "invalid_answer_origin": {"answer_generation": 1.0},
     "answer_empty": {"answer_generation": 1.0},
     "invalid_answer_citation": {"answer_generation": 1.0, "evidence_selection": 0.5},
     "missing_answer_citations": {},
@@ -107,6 +108,33 @@ def _unavailable(obj):
 def _rank(priors):
     return sorted((m for m in MODULES if priors.get(m, 0) > 0),
                   key=lambda m: (-priors[m], MODULES.index(m)))
+
+
+def _selected_final(receipt):
+    """New receipts inspect the last bound model answer, even if solve replaced it.
+
+    Legacy receipts retain historical matching semantics only for offline
+    diagnostics; they do not gain the new execution eligibility contract.
+    """
+    finals = _items(_map(receipt.get("host_evidence_trace")).get("final_observations"))
+    if receipt.get("schema") == "rag-rsi-v3-execution-3":
+        from .execution import validate_answer_origin
+        check = validate_answer_origin(receipt)
+        index = check.get("event_index")
+        if type(index) is int:
+            for i, raw in enumerate(finals):
+                item = _map(raw)
+                if item.get("event_index") == index:
+                    return i, item
+        return None
+    selected = None
+    for i, raw in enumerate(finals):
+        item = _map(raw)
+        answer = _map(item.get("response")).get("answer")
+        returned = receipt.get("answer")
+        if isinstance(answer, str) and isinstance(returned, str) and answer.strip() == returned.strip():
+            selected = (i, item)
+    return selected
 
 
 def diagnose_execution(receipt):
@@ -213,14 +241,9 @@ def diagnose_execution(receipt):
     if trace_complete and not answer_calls and not finals:
         add("no_observed_final_answer", "/trace")
 
-    # Use the final observation whose answer the host matched, not an abandoned call.
-    selected = None
-    for i, item in enumerate(finals):
-        item = _map(item)
-        response = _map(item.get("response"))
-        answer, returned = response.get("answer"), receipt.get("answer")
-        if isinstance(answer, str) and isinstance(returned, str) and answer.strip() == returned.strip():
-            selected = (i, item)
+    selected = _selected_final(receipt)
+    if receipt.get("schema") == "rag-rsi-v3-execution-3" and receipt.get("answer_origin_valid") is False:
+        add("invalid_answer_origin", "/host_answer_origin_validation/status")
     final_count = None
     if selected is not None:
         i, item = selected
@@ -418,16 +441,18 @@ def execution_flow(receipt):
     counts["verified_quote_occurrences"] = quote_occurrences
     counts["unique_verified_quotes"] = len(read_quotes)
     counts["reads_with_unknown_sources"] = sum(not r["sources_known"] for r in reads)
-    selected = None
-    for raw in _items(evidence.get("final_observations")):
-        item = _map(raw); response = _map(item.get("response"))
-        if isinstance(response.get("answer"), str) and isinstance(receipt.get("answer"), str) and response["answer"].strip() == receipt["answer"].strip():
-            selected = item
+    chosen = _selected_final(receipt)
+    selected = chosen[1] if chosen is not None else None
     final = {"observation_found": selected is not None, "semantic_support": "not_host_verified",
              "retention_basis": "read_quotes_observed_before_selected_answer"}
+    if receipt.get("schema") == "rag-rsi-v3-execution-3":
+        final.update(answer_origin_valid=receipt["answer_origin_valid"],
+                     answer_origin_status=receipt["answer_origin_status"],
+                     retention_basis="read_quotes_observed_before_last_model_answer")
     answer = ""
     if selected is not None:
-        response = _map(selected.get("response")); answer = response["answer"]
+        response = _map(selected.get("response"))
+        answer = response.get("answer") if isinstance(response.get("answer"), str) else ""
         final_index = selected.get("event_index")
         alignment = "event_index"
         def answer_event(i):
@@ -582,6 +607,26 @@ def _witnesses(row):
     return sorted(quotes, key=lambda x: (x["docid"], x["start"] or 0, x["full_quote_sha256"]))[:2]
 
 
+def _program_eligible(measurement, groups):
+    """Current provenance is required; historical validity is not new eligibility."""
+    declared = measurement.get("valid_program")
+    if type(declared) is not bool:
+        return None
+    if not declared:
+        return False
+    rows = [row for group in groups.values() for row in group]
+    if any(row.get("schema") != "rag-rsi-v3-execution-3" for row in rows):
+        return None
+    from .execution import validate_answer_origin
+    for row in rows:
+        origin = validate_answer_origin(row)
+        if (row.get("execution_ok") is not True or row.get("answer_usable") is not True
+                or not isinstance(row.get("answer"), str) or not row["answer"].strip()
+                or origin["valid"] is not True):
+            return False
+    return True
+
+
 def compact_feedback(measurement, tasks, max_cases=4):
     """Bounded developer feedback; optional parent_measurement supplies signed pairs.
 
@@ -594,9 +639,11 @@ def compact_feedback(measurement, tasks, max_cases=4):
     if type(max_cases) is not int or not 0 <= max_cases <= 16:
         raise ValueError("max_cases must be an integer from 0 through 16")
     identity = _identity(measurement)
-    base = {"schema": "rag-rsi-v3-feedback-2", "role": "D_fit", **identity,
+    base = {"schema": "rag-rsi-v3-feedback-3", "role": "D_fit", **identity,
             "node_id": _text(measurement.get("node_id"), 160),
-            "reference_not_sent": True, "module_priors_are_design_heuristics": True,
+            "raw_reference_objects_not_sent": True,
+            "fit_feedback_can_reveal_accepted_answers": True,
+            "module_priors_are_design_heuristics": True,
             "semantic_support": "not_host_verified"}
 
     def unavailable(reason):
@@ -736,7 +783,36 @@ def compact_feedback(measurement, tasks, max_cases=4):
         "regressed": sum(d < 0 for d in deltas), "unchanged": sum(d == 0 for d in deltas),
         "mean_signed_gain": sum(deltas) / len(deltas), "min_signed_gain": min(deltas),
         "max_signed_gain": max(deltas), "clipped_negative_gains": False}
-    return {**base, "measurement_status": "complete", "score": float(measurement["score"]),
+    eligible = _program_eligible(measurement, groups)
+    parent_eligible = _program_eligible(parent, parent_groups) if parent is not None else None
+    pair_eligible = eligible is True and parent_eligible is True
+    for case in selected:
+        case["program_eligible"] = eligible
+        if eligible is not True:
+            case["raw_host_score"] = case["host_score"]
+            case["raw_sampled_repeat_score"] = case["sampled_repeat_score"]
+            case["host_score"] = case["sampled_repeat_score"] = None
+            case["raw_scores_are_diagnostic_only"] = True
+        if parent is not None:
+            case["parent_program_eligible"] = parent_eligible
+            case["paired_comparison_eligible"] = pair_eligible
+            if parent_eligible is not True:
+                case["raw_parent_host_score"] = case["parent_host_score"]
+                case["parent_host_score"] = None
+            if not pair_eligible:
+                case["raw_signed_delta"] = case["signed_delta"]
+                case["signed_delta"] = None
+                case["raw_scores_are_diagnostic_only"] = True
+    qualification = {"program_eligible": eligible,
+                     "paired_comparison_eligible": pair_eligible if parent is not None else None}
+    if eligible is not True:
+        qualification.update(raw_score=float(measurement["score"]),raw_scores_are_diagnostic_only=True)
+    if paired_summary is not None and not pair_eligible:
+        qualification["raw_paired_summary"] = paired_summary
+        qualification["raw_scores_are_diagnostic_only"] = True
+        paired_summary = None
+    return {**base, **qualification, "measurement_status": "complete",
+            "score": float(measurement["score"]) if eligible is True else None,
             "metric": measurement.get("metric"), "cases": selected,
             "summary": {"question_count": len(groups), "selected_cases": len(selected),
                         "host_observed": dict(sorted(host_counts.items())),

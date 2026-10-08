@@ -19,7 +19,7 @@ from ..budget import Ledger, digest, save
 from .datasets import validate_task_collection
 from .diagnostics import diagnose_execution
 from .evolution import freeze, read, recoverable_record, _runtime_source_hashes
-from .execution import execute, root_files, validate_sources
+from .execution import execute, root_files, validate_sources, EXECUTION_SCHEMA, validate_answer_origin
 from .infrastructure import BrowseCompCorpus, StructuredModel, deepseek_transport
 from .rag import RagEngine, DEFAULTS
 
@@ -199,10 +199,11 @@ def _execution_facts(receipt, identity):
     allowed={"schema","node_id","program_id","question_id","resource_usage","model_errors",
              "trace","host_evidence_trace","candidate_reported","diagnostic_trust","answer",
              "answer_usable","execution_ok","citation_source_valid","citation_status",
-             "host_citation_validation","citations","isolation_verified","failure_classes","error","role"}
-    if (not isinstance(receipt,dict) or receipt.get("schema")!="rag-rsi-v3-execution-2"
+             "host_citation_validation","citations","isolation_verified","failure_classes","error","role",
+             "answer_origin_valid","answer_origin_status","host_answer_origin_validation"}
+    if (not isinstance(receipt,dict) or receipt.get("schema")!=EXECUTION_SCHEMA
             or set(receipt)-allowed):
-        raise ValueError("generation requires the completed host execution-2 schema")
+        raise ValueError("generation requires the current completed host execution schema")
     for name in ("node_id","program_id","question_id"):
         if receipt.get(name)!=identity[name]:
             raise ValueError("generation payload identity mismatch")
@@ -221,6 +222,9 @@ def _execution_facts(receipt, identity):
             or any(not isinstance(receipt["host_evidence_trace"].get(name),list)
                    for name in ("read_presentations","final_observations"))):
         raise ValueError("generation payload lacks trusted execution facts")
+    if receipt['answer_usable'] is not (receipt['execution_ok'] and bool(receipt['answer'].strip())):
+        raise ValueError("generation answer usability differs from observed answer")
+    validate_answer_origin(receipt)
     if diagnose_execution(receipt)["measurement_status"]!="observed":
         raise ValueError("unavailable execution cannot become a frozen quality outcome")
     return receipt
@@ -420,18 +424,25 @@ def grade(plan):
             if type(value) not in (int,float) or not math.isfinite(value) or not 0<=value<=1:
                 raise ValueError("calibration requires an available finite unit score: "+name)
         row={"question_id":qid,"arm":identity["arm"],"repeat":identity["repeat"],"answer_usable":receipt["answer_usable"],
-             "source_valid":receipt["citation_source_valid"],"metrics":metrics,"logical_usage":receipt["resource_usage"],
+             "source_valid":receipt["citation_source_valid"],
+             "answer_origin_valid":receipt["answer_origin_valid"],
+             "program_eligible":receipt["execution_ok"] and receipt["answer_origin_valid"] and receipt["answer_usable"],
+             "metrics":metrics,"logical_usage":receipt["resource_usage"],
              "diagnostics":diagnose_execution(receipt)}
         rows.append(row)
         blind_id=digest({"plan":digest(plan),"cell":item["file"],"blind":True})[:16]
         blind.append({"blind_id":blind_id,"question":task["question"],"reference_answer":reference["reference_answer"],
-                      "answer":receipt["answer"],"answer_usable":receipt["answer_usable"]})
+                      "answer":receipt["answer"],"answer_usable":receipt["answer_usable"],
+                      "answer_origin_valid":receipt["answer_origin_valid"]})
         mapping.append({"blind_id":blind_id,**identity})
     summary={}
     for arm in plan["arms"]:
         group=[r for r in rows if r["arm"]==arm["name"]]
         summary[arm["name"]]={"outcomes":len(group),"delivery_rate":sum(r["answer_usable"] for r in group)/len(group),
           "source_valid_rate":sum(r["source_valid"] for r in group)/len(group),
+          "answer_origin_valid_rate":sum(r["answer_origin_valid"] for r in group)/len(group),
+          "eligible_outcomes":sum(r["program_eligible"] for r in group),
+          "raw_scores_are_diagnostic_if_ineligible":True,
           "proxy_answer_em":sum(r["metrics"]["answer_em"] for r in group)/len(group),
           "proxy_answer_f1":sum(r["metrics"]["answer_f1"] for r in group)/len(group),
           "logical_model_calls":sum(r["logical_usage"]["model_calls"] for r in group),
@@ -441,10 +452,16 @@ def grade(plan):
               for code in set(r["diagnostics"]["model_reported"])).items())),
           "diagnostic_count_unit":"answer outcome; repeats are not independent observations",
           "model_reports_are_verified_truth":False}
-    report={"schema":"rag-rsi-v3-calibration-report-1","status":"local_proxy_scored","arms":summary,
+    quality_valid=all(r["program_eligible"] for r in rows)
+    raw_deltas={qid:sum(r["metrics"]["answer_f1"]*(1 if r["arm"]==plan["arms"][1]["name"] else -1)
+                       for r in rows if r["question_id"]==qid)/plan["repeats"] for qid in tasks}
+    report={"schema":"rag-rsi-v3-calibration-report-2",
+      "status":"local_proxy_scored" if quality_valid else "protocol_invalid",
+      "quality_comparison_valid":quality_valid,"arms":summary,
       "official_browsecomp_score":False,"semantic_judging":"not performed","independent_units":len(tasks),
       "all_outcomes_retained":True,"paired_order":plan["arms"][1]["name"]+" minus "+plan["arms"][0]["name"],
-      "paired_question_f1_deltas":{qid:sum(r["metrics"]["answer_f1"]*(1 if r["arm"]==plan["arms"][1]["name"] else -1) for r in rows if r["question_id"]==qid)/plan["repeats"] for qid in tasks},
+      "paired_question_f1_deltas":raw_deltas if quality_valid else None,
+      "raw_paired_question_f1_deltas":raw_deltas,
       "ledger":frozen["ledger"],"claim":"used-development workflow calibration; proxy scores are not official quality evidence"}
     freeze(out/"grading/rows.json",rows); freeze(out/"grading/blind_packet.json",sorted(blind,key=lambda r:r["blind_id"]))
     freeze(out/"grading/private_map.json",mapping); freeze(out/"report.json",report)

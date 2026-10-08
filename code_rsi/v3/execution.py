@@ -18,6 +18,11 @@ from .rag import ground_quote
 from .task_metrics import score_task
 
 
+EXECUTION_SCHEMA = "rag-rsi-v3-execution-3"
+CELL_SCHEMA = "rag-rsi-v3-measured-cell-3"
+ANSWER_ORIGIN_SCHEMA = "rag-rsi-v3-answer-origin-1"
+
+
 def root_files(config=None):
     core = Path(__file__).with_name("rag.py").read_text(encoding="utf-8")
     wrapper = """import json
@@ -91,6 +96,93 @@ def _matches_source(item, windows, *, quote=False):
                and window["start"] <= lo < hi <= window["end"]
                and window["text"][lo-window["start"]:hi-window["start"]] == text
                for window in windows)
+
+
+def _answer_origin_receipt(answer, observations, trace, *, execution_ok):
+    """Reconstruct provenance from host observations and their exact RPC events.
+
+    This validates consistency of the host-owned record, not a candidate's trace
+    or a claimed validity flag. Only the last successfully completed answer call
+    may supply the returned answer; citation quality is a separate fact.
+    """
+    if not isinstance(trace, list) or not isinstance(observations, list):
+        raise ValueError("answer origin requires host event and observation lists")
+    successful = []
+    for index, event in enumerate(trace):
+        if not isinstance(event, dict):
+            raise ValueError("invalid host event in answer origin trace")
+        if event.get("name") != "complete":
+            continue
+        request = event.get("request")
+        if (not isinstance(request, dict) or set(request) != {"stage", "payload"}
+                or not isinstance(request["stage"], str)
+                or request["stage"] not in {"plan", "read", "answer"}
+                or not isinstance(request["payload"], dict)
+                or type(event.get("model_completed")) is not bool
+                or event.get("payload_sha256") != digest(request["payload"])):
+            raise ValueError("answer origin has invalid model event binding")
+        if request["stage"] == "answer" and event["model_completed"]:
+            successful.append(index)
+    if len(observations) != len(successful):
+        raise ValueError("answer origin observations do not cover successful answer events")
+    for observed, index in zip(observations, successful):
+        event = trace[index]
+        if (not isinstance(observed, dict) or type(observed.get("event_index")) is not int
+                or observed["event_index"] != index
+                or not isinstance(observed.get("response"), dict)
+                or observed.get("response_sha256") != digest(observed["response"])
+                or observed["response_sha256"] != event.get("response_hash")
+                or observed.get("payload_sha256") != event["payload_sha256"]):
+            raise ValueError("answer origin observation differs from host event")
+        raw_evidence = event["request"]["payload"].get("evidence", [])
+        if (not isinstance(raw_evidence, list)
+                or any(not isinstance(item, dict) or not isinstance(item.get("citation_id"), str)
+                       or not item["citation_id"] for item in raw_evidence)):
+            raise ValueError("answer origin has invalid presented evidence")
+        evidence = {item["citation_id"]: item for item in raw_evidence}
+        if len(evidence) != len(raw_evidence) or digest(observed.get("evidence")) != digest(evidence):
+            raise ValueError("answer origin evidence differs from host presentation")
+    observed = observations[-1] if observations else None
+    receipt = {"schema": ANSWER_ORIGIN_SCHEMA, "valid": False,
+               "status": "no_observed_final_answer", "event_index": None,
+               "payload_sha256": None, "response_sha256": None}
+    if observed is not None:
+        receipt.update({key: observed[key] for key in
+                        ("event_index", "payload_sha256", "response_sha256")})
+    if not execution_ok:
+        return {**receipt, "status": "execution_failed"}
+    if observed is None:
+        return receipt
+    model_answer = observed["response"].get("answer")
+    if not isinstance(model_answer, str):
+        return {**receipt, "status": "invalid_model_answer"}
+    if not isinstance(answer, str) or answer.strip() != model_answer.strip():
+        return {**receipt, "status": "candidate_answer_mismatch"}
+    return {**receipt, "valid": True, "status": "last_successful_answer_verified"}
+
+
+def validate_answer_origin(receipt):
+    """Return the reconstructed origin receipt, rejecting absent or forged claims.
+
+    New execution and measured-cell consumers must use this check before treating
+    a receipt as eligible. Legacy records require rerunning under the new epoch.
+    """
+    if (not isinstance(receipt, dict) or receipt.get("schema") != EXECUTION_SCHEMA
+            or type(receipt.get("execution_ok")) is not bool
+            or type(receipt.get("answer_origin_valid")) is not bool
+            or not isinstance(receipt.get("answer_origin_status"), str)
+            or not isinstance(receipt.get("host_answer_origin_validation"), dict)
+            or not isinstance(receipt.get("host_evidence_trace"), dict)
+            or not isinstance(receipt.get("answer"), str)):
+        raise ValueError("execution receipt lacks current answer origin contract")
+    reconstructed = _answer_origin_receipt(
+        receipt["answer"], receipt["host_evidence_trace"].get("final_observations"),
+        receipt.get("trace"), execution_ok=receipt["execution_ok"])
+    if (stable(receipt["host_answer_origin_validation"]) != stable(reconstructed)
+            or receipt["answer_origin_valid"] is not reconstructed["valid"]
+            or receipt["answer_origin_status"] != reconstructed["status"]):
+        raise ValueError("declared answer origin differs from host evidence")
+    return reconstructed
 
 
 class HostBroker:
@@ -174,6 +266,10 @@ class HostBroker:
                                         "verified_quotes": verified,
                                         "semantic_support": "model_assessed_only"})
 
+    def answer_origin_receipt(self, answer, *, execution_ok=True):
+        return _answer_origin_receipt(answer, self.final_observations, self.events,
+                                      execution_ok=execution_ok)
+
     def citation_receipt(self, answer, citations):
         """Host reconstruction; no field from record_trace is used as evidence."""
         default = {"valid": False, "status": "no_observed_final_answer", "raw_citation_ids": [],
@@ -181,12 +277,9 @@ class HostBroker:
                    "semantic_support": "model_assessed_only"}
         if not isinstance(answer, str):
             return default
-        observations = [item for item in self.final_observations
-                        if isinstance(item["response"].get("answer"), str)
-                        and item["response"]["answer"].strip() == answer.strip()]
-        if not observations:
+        if not self.answer_origin_receipt(answer)["valid"]:
             return default
-        observed = observations[-1]
+        observed = self.final_observations[-1]
         raw = observed["response"].get("citation_ids")
         evidence = observed["evidence"]
         assessment = observed["response"].get("evidence_sufficient")
@@ -297,7 +390,8 @@ class HostBroker:
             if completed and stage=="answer":
                 self.final_observations.append({"event_index":len(self.events),
                                                 "evidence":evidence,"response":_snapshot(result),
-                                                "payload_sha256":digest(visible)})
+                                                "payload_sha256":digest(visible),
+                                                "response_sha256":digest(result)})
         elif name == "record_trace":
             if set(payload)!={"result"} or not isinstance(payload["result"],dict) or self.reported is not None:
                 raise ValueError("one candidate diagnostic object allowed")
@@ -305,6 +399,11 @@ class HostBroker:
         else:
             raise ValueError("unavailable service")
         event={"name":name,"request":payload,"response_hash":digest(result)}
+        if name == "complete":
+            # Persist the actual host-constrained model input so cached origin
+            # bindings can be recomputed without trusting stored validity flags.
+            event.update(request={"stage": stage, "payload": _snapshot(visible)},
+                         payload_sha256=digest(visible), model_completed=completed)
         if name in {"search","read"}:
             # Both branches have completed _record_windows validation. Never use
             # backend metadata or the candidate's reported trace as observations.
@@ -345,12 +444,17 @@ def execute(archive, node_id, task, backend, model, directory, *, limits=None, s
         answer=result["result"]["answer"]
         usable=isinstance(answer,str) and bool(answer.strip())
         citations=result["result"]["citations"]
+        origin_check=broker.answer_origin_receipt(answer)
         citation_check=broker.citation_receipt(answer,citations)
         checks=result["runtime"].get("isolation_checks") or {}
         failures=[] if usable else ["answer_empty"]
+        if not origin_check["valid"]:
+            failures.append("invalid_answer_origin")
         if citation_check["status"] in {"invalid_model_citation_ids","candidate_citation_mismatch"}:
             failures.append("invalid_answer_citation")
         receipt={"answer":answer,"answer_usable":usable,"execution_ok":True,
+            "answer_origin_valid":origin_check["valid"],"answer_origin_status":origin_check["status"],
+            "host_answer_origin_validation":origin_check,
             "citation_source_valid":citation_check["valid"],"citation_status":citation_check["status"],
             "host_citation_validation":citation_check,"citations":citations,
             "isolation_verified":bool(checks) and all(checks.values()),
@@ -358,34 +462,39 @@ def execute(archive, node_id, task, backend, model, directory, *, limits=None, s
     except SandboxExecutionError as exc:
         if broker.fatal is not None:
             raise broker.fatal
+        origin_check=broker.answer_origin_receipt("",execution_ok=False)
         receipt={"answer":"","answer_usable":False,"execution_ok":False,
+            "answer_origin_valid":False,"answer_origin_status":origin_check["status"],
+            "host_answer_origin_validation":origin_check,
             "citation_source_valid":False,"citation_status":"execution_failed","citations":[],
             "isolation_verified":False,
             "failure_classes":[exc.details.get("kind","execution_error")],"error":str(exc)}
-    receipt.update({"schema":"rag-rsi-v3-execution-2","node_id":node_id,"program_id":node["program_id"],
+    receipt.update({"schema":EXECUTION_SCHEMA,"node_id":node_id,"program_id":node["program_id"],
          "question_id":task["question_id"],"resource_usage":broker.counts,
          "model_errors":broker.model_errors,"trace":broker.events,
          "host_evidence_trace":{"read_presentations":broker.read_presentations,
                                 "final_observations":broker.final_observations},
          "candidate_reported":broker.reported,"diagnostic_trust":"candidate_reported_not_correctness"})
+    validate_answer_origin(receipt)
     save(directory/"execution.json",receipt)
     return receipt
 
 
 def _cell_record(identity, payload):
-    return {"schema":"rag-rsi-v3-measured-cell-2","identity":identity,
+    return {"schema":CELL_SCHEMA,"identity":identity,
             "identity_sha256":digest(identity),"payload":payload,"payload_sha256":digest(payload)}
 
 
 def _verified_cell(path, expected):
     record=json.loads(Path(path).read_text(encoding="utf-8"))
     if (not isinstance(record,dict) or set(record)!={"schema","identity","identity_sha256","payload","payload_sha256"}
-            or record["schema"]!="rag-rsi-v3-measured-cell-2"
+            or record["schema"]!=CELL_SCHEMA
             or record["identity"]!=expected or record["identity_sha256"]!=digest(expected)
             or not isinstance(record["payload"],dict)
             or record["payload_sha256"]!=digest(record["payload"])):
         raise ValueError("measured cell identity or content integrity failure")
     row=record["payload"]
+    validate_answer_origin(row)
     for field in ("node_id","program_id","question_id","role","repeat"):
         if row.get(field)!=expected[field]:
             raise ValueError("measured cell field differs from identity: "+field)
@@ -393,6 +502,8 @@ def _verified_cell(path, expected):
         raise ValueError("cached score outside unit interval")
     if type(row.get("execution_ok")) is not bool or type(row.get("answer_usable")) is not bool:
         raise ValueError("cached cell lacks execution validity")
+    if row["answer_usable"] and (not row["execution_ok"] or not row["answer"].strip()):
+        raise ValueError("cached cell claims an unusable answer is deliverable")
     metrics=row.get("task_metrics")
     names=("answer_em","answer_f1","support_em","support_f1","answerability")
     if (not isinstance(metrics,dict) or not set(names)<=set(metrics)
@@ -420,7 +531,7 @@ class Measurement:
         self.metric,self.scorer,self.limits=metric,scorer,limits
         self.allow_proxy_metrics=allow_proxy_metrics
         primary="task-rule-"+metric if scorer is None else "external-"+metric
-        self.epoch=primary+"-v4-task-metrics-1-proxy-"+str(int(allow_proxy_metrics))
+        self.epoch=primary+"-v5-answer-origin-1-task-metrics-1-proxy-"+str(int(allow_proxy_metrics))
 
     def backend(self, task):
         if task["corpus_scope"]=="question_local" or task["documents"]:
@@ -467,7 +578,7 @@ class Measurement:
             "reference_hash":digest(references),"epoch":self.epoch,"role":role,"bank":bank,
             "repeats":repeats,"limits":self.limits,"environments":environments,
             "allow_proxy_metrics":self.allow_proxy_metrics,
-            "cell_schema":"rag-rsi-v3-measured-cell-2"})
+            "cell_schema":CELL_SCHEMA})
         folder=self.directory/identity
         rows=[]
         for task in public_tasks:
@@ -488,6 +599,7 @@ class Measurement:
                     if backend.identity!=expected["backend_identity"] or model.identity!=expected["model_identity"]:
                         raise HostError("measurement environment changed before execution")
                     receipt=execute(self.archive,node["node_id"],task,backend,model,cell,limits=self.limits)
+                    validate_answer_origin(receipt)
                     ref=references[qid]
                     metrics=score_task(receipt,ref,task=task,allow_proxy_metrics=self.allow_proxy_metrics)
                     score=(self.scorer(receipt["answer"],ref) if self.scorer else
@@ -501,7 +613,7 @@ class Measurement:
         result={"node_id":node["node_id"],"program_id":node["program_id"],"role":role,
            "panel_hash":panel,"identity_hash":identity,"evaluator_epoch":self.epoch,
            "score":sum(per_question.values())/len(per_question),"per_question":per_question,
-           "complete":True,"valid_program":all(r["execution_ok"] for r in rows),"rows":rows,
+           "complete":True,"valid_program":all(r["execution_ok"] and r["answer_origin_valid"] and r["answer_usable"] for r in rows),"rows":rows,
            "resource_usage":{"calls":sum(r["resource_usage"]["model_calls"] for r in rows)},
            "metric":self.metric,"cost_note":"logical calls; billed cost is authoritative ledger only"}
         save(folder/"measurement.json",result)

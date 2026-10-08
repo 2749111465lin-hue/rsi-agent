@@ -14,6 +14,7 @@ from .datasets import validate_task_collection
 from .execution import Measurement, root_files, validate_sources
 from .experience_policy import choose_next, memory_for_action
 from .diagnostics import compact_feedback
+from .edit_scope import observe_edit_scope, validated_scope
 
 
 def freeze(path, value):
@@ -94,12 +95,14 @@ def program_change(parent, writes):
 
 
 def _proposal_files(program, decision, proposal):
-    if not isinstance(proposal,dict) or set(proposal)!={"writes","mechanism","target_module"}:
+    if (not isinstance(proposal,dict) or set(proposal) not in
+            ({"writes","mechanism","target_module"}, {"writes","mechanism","intended_target_module"})):
         raise ValueError("invalid development proposal")
     if not isinstance(proposal["mechanism"],str) or not proposal["mechanism"].strip():
         raise ValueError("invalid development proposal")
-    if proposal["target_module"]!=decision["target_module"]:
-        raise ValueError("proposal module differs from declared action")
+    intended=proposal.get("intended_target_module",proposal.get("target_module"))
+    if intended!=decision.get("intended_target_module",decision["target_module"]):
+        raise ValueError("proposal intent differs from declared action")
     return program_change(program,proposal["writes"])
 
 
@@ -181,19 +184,31 @@ class ProgramDeveloper:
         feedback=compact_feedback(result,tasks,max_cases=4)
         payload={"source_files":program["files"],"decision":decision,
              "experience":experience,"feedback":feedback,
-             "edit_boundary":"Change reusable module behavior, do not embed examples/answers. Return complete changed files."}
+             "edit_boundary":("Change reusable behavior; do not embed examples/answers. Return complete changed files. "
+                "intended_target_module (legacy target_module) declares intent only. General refactors are allowed. "
+                "The host separately records actual AST scopes and intent mismatches; mixed or unknown edits "
+                "retain whole-program scores but cannot supply a single-module gain. Scope associations are not causal.")}
         output=self.model.complete("develop",_fit_development_request(self.model,payload))
         _proposal_files(program,decision,output)
         return output
 
 
-def experience_card(result, parent, *, operator, module, step, mechanism):
+def experience_card(result, parent, *, operator, module, step, mechanism, edit_scope=None):
+    scope=validated_scope(edit_scope) if edit_scope is not None else None
+    if edit_scope is not None and (scope is None or scope["intended_target_module"]!=module):
+        raise ValueError("invalid host edit scope receipt or intent")
     per=result["per_question"]
     feedback=compact_feedback({**result,**({"parent_measurement":parent} if parent else {})},
               [{"question_id":qid,"question":""} for qid in per],max_cases=0)
     if feedback["measurement_status"]!="complete":
         raise ValueError("unavailable outcome cannot enter experience")
-    paired={qid:score-parent["per_question"][qid] for qid,score in per.items()} if parent else {}
+    raw_paired={qid:score-parent["per_question"][qid] for qid,score in per.items()} if parent else {}
+    # Feedback revalidates current host answer-origin receipts. Historical flags
+    # alone cannot promote legacy rows into current learning evidence.
+    eligible=feedback.get("program_eligible") is True
+    pair_eligible=feedback.get("paired_comparison_eligible") is True
+    raw_delta=result["score"]-parent["score"] if parent else None
+    paired=raw_paired if pair_eligible else None if parent else {}
     failures=sorted(set(f for row in result["rows"] for f in row.get("failure_classes",[]))
                     | set(feedback["summary"]["host_observed"]))
     diagnostic={"host_observed":sorted(feedback["summary"]["host_observed"]),
@@ -202,16 +217,28 @@ def experience_card(result, parent, *, operator, module, step, mechanism):
                 "semantic_support":"not_host_verified","paired_summary":feedback["paired_summary"]}
     if any(x<1 for x in per.values()): failures.append("answer_quality")
     return {"node_id":result["node_id"],"program_id":result["program_id"],"role":"D_fit",
+      "source":"host_measured_D_fit", "intended_target_module":module,
+      "actual_edit_scope":scope,"associated_module":scope["associated_module"] if scope else None,
+      "module_attribution":scope["attribution"] if scope else "unknown",
+      "module_association_is_causal":False,
       "panel_hash":result["panel_hash"],"evaluator_epoch":result["evaluator_epoch"],
-      "complete":True,"valid_program":result["valid_program"],"score":result["score"],
-      "signed_delta_vs_best_parent":result["score"]-parent["score"] if parent else None,
-      "signed_deltas":{parent["node_id"]:result["score"]-parent["score"]} if parent else {},
+      "complete":True,"valid_program":eligible,"program_eligible":eligible,
+      "paired_comparison_eligible":pair_eligible,"score":result["score"] if eligible else None,
+      "signed_delta_vs_best_parent":raw_delta if pair_eligible else None,
+      "signed_deltas":({parent["node_id"]:raw_delta} if pair_eligible else None) if parent else {},
+      "raw_diagnostics":{"answer_score":result["score"],"signed_delta_vs_best_parent":raw_delta,
+          "signed_deltas":{parent["node_id"]:raw_delta} if parent else {},"paired_deltas":raw_paired,
+          "paired_signed_gain":sum(raw_paired.values())/len(raw_paired) if raw_paired else None,
+          "reported_valid_program":result.get("valid_program"),
+          "host_program_eligibility":feedback.get("program_eligible"),
+          "diagnostic_only":True,"not_quality_reward":True},
       "parent_node_ids":[parent["node_id"]] if parent else [],"operator":operator,"target_module":module,
       "step":step,"hypothesis":mechanism,"failure_classes":failures,"diagnostics":diagnostic,
       "failure_assessment_source":"host_execution_and_fit_answer_scores",
       "paired_deltas":paired,"resource_usage":result["resource_usage"],
       "behavior":{"group_hash":digest([r["answer"] for r in result["rows"]])},
-      "reward":{"answer_quality":result["score"],"paired_signed_gain":sum(paired.values())/len(paired) if paired else None,
+      "reward":{"answer_quality":result["score"] if eligible else None,
+           "paired_signed_gain":sum(paired.values())/len(paired) if paired else None,
            "delivery_rate":sum(r["answer_usable"] for r in result["rows"])/len(result["rows"]),
            "source_valid_rate":sum(r["citation_source_valid"] for r in result["rows"])/len(result["rows"]),
            "proxy_added_to_terminal_quality":False}}
@@ -299,6 +326,9 @@ class EvolutionRunner:
                 decision["parent_node_id"]=root["node_id"]
             decision["recent_rejections"]=[r for i in range(max(0,step-4),step)
                       if (r:=read(self.directory/"steps"/str(i)/"rejected.json"))]
+            decision["recent_edit_scopes"]=[{"node_id":c["node_id"],
+                "intended_target_module":c["intended_target_module"],"actual_edit_scope":c["actual_edit_scope"]}
+                for c in cards[-4:] if c.get("actual_edit_scope")]
             freeze(folder/"decision.json",decision)
             parent=self.archive.load_node(decision["parent_node_id"])
             program=self.archive.load_program(parent["program_id"])
@@ -328,6 +358,8 @@ class EvolutionRunner:
                 if any(self.archive.load_program(c["program_id"])["files"]==proposed for c in cards):
                     save(folder/"rejected.json",{"reason":"previously visited program","next_step_allowed":True})
                     continue
+                proposal={"writes":proposal["writes"],"mechanism":proposal["mechanism"],
+                          "intended_target_module":decision["target_module"]}
                 save(folder/"proposal.json",proposal)
             else:
                 # A saved proposal is an input to recovery, not an exemption from validation.
@@ -340,9 +372,11 @@ class EvolutionRunner:
                 save(folder/"child.json",child)
             else:
                 child=_validate_receipt(self.archive,child,proposed,program["metadata"],**expected)
+            scope=observe_edit_scope(program["files"],proposed,decision["target_module"])
+            freeze(folder/"edit_scope.json",scope)
             measured=self._measure(child,"D_fit"); results[child["node_id"]]=measured
-            card=experience_card(measured,results[parent["node_id"]],operator=decision["operator"],module=decision["target_module"],step=step+1,mechanism=proposal["mechanism"])
-            cards.append(card); save(folder/"experience.json",card)
+            card=experience_card(measured,results[parent["node_id"]],operator=decision["operator"],module=decision["target_module"],step=step+1,mechanism=proposal["mechanism"],edit_scope=scope)
+            cards.append(card); freeze(folder/"experience.json",card)
         # One immutable search freeze, one selection, one report. No shadow judging.
         freeze(self.directory/"search_frozen.json",{"cards":cards,"order":[c["node_id"] for c in cards]})
         valid=[c for c in cards if c["valid_program"]]
@@ -361,13 +395,25 @@ class EvolutionRunner:
         freeze(self.directory/"delivery_lock.json",lock)
         delivered=self._measure(self.archive.load_node(winner["node_id"]),"D_report")
         reference=self._measure(root,"D_report")
-        report={"schema":"rag-rsi-v3-report-1","status":"complete","metric":self.manifest["metric"],
+        delivered_eligible=delivered.get("complete") is True and delivered.get("valid_program") is True
+        reference_eligible=reference.get("complete") is True and reference.get("valid_program") is True
+        quality_valid=delivered_eligible and reference_eligible
+        raw_gain=delivered["score"]-reference["score"]
+        raw_deltas={q:score-reference["per_question"][q] for q,score in delivered["per_question"].items()}
+        report={"schema":"rag-rsi-v3-report-2","status":"complete" if quality_valid else "protocol_invalid",
+            "metric":self.manifest["metric"],"quality_comparison_valid":quality_valid,
+            "report_program_eligible":delivered_eligible,"reference_program_eligible":reference_eligible,
             "proxy_metric":bool(self.manifest.get("allow_proxy_metric")),"fit_nodes":len(cards),
-            "delivery_lock":lock,"report_score":delivered["score"],"reference_score":reference["score"],
-            "paired_report_gain":delivered["score"]-reference["score"],
-            "paired_question_deltas":{q:score-reference["per_question"][q] for q,score in delivered["per_question"].items()},
+            "delivery_lock":lock,"report_score":delivered["score"] if delivered_eligible else None,
+            "reference_score":reference["score"] if reference_eligible else None,
+            "paired_report_gain":raw_gain if quality_valid else None,
+            "paired_question_deltas":raw_deltas if quality_valid else None,
+            "raw_diagnostics":{"report_score":delivered["score"],"reference_score":reference["score"],
+                "paired_report_gain":raw_gain,"paired_question_deltas":raw_deltas,
+                "scores_are_diagnostic_if_ineligible":True},
             "independent_unit":"question, not repeat","report_used_for_decisions":False,
             "synthetic":bool(self.manifest.get("synthetic",False)),
-            "quality_claim":"engineering_fixture_only" if self.manifest.get("synthetic") else "estimate_on_frozen_report_panel"}
+            "quality_claim":("invalid_protocol_no_quality_claim" if not quality_valid else
+                "engineering_fixture_only" if self.manifest.get("synthetic") else "estimate_on_frozen_report_panel")}
         save(self.directory/"report.json",report)
         return report

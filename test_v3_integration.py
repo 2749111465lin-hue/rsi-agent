@@ -11,6 +11,7 @@ from code_rsi.v3.infrastructure import StructuredModel,LocalCorpus,UnknownProvid
 from code_rsi.v3.datasets import adapt_multihop
 from code_rsi.v3.execution import HostBroker,root_files,validate_sources
 from code_rsi.v3.evolution import freeze,program_change,experience_card,EvolutionRunner
+from test_v3_fixture_origin import bind_synthetic_origin
 
 def delayed_fixture_worker(connection, body, key, timeout):
     time.sleep(10)
@@ -104,9 +105,11 @@ class IntegrationTests(unittest.TestCase):
 
     def test_signed_negative_reward_survives(self):
         common={'node_id':'child','program_id':'p','panel_hash':'panel','evaluator_epoch':'em','valid_program':True,
-                'role':'D_fit','complete':True,'metric':'em','resource_usage':{'calls':2},'rows':[{'question_id':'q','score':0,'failure_classes':[],'answer_usable':True,'citation_source_valid':False,'answer':'wrong'}]}
+                'role':'D_fit','complete':True,'metric':'em','resource_usage':{'calls':2},'rows':[{'question_id':'q','score':0,'failure_classes':[],'answer_usable':True,'citation_source_valid':False,'execution_ok':True,'answer':'wrong'}]}
+        common['rows']=[bind_synthetic_origin(common['rows'][0],synthesize_final=True)]
         result={**common,'score':0,'per_question':{'q':0}}
         parent={**common,'node_id':'parent','score':1,'per_question':{'q':1},'rows':[{**common['rows'][0],'score':1}]}
+        self.assertTrue(common['rows'][0]['answer_origin_valid'])
         card=experience_card(result,parent,operator='Improve',module='answer_generation',step=1,mechanism='test')
         self.assertEqual(card['signed_delta_vs_best_parent'],-1)
         self.assertFalse(card['reward']['proxy_added_to_terminal_quality'])

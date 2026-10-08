@@ -12,6 +12,7 @@ from code_rsi.v3.execution import root_files
 from code_rsi.v3.infrastructure import StructuredModel, PROMPTS
 from test_v3_feedback_flow import receipt, window, quote
 from test_v3_diagnostics import measurement
+from test_v3_fixture_origin import bind_synthetic_origin
 
 
 def stress(char):
@@ -25,6 +26,7 @@ def stress(char):
         row=receipt(rounds,qid='q'+str(i),score=score)
         row['answer']=char*400
         row['host_evidence_trace']['final_observations'][0]['response']['answer']=row['answer']
+        row=bind_synthetic_origin(row)
         row['candidate_reported']={'state':{'gaps':[str(j)+char*239 for j in range(3)],
                                           'conflicts':[str(j)+char*239 for j in range(3)]}}
         rows.append(row)

@@ -6,6 +6,7 @@ import unittest
 
 from code_rsi.v3.diagnostics import FLOW_BOUNDS, compact_feedback, execution_flow
 from test_v3_diagnostics import measurement, tasks
+from test_v3_fixture_origin import bind_synthetic_origin
 
 
 def sha(text):
@@ -47,13 +48,14 @@ def receipt(rounds, *, legacy=False, final_quotes=None, qid='q1', score=0, repea
              **({} if legacy else {'event_index': len(events)})}
     events.append({'name': 'complete', 'request': {'stage': 'answer', 'payload': {'evidence': list(evidence.values())}},
                    'response_hash': sha('completed answer')})
-    return {'schema': 'rag-rsi-v3-execution-2', 'role': 'D_fit', 'question_id': qid, 'node_id': 'child',
+    result = {'schema': 'rag-rsi-v3-execution-2', 'role': 'D_fit', 'question_id': qid, 'node_id': 'child',
             'score': score, 'repeat': repeat, 'answer': 'synthetic answer', 'answer_usable': True,
             'execution_ok': True, 'citation_source_valid': True, 'failure_classes': [], 'model_errors': [],
             'trace': events, 'host_evidence_trace': {'read_presentations': presentations, 'final_observations': [final]},
             'host_citation_validation': {'valid': True, 'status': 'source_and_presentation_verified',
                                          'raw_citation_ids': list(evidence), 'presented_citation_ids': list(evidence)},
             'candidate_reported': {}}
+    return result if legacy else bind_synthetic_origin(result)
 
 
 class ExecutionFlowTests(unittest.TestCase):
@@ -128,9 +130,12 @@ class ExecutionFlowTests(unittest.TestCase):
         self.assertEqual(execution_flow(row), expected)
         self.assertNotIn('PRIVATE_REFERENCE_SENTINEL', json.dumps(execution_flow(row)))
 
-    def test_answer_observation_is_selected_by_actual_returned_answer(self):
+    def test_legacy_answer_observation_is_selected_by_actual_returned_answer(self):
         old, new = window('old', 'abcd'), window('new', 'efgh')
-        row = receipt([{'sources': [old, new]}], final_quotes=[quote(old)])
+        row = receipt([{'sources': [old, new]}], final_quotes=[quote(old)], legacy=True)
+        response = row['host_evidence_trace']['final_observations'][0]['response']
+        row['trace'][-1]['response_hash'] = hashlib.sha256(json.dumps(response, sort_keys=True,
+            ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
         row['host_evidence_trace']['final_observations'].append({
             'evidence': {'e2': quote(new)}, 'response': {'answer': 'abandoned answer', 'citation_ids': ['e2']}})
         final = execution_flow(row)['final']
@@ -144,6 +149,7 @@ class ExecutionFlowTests(unittest.TestCase):
         row = receipt([{'sources': [a]}, {'sources': [b]}])
         row['host_evidence_trace']['read_presentations'].pop(0)
         row['trace'][1]['response_hash'] = sha('unimportant failed hash')
+        row['trace'][1]['model_completed'] = False
         flow = execution_flow(row)
         self.assertIsNone(flow['reads'][0]['verified_quote_count'])
         self.assertEqual(flow['reads'][1]['verified_quote_count'], 1)
@@ -182,6 +188,7 @@ class ExecutionFlowTests(unittest.TestCase):
         row['trace'] = trace[:2] + [trace[-1]] + trace[2:-1]
         row['host_evidence_trace']['final_observations'][0]['event_index'] = 2
         row['host_evidence_trace']['read_presentations'][1]['event_index'] = 4
+        row = bind_synthetic_origin(row)
         final = execution_flow(row)['final']
         self.assertEqual(final['retention_time_alignment'], 'event_index')
         self.assertEqual(final['verified_read_quotes_before_final_count'], 1)
@@ -228,7 +235,7 @@ class CompactFlowTests(unittest.TestCase):
                         event.pop(key, None)
         old = compact_feedback(current, tasks(rows), max_cases=3)
         new = compact_feedback(original, tasks(rows), max_cases=3)
-        self.assertEqual(new['schema'], 'rag-rsi-v3-feedback-2')
+        self.assertEqual(new['schema'], 'rag-rsi-v3-feedback-3')
         self.assertEqual(new['paired_summary']['min_signed_gain'], -1)
         self.assertEqual(new['cases'][0]['signed_delta'], -1)
         self.assertNotEqual(new['cases'][0]['execution_flow'], old['cases'][0]['execution_flow'])
@@ -268,7 +275,9 @@ class CompactFlowTests(unittest.TestCase):
         task = {**tasks([row])[0], 'answers': ['PRIVATE_REFERENCE_SENTINEL'], 'reference': 'PRIVATE_REFERENCE_SENTINEL'}
         feedback = compact_feedback(measurement([row]), [task])
         self.assertNotIn('PRIVATE_REFERENCE_SENTINEL', json.dumps(feedback))
-        self.assertTrue(feedback['reference_not_sent'])
+        self.assertTrue(feedback['raw_reference_objects_not_sent'])
+        self.assertTrue(feedback['fit_feedback_can_reveal_accepted_answers'])
+        self.assertNotIn('reference_not_sent', feedback)
 
 
 if __name__ == '__main__':

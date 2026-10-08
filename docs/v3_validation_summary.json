@@ -2,11 +2,14 @@
   "schema": "rag-rsi-v3-validation-summary-1",
   "date": "2026-10-08",
   "unit_tests": {
-    "run": 348,
-    "passed": 348,
+    "run": 412,
+    "passed": 412,
     "failed": 0,
-    "command": "python -B -m unittest discover -v",
-    "elapsed_seconds": 20.196
+    "skipped": 0,
+    "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+    "elapsed_seconds": 124.456,
+    "real_wsl_opt_in": true,
+    "ci_note": "Default CI skips the one explicit real-WSL test; local result above includes it."
   },
   "real_wsl_end_to_end": {
     "status": "complete",
@@ -35,10 +38,9 @@
   "new_api_cost_cny": 1.01144848,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "repair and validate lexical query truncation",
-    "enforce final-model answer provenance for candidate eligibility",
-    "record actual edit scope and stop declared-module attribution",
-    "freeze separate mechanism checks and three-arm quality protocol",
+    "implement planned-single third arm and freeze mechanism/quality protocols separately",
+    "question/group paired uncertainty and power planning",
+    "question-specific hardcoding lint before real code-development trial",
     "real LLM program-development comparison",
     "independent task confirmation and experience/skill ablation"
   ],
@@ -48,22 +50,23 @@
     "code_rsi/budget.py": "bde4f5c69c5a7bbfedc6552019edc28a26a26632cb4393f883823c9efb5a5dbe",
     "code_rsi/candidate_runner.py": "1e6ab18bbd86d6ff5f6b1fffbcd42c41a4025c9c1097340b50cd6094f28c8c1f",
     "code_rsi/linux_launcher.sh": "2ca86a174e52229a4a4f45ae85a5bbe3be5f2bf77c6ea10450a838f1a783cc1c",
+    "code_rsi/live_evolution.py": "0a4763806e11bfd9666e738f225ad2e0cff96a909141489c66f0cfea65c8d2ae",
+    "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13",
     "code_rsi/sandbox.py": "821a21bf8d9efadc08d7c213c9b143e63d5083933a025d517953cfa0eb57f1ae",
     "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
     "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
     "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
-    "code_rsi/v3/calibration.py": "7fdc0046e1a6b6d6d64f1e950ef28725504ec9b02d826270f08e4c393e0b1769",
+    "code_rsi/v3/calibration.py": "2fd47f8f95037aa1c156348b14f6c90321e4317cd48e38e937241c080812461d",
     "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
-    "code_rsi/v3/diagnostics.py": "2b41529be3a9b046d2c51e9395c4680883a05fae0751cdb207bd3ba5e89b7900",
-    "code_rsi/v3/evolution.py": "10093cbff0d61c6098f155a22e027528b9e8e734eb4a3af97eeecb49327dffaa",
-    "code_rsi/v3/execution.py": "75ca536ab9ada4698f9476e061fbde6e79388fd6a506bdf14b67d335012fc2a3",
-    "code_rsi/v3/experience_policy.py": "fb376c5481edb083f533a3854f5ca48d84d661da69ac7555a95ff66d57f07c6b",
-    "code_rsi/v3/infrastructure.py": "4bf196e451dc650982e27e8ce4060dceb72aa6d504b81aeea06e827f3b3151fb",
+    "code_rsi/v3/diagnostics.py": "9f5df054df7b123529bf03565158ed28ae5c3af23bd1868d705fa210f3e93c37",
+    "code_rsi/v3/edit_scope.py": "6985810eab40e8973ccef41e0478ae3a4374d9647471ed7318279cb2def64ab6",
+    "code_rsi/v3/evolution.py": "3b00dc8223a3e61f9b7d1c91d4f960ece472c6745487669776f6da5c32fe19db",
+    "code_rsi/v3/execution.py": "e6b76ff872104e916702e370c9deb41851aebb47385c4e888e2548afa3dd58cd",
+    "code_rsi/v3/experience_policy.py": "bac5d890c970c1fd0f02a043db35da855283e34aedabb1069548819823562612",
+    "code_rsi/v3/infrastructure.py": "ef72463c5f52e597b3e21967c782bd98f958441dc3411cdc748069bac3921656",
     "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
     "code_rsi/v3/rag.py": "2ccacf3cf5c820b01631c676151ac694231ca8cccc19bd076e096660fa249a2b",
-    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c",
-    "code_rsi/live_evolution.py": "0a4763806e11bfd9666e738f225ad2e0cff96a909141489c66f0cfea65c8d2ae",
-    "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13"
+    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
   },
   "source_hash_encoding": "UTF-8 LF canonical bytes (read_text normalizes line endings)",
   "real_wsl_calibration_smoke": {
@@ -123,7 +126,7 @@
     "later_new_sources_presented": 0,
     "official_metric": false
   },
-  "new_api_cost_note": "conservative peak-price ledger estimate, not supplier invoice",
+  "new_api_cost_note": "Historical first calibration only: conservative peak-price ledger estimate, not supplier invoice. Current review-fix implementation adds zero calls/cost.",
   "latest_offline_implementation": {
     "status": "complete",
     "real_api_calls": 0,
@@ -200,5 +203,122 @@
       "synthetic": true
     },
     "claim": "engineering integration and frozen historical diagnostics only"
+  },
+  "review_fix_validation": {
+    "branch": "codex/v3-feedback-grounding",
+    "new_api_calls": 0,
+    "new_api_cost_cny": 0,
+    "credentials_read": false,
+    "raw_private_results_committed": false,
+    "retrieval": {
+      "backend": "fts5-porter-v4-all-query-terms",
+      "query_cap_removed": true,
+      "idf_or_stopword_change": false,
+      "frozen_corpus_replay_questions": 4,
+      "top5_membership_changed_questions": 4,
+      "top5_overlap_counts": [
+        4,
+        2,
+        3,
+        3
+      ],
+      "reference_answers_opened": false,
+      "claim": "retrieval behavior only; relevance and answer quality not measured"
+    },
+    "answer_origin": {
+      "execution_schema": "rag-rsi-v3-execution-3",
+      "measured_cell_schema": "rag-rsi-v3-measured-cell-3",
+      "binds_last_successful_final": true,
+      "legacy_records_not_promoted": true,
+      "quality_gate_reaches_feedback_experience_and_report": true,
+      "raw_signed_differences_preserved": true,
+      "real_wsl_cases": {
+        "earlier_answer": {
+          "answer_origin_status": "candidate_answer_mismatch",
+          "answer_origin_valid": false,
+          "execution_ok": true,
+          "isolation_verified": true,
+          "resource_usage": {
+            "model_calls": 2,
+            "read_calls": 0,
+            "search_calls": 0
+          },
+          "score": 1.0,
+          "valid_program": false
+        },
+        "legitimate": {
+          "answer_origin_status": "last_successful_answer_verified",
+          "answer_origin_valid": true,
+          "execution_ok": true,
+          "isolation_verified": true,
+          "resource_usage": {
+            "model_calls": 1,
+            "read_calls": 0,
+            "search_calls": 0
+          },
+          "score": 1.0,
+          "valid_program": true
+        },
+        "override": {
+          "answer_origin_status": "candidate_answer_mismatch",
+          "answer_origin_valid": false,
+          "execution_ok": true,
+          "isolation_verified": true,
+          "resource_usage": {
+            "model_calls": 1,
+            "read_calls": 0,
+            "search_calls": 0
+          },
+          "score": 1.0,
+          "valid_program": false
+        },
+        "trim_abstention": {
+          "answer_origin_status": "last_successful_answer_verified",
+          "answer_origin_valid": true,
+          "execution_ok": true,
+          "isolation_verified": true,
+          "resource_usage": {
+            "model_calls": 1,
+            "read_calls": 0,
+            "search_calls": 0
+          },
+          "score": 0.0,
+          "valid_program": true
+        },
+        "zero_call": {
+          "answer_origin_status": "no_observed_final_answer",
+          "answer_origin_valid": false,
+          "execution_ok": true,
+          "isolation_verified": true,
+          "resource_usage": {
+            "model_calls": 0,
+            "read_calls": 0,
+            "search_calls": 0
+          },
+          "score": 1.0,
+          "valid_program": false
+        }
+      }
+    },
+    "edit_scope": {
+      "host_ast_diff": true,
+      "intent_is_not_actual_scope": true,
+      "mixed_or_unknown_excluded_from_single_module_association": true,
+      "causal_effect_claim": false
+    },
+    "end_to_end": {
+      "real_wsl": true,
+      "cells": 6,
+      "all_isolation_verified": true,
+      "all_answer_origin_verified": true,
+      "runtime_hash_matches_final_sources": true,
+      "scripted_provider_responses": 19,
+      "resume_additional_calls": 0,
+      "delivery_locked": true,
+      "quality_comparison_valid": true,
+      "synthetic": true,
+      "claim": "engineering integration only; predefined edit and scripted answers"
+    },
+    "independent_read_only_review": "origin, blank/legacy eligibility, experience-card gating, invalid D_report quality gating checked; no new bypass found"
   }
 }

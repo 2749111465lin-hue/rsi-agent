@@ -5,6 +5,7 @@ import json
 import unittest
 
 from code_rsi.v3.diagnostics import compact_feedback, diagnose_execution
+from test_v3_fixture_origin import bind_synthetic_origin
 
 
 def digest(value):
@@ -12,9 +13,9 @@ def digest(value):
                                     separators=(",", ":")).encode()).hexdigest()
 
 
-def row(qid="q1", score=1.0):
+def row(qid="q1", score=1.0, *, legacy=False):
     quote = {"docid": "synthetic-source", "start": 0, "end": 4, "quote": "abcd"}
-    return {
+    result = {
         "schema": "rag-rsi-v3-execution-2", "question_id": qid, "node_id": "child",
         "role": "D_fit", "score": score, "repeat": 0,
         "answer": "synthetic prediction", "answer_usable": True, "execution_ok": True,
@@ -35,6 +36,8 @@ def row(qid="q1", score=1.0):
                                                  "evidence_sufficient": True}}]},
         "candidate_reported": {"state": {"gaps": [], "conflicts": []}, "failure_types": []}}
 
+    return result if legacy else bind_synthetic_origin(result)
+
 
 def measurement(rows, node="child", **kwargs):
     grouped = {}
@@ -42,7 +45,7 @@ def measurement(rows, node="child", **kwargs):
         grouped.setdefault(item["question_id"], []).append(item["score"])
     per = {q: sum(s)/len(s) for q, s in grouped.items()}
     return {"node_id": node, "role": "D_fit", "panel_hash": "synthetic-panel",
-            "evaluator_epoch": "synthetic-epoch", "metric": "f1", "complete": True,
+            "evaluator_epoch": "synthetic-epoch", "metric": "f1", "complete": True, "valid_program": True,
             "score": sum(per.values())/len(per), "per_question": per, "rows": rows, **kwargs}
 
 
@@ -53,7 +56,7 @@ def tasks(rows):
 
 class ExecutionDiagnosticsTests(unittest.TestCase):
     def test_declared_abstention_without_citations_is_not_invalid_citation(self):
-        receipt=row()
+        receipt=row(legacy=True)
         receipt["host_citation_validation"].update(status="missing_citations",model_claims_evidence=False,raw_citation_ids=[])
         receipt["host_evidence_trace"]["final_observations"][0]["response"]["evidence_sufficient"]=False
         result=diagnose_execution(receipt)
@@ -63,7 +66,7 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertLessEqual(max(result["module_priors"].values()),0.35)
 
     def test_claimed_supported_answer_without_citations_needs_format_repair(self):
-        receipt=row()
+        receipt=row(legacy=True)
         receipt["host_citation_validation"].update(status="missing_citations",model_claims_evidence=True,raw_citation_ids=[])
         result=diagnose_execution(receipt)
         self.assertIn("uncited_supported_claim",result["host_observed"])
@@ -71,13 +74,13 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertEqual(result["module_priors"]["answer_generation"],1)
 
     def test_valid_quote_is_not_a_semantic_verdict(self):
-        result = diagnose_execution(row())
+        result = diagnose_execution(row(legacy=True))
         self.assertEqual(result["host_observed"], [])
         self.assertEqual(result["suggested_modules"], [])
         self.assertEqual(result["observations"]["semantic_support"], "not_host_verified")
 
     def test_host_quoted_answer_can_still_report_a_gap(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["candidate_reported"]["state"]["gaps"] = ["missing date"]
         receipt["host_citation_validation"]["model_claims_evidence"] = False
         result = diagnose_execution(receipt)
@@ -86,7 +89,7 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertLessEqual(max(result["module_priors"].values()), 0.35)
 
     def test_empty_search_is_observed_from_host_response_hash(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["trace"][0]["response_hash"] = digest([])
         result = diagnose_execution(receipt)
         self.assertIn("empty_retrieval", result["host_observed"])
@@ -94,7 +97,7 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertEqual(result["evidence_refs"]["host:empty_retrieval"], ["/trace/0/response_hash"])
 
     def test_candidate_empty_sources_or_dedup_is_not_host_empty_retrieval(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["candidate_reported"].update(
             {"trace": [{"stage": "search", "source_ids": []}],
              "failure_types": ["empty_retrieval"], "state": {"sources": []}})
@@ -102,11 +105,11 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertNotIn("empty_retrieval", result["host_observed"])
 
     def test_backend_read_counter_is_not_model_evidence_read(self):
-        self.assertEqual(row()["resource_usage"]["read_calls"], 0)
-        self.assertNotIn("no_evidence_read", diagnose_execution(row())["host_observed"])
+        self.assertEqual(row(legacy=True)["resource_usage"]["read_calls"], 0)
+        self.assertNotIn("no_evidence_read", diagnose_execution(row(legacy=True))["host_observed"])
 
     def test_no_read_and_no_final_evidence_are_distinct(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["host_evidence_trace"]["read_presentations"] = []
         receipt["host_evidence_trace"]["final_observations"][0]["evidence"] = {}
         result = diagnose_execution(receipt)
@@ -121,7 +124,7 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertFalse(result["observations"]["trace_complete"])
 
     def test_model_parse_stage_localizes_priority(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["trace"][2]["response_hash"] = digest({"_meta": {"truncated": True, "finish_reason": "error"}})
         receipt["model_errors"] = ["ModelResponseError"]
         result = diagnose_execution(receipt)
@@ -132,7 +135,7 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         for field, value in (("error_type", "UnknownProviderOutcome"), ("provider_outcome", "unknown"),
                              ("status", "host_error"), ("complete", False)):
             with self.subTest(field=field):
-                receipt = row()
+                receipt = row(legacy=True)
                 receipt[field] = value
                 receipt["score"] = 0
                 result = diagnose_execution(receipt)
@@ -141,12 +144,12 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
                 self.assertEqual(result["module_priors"], {})
 
     def test_unclassified_model_error_is_not_assumed_to_be_parse_failure(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["model_errors"] = ["UnclassifiedTransportFailure"]
         self.assertNotIn("model_parse_failure", diagnose_execution(receipt)["host_observed"])
 
     def test_model_claim_is_bounded_and_does_not_invalidate_execution(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["candidate_reported"]["state"].update(
             {"gaps": ["missing bridge"] * 20, "conflicts": ["date conflict"] * 30})
         receipt["candidate_reported"]["failure_types"] = ["answer_schema_failure"]
@@ -158,12 +161,12 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
 
     def test_host_failure_classes_list_and_mapping_are_supported(self):
         for value in (["invalid_answer_citation"], {"invalid_answer_citation": 2}):
-            receipt = row()
+            receipt = row(legacy=True)
             receipt["failure_classes"] = value
             self.assertIn("invalid_answer_citation", diagnose_execution(receipt)["host_observed"])
 
     def test_abandoned_final_is_not_selected_final_evidence(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["host_evidence_trace"]["final_observations"].append(
             {"evidence": {}, "response": {"answer": "abandoned", "evidence_sufficient": False}})
         result = diagnose_execution(receipt)
@@ -171,14 +174,14 @@ class ExecutionDiagnosticsTests(unittest.TestCase):
         self.assertNotIn("evidence_insufficient", result["model_reported"])
 
     def test_repeated_host_queries_are_observable(self):
-        receipt = row()
+        receipt = row(legacy=True)
         receipt["trace"].append({"name": "search", "request": {"query": "  Synthetic   QUERY "},
                                  "response_hash": digest([1])})
         self.assertIn("repeated_query", diagnose_execution(receipt)["host_observed"])
 
     def test_nonfit_execution_is_rejected(self):
         for role in ("D_report", "D_select", "report", "select"):
-            receipt = row()
+            receipt = row(legacy=True)
             receipt["role"] = role
             with self.assertRaises(ValueError):
                 diagnose_execution(receipt)

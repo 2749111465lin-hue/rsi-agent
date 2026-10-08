@@ -34,12 +34,24 @@ class ReceiptExecutor:
         if self.error is not None:
             raise self.error
         node=archive.load_node(node_id)
-        return {'schema':'rag-rsi-v3-execution-2','node_id':node_id,'program_id':node['program_id'],
+        # Supply a consistent, synthetic host observation; no API adapter runs.
+        answer=self.answer
+        class ReceiptModel:
+            def complete(self,stage,payload):
+                return {'answer':answer,'citation_ids':[],'evidence_sufficient':False}
+        broker=execution.HostBroker(task,backend,ReceiptModel())
+        broker('complete',{'stage':'answer','payload':{'evidence':[]}})
+        origin=broker.answer_origin_receipt(answer)
+        return {'schema':execution.EXECUTION_SCHEMA,'node_id':node_id,'program_id':node['program_id'],
                 'question_id':task['question_id'],'answer':self.answer,'answer_usable':self.usable,
                 'execution_ok':True,'citations':deepcopy(self.citations),
+                'answer_origin_valid':origin['valid'],'answer_origin_status':origin['status'],
+                'host_answer_origin_validation':origin,'trace':broker.events,
+                'host_evidence_trace':{'read_presentations':[],
+                                       'final_observations':broker.final_observations},
                 'citation_source_valid':False,'citation_status':'synthetic_not_source_validated',
                 'failure_classes':[] if self.usable else ['answer_empty'],
-                'resource_usage':{'model_calls':0,'search_calls':0,'read_calls':0},
+                'resource_usage':broker.counts,
                 'model_errors':[],'candidate_reported':None}
 
 
@@ -173,7 +185,7 @@ class MeasurementMetricsTests(unittest.TestCase):
             result=self.run_one(self.measure(tmp,archive),node,task,ref,ReceiptExecutor())
             self.assertEqual(result['score'],1.)
             self.assertEqual(result['rows'][0]['task_metrics']['answer_em'],1.)
-            self.assertEqual(result['resource_usage']['calls'],0)
+            self.assertEqual(result['resource_usage']['calls'],1)
 
     def test_default_full_rejected_before_any_execution_or_model_creation(self):
         for scorer in (None,lambda answer,reference:.5):
@@ -199,7 +211,7 @@ class MeasurementMetricsTests(unittest.TestCase):
             self.assertNotEqual(measure.epoch,'task-rule-em-v3')
             cell=next((Path(tmp)/'measurements').rglob('measured.json'))
             record=json.loads(cell.read_text(encoding='utf-8'))
-            self.assertEqual(record['schema'],'rag-rsi-v3-measured-cell-2')
+            self.assertEqual(record['schema'],execution.CELL_SCHEMA)
             self.assertEqual(record['identity']['dataset'],'multihop-rag')
 
     def test_proxy_configuration_changes_cache_identity(self):

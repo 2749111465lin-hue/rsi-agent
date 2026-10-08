@@ -21,13 +21,15 @@ import re
 from statistics import fmean, median, stdev
 from typing import Any, Iterable, Mapping
 
+from .edit_scope import validated_scope
+
 DEFAULT_MODULES = (
     "query_rewrite", "retrieval", "evidence_selection", "answer_generation",
 )
 FIT_ROLES = frozenset(("D_fit", "fit"))
 FAILURE_STATUSES = frozenset(("failed", "error", "invalid", "execution_failed"))
 COST_KEYS = ("cny", "usd", "seconds", "calls", "model_invocations", "tokens")
-POLICY_VERSION = "rag-rsi-v3-experience-2"
+POLICY_VERSION = "rag-rsi-v3-experience-3"
 
 
 def _number(value: Any) -> float | None:
@@ -54,7 +56,8 @@ def _parents(card: Mapping[str, Any]) -> list[str]:
 
 
 def _score(card: Mapping[str, Any]) -> float | None:
-    if card.get("complete") is not True or card.get("valid_program") is not True:
+    if (card.get("complete") is not True or card.get("valid_program") is not True
+            or card.get("program_eligible") is False):
         return None
     # score is the established host answer-quality field, not a retrieval score.
     if card.get("score_kind") in ("retrieval", "retrieval_proxy", "coverage", "evidence_coverage"):
@@ -118,8 +121,14 @@ def _admit(cards: Iterable[Mapping[str, Any]], panel_hash: str,
 
 
 def _module(card: Mapping[str, Any]) -> str | None:
-    value = card.get("target_module", card.get("module"))
-    return value if isinstance(value, str) and value else None
+    # A declared intention (including legacy module/target_module) is never a
+    # module gain label. This is syntactic scope association, not causal evidence.
+    scope = validated_scope(card.get("actual_edit_scope"))
+    if scope is None or scope["attribution"] != "single_module":
+        return None
+    if card.get("intended_target_module") != scope["intended_target_module"]:
+        return None
+    return scope["associated_module"]
 
 
 def _cost(card: Mapping[str, Any], key: str) -> float | None:
@@ -184,8 +193,9 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
 
     Cards need role, panel_hash, evaluator_epoch, node_id, host complete/valid flags
     and answer score, or an explicit failure. step/step_id gives chronology.
-    For action learning, include target_module and parent_node_ids. Old cards
-    missing evaluator_epoch are intentionally rejected rather than silently reused.
+    For module learning, include host actual_edit_scope and parent_node_ids.
+    Legacy declarations may select parents but never supply module gain samples.
+    Old cards missing evaluator_epoch are rejected rather than silently reused.
     """
     if isinstance(step, bool) or not isinstance(step, int) or step < 0:
         raise ValueError("step must be a non-negative integer")
@@ -290,7 +300,7 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
         module_reason = "matched_failure_signed_gain_uncertainty_and_cost"
     decision = {
         "parent_node_id": parent["node_id"] if parent else None,
-        "operator": operator, "target_module": target,
+        "operator": operator, "target_module": target, "intended_target_module": target,
         "reason": f"{parent_reason}; {module_reason}",
         "experience_ids": [],
         "panel_hash": panel_hash, "evaluator_epoch": evaluator_epoch, "role": "D_fit",
@@ -302,6 +312,9 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
             "parent_expansion_counts": {c["node_id"]: expansion_counts[c["node_id"]] for c in measured},
             "failure_context_is_diagnostic_not_reward": True,
             "module_statistics": stats, "allowed_modules": list(modules),
+            "module_statistics_basis": "host_ast_scope_association_only",
+            "module_association_is_causal": False,
+            "unattributed_experience_ids": [c["node_id"] for c in legal if _parents(c) and _module(c) is None],
             "cold_start_module_priors":priors,"priors_added_to_answer_reward":False,
             "cost_unit": cost_key, "missing_cost_imputation": missing_cost if cost_key else None,
             "quality_basis": "host_answer_score_only",
@@ -344,9 +357,16 @@ def memory_for_action(cards: Iterable[Mapping[str, Any]], decision: Mapping[str,
             "node_id": card["node_id"], "program_id": card.get("program_id"),
             "evaluation_id": card.get("evaluation_id"), "role": card.get("role", card.get("split")),
             "panel_hash": panel, "evaluator_epoch": epoch, "operator": card.get("operator"),
-            "target_module": _module(card), "parent_node_ids": _parents(card),
+            "target_module": card.get("intended_target_module", card.get("target_module", card.get("module"))),
+            "intended_target_module": card.get("intended_target_module", card.get("target_module", card.get("module"))),
+            "associated_module": _module(card),
+            "actual_edit_scope": validated_scope(card.get("actual_edit_scope")),
+            "module_association_is_causal": False, "parent_node_ids": _parents(card),
             "complete": card.get("complete") is True, "valid_program": card.get("valid_program") is True,
             "score": _score(card), "signed_delta_vs_best_parent": _gain(card, by_id),
+            "program_eligible": _score(card) is not None,
+            "paired_comparison_eligible": _gain(card, by_id) is not None,
+            "raw_diagnostics": card.get("raw_diagnostics"),
             "failure_classes": list(_failures(card)),
             "failure_assessment_source": card.get("failure_assessment_source", card.get("failure_provenance")),
             "failure_receipts": (card.get("failure_receipts") or [])[-4:],

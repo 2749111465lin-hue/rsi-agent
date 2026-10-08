@@ -11,7 +11,8 @@ from code_rsi.archive import ProgramArchive
 from code_rsi.budget import digest, save
 from code_rsi.v3 import calibration as cal
 from code_rsi.v3.evolution import _runtime_source_hashes
-from code_rsi.v3.infrastructure import UnknownProviderOutcome
+from code_rsi.v3.infrastructure import UnknownProviderOutcome, ModelResponseError
+from code_rsi.v3.execution import HostBroker, EXECUTION_SCHEMA
 
 
 class FakeBackend:
@@ -22,21 +23,36 @@ class FakeBackend:
 
 
 class FakeExecutor:
-    def __init__(self, action=None):
+    def __init__(self, action=None, *, model_answer="Synthetic Port", returned_answer=None, model_error=None):
         self.calls, self.action = [], action
+        self.model_answer, self.returned_answer, self.model_error = model_answer, returned_answer, model_error
 
     def __call__(self, archive, node_id, task, backend, model, directory, **kwargs):
         self.calls.append(copy.deepcopy(task))
         if self.action:
             self.action(task, model)
         node = archive.load_node(node_id)
-        return {"schema": "rag-rsi-v3-execution-2", "node_id": node_id, "program_id": node["program_id"],
-                "question_id": task["question_id"], "answer": "Synthetic Port",
-                "answer_usable": True, "execution_ok": True, "citation_source_valid": False,
-                "failure_classes": [], "model_errors": [], "trace": [],
-                "host_evidence_trace": {"read_presentations": [], "final_observations": []},
-                "candidate_reported": {"state": {"gaps": ["synthetic missing relation", "another missing relation"]}},
-                "resource_usage": {"model_calls": 0, "search_calls": 0, "read_calls": 0}}
+        error, answer = self.model_error, self.model_answer
+        class ScriptedAnswer:
+            def complete(self, stage, payload):
+                if error is not None:
+                    raise error
+                return {"answer":answer,"citation_ids":[],"evidence_sufficient":False}
+        broker=HostBroker(task,backend,ScriptedAnswer())
+        broker('complete',{'stage':'answer','payload':{'evidence':[]}})
+        returned = answer if self.returned_answer is None else self.returned_answer
+        origin=broker.answer_origin_receipt(returned)
+        failures=[] if returned.strip() else ["answer_empty"]
+        if not origin['valid']: failures.append('invalid_answer_origin')
+        return {"schema":EXECUTION_SCHEMA,"node_id":node_id,"program_id":node["program_id"],
+                "question_id":task["question_id"],"answer":returned,
+                "answer_usable":bool(returned.strip()),"execution_ok":True,"citation_source_valid":False,
+                "answer_origin_valid":origin['valid'],"answer_origin_status":origin['status'],
+                "host_answer_origin_validation":origin,
+                "failure_classes":failures,"model_errors":broker.model_errors,"trace":broker.events,
+                "host_evidence_trace":{"read_presentations":[],"final_observations":broker.final_observations},
+                "candidate_reported":{"state":{"gaps":["synthetic missing relation","another missing relation"]}},
+                "resource_usage":broker.counts}
 
 
 def no_transport(body):
@@ -181,7 +197,7 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(result["arms"]["loop"]["proxy_answer_f1"], 1)
         for arm in result["arms"].values():
             self.assertEqual(arm["structural_failure_counts"]["no_retrieval"], 2)
-            self.assertEqual(arm["model_reported_counts"], {"evidence_gap": 2})
+            self.assertEqual(arm["model_reported_counts"], {"evidence_gap": 2, "evidence_insufficient": 2})
             self.assertFalse(arm["model_reports_are_verified_truth"])
             self.assertIn("not independent", arm["diagnostic_count_unit"])
         rows = json.loads((Path(plan["output_dir"]) / "grading/rows.json").read_text(encoding="utf-8"))
@@ -331,7 +347,7 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(progress["ledger"]["used"]["run"]["calls"], 1)
 
     def test_unavailable_or_unknown_schema_receipt_stops_before_checkpoint(self):
-        mutations = ({"schema": "rag-rsi-v3-execution-unknown"},
+        mutations = ({"schema": "rag-rsi-v3-execution-unknown"}, {"schema":"rag-rsi-v3-execution-2"},
                      {"provider_outcome": "unknown"}, {"measurement_status": "unavailable"},
                      {"failure_classes": ["UnknownProviderOutcome"]},
                      {"model_errors": ["HostError"]})
@@ -354,16 +370,51 @@ class CalibrationTests(unittest.TestCase):
 
     def test_completed_bad_model_response_remains_an_observed_outcome(self):
         plan = self.plan()
-        base = FakeExecutor()
-
-        def executor(*args, **kwargs):
-            return {**base(*args, **kwargs), "answer": "", "answer_usable": False,
-                    "model_errors": ["ModelResponseError"], "failure_classes": ["answer_empty"]}
+        executor=FakeExecutor(returned_answer="",model_error=ModelResponseError("synthetic malformed response"))
 
         self.generate(plan, executor)
         result = cal.grade(plan)
         self.assertEqual(result["arms"]["loop"]["proxy_answer_f1"], 0)
         self.assertEqual(result["arms"]["loop"]["structural_failure_counts"]["model_parse_failure"], 2)
+
+    def test_invalid_answer_origin_retains_raw_scores_without_quality_claim(self):
+        plan=self.plan()
+        self.generate(plan,FakeExecutor(model_answer="Other fictional port",returned_answer="Synthetic Port"))
+        report=cal.grade(plan)
+        self.assertEqual(report["status"],"protocol_invalid")
+        self.assertFalse(report["quality_comparison_valid"])
+        self.assertIsNone(report["paired_question_f1_deltas"])
+        self.assertTrue(report["all_outcomes_retained"])
+        for arm in report["arms"].values():
+            self.assertEqual(arm["proxy_answer_em"],1)
+            self.assertEqual(arm["answer_origin_valid_rate"],0)
+            self.assertEqual(arm["eligible_outcomes"],0)
+
+    def test_blank_model_answer_cannot_forge_usable_and_become_eligible(self):
+        plan=self.plan()
+        base=FakeExecutor(model_answer='  ',returned_answer='')
+        def executor(*args,**kwargs):
+            receipt=base(*args,**kwargs)
+            self.assertTrue(receipt['answer_origin_valid'])
+            receipt['answer_usable']=True
+            return receipt
+        with self.assertRaisesRegex(ValueError,'usability'):
+            self.generate(plan,executor)
+        self.reject_grade_before_references(plan)
+
+    def test_forged_origin_and_missing_origin_stop_before_freeze(self):
+        for missing in (False,True):
+            plan=self.plan()
+            plan["output_dir"]=str(self.root/('origin-'+str(missing)))
+            base=FakeExecutor()
+            def executor(*args,**kwargs):
+                receipt=base(*args,**kwargs)
+                if missing: receipt.pop('host_answer_origin_validation')
+                else: receipt['answer']='Candidate override'
+                return receipt
+            with self.assertRaises(ValueError): self.generate(plan,executor)
+            self.assertFalse((Path(plan['output_dir'])/'generation_freeze.json').exists())
+            self.reject_grade_before_references(plan)
 
     def test_unavailable_or_nonunit_metrics_cannot_become_zero_in_report(self):
         plan = self.plan()

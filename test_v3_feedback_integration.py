@@ -12,6 +12,8 @@ from code_rsi.v3.diagnostics import compact_feedback
 from code_rsi.v3.evolution import ProgramDeveloper, experience_card
 from code_rsi.v3.execution import root_files
 from code_rsi.v3.experience_policy import choose_next, memory_for_action
+from test_v3_experience_policy import scope_for_module
+from test_v3_fixture_origin import bind_synthetic_origin
 
 
 def fit_result(scores, *, node="base", empty_search=False, no_read=False):
@@ -38,6 +40,7 @@ def fit_result(scores, *, node="base", empty_search=False, no_read=False):
             "candidate_reported": {"state": {"gaps": [], "conflicts": [],
                                               "sources": ["DO_NOT_SEND_FULL_STATE"]}},
         })
+    rows = [bind_synthetic_origin(row, synthesize_final=True) for row in rows]
     return {"node_id": node, "program_id": "program-" + node, "role": "D_fit",
             "panel_hash": "synthetic-panel", "evaluator_epoch": "synthetic-epoch",
             "metric": "f1", "complete": True, "valid_program": True,
@@ -52,7 +55,8 @@ def public_tasks(result):
 
 def make_card(result, parent=None, module="retrieval", step=0):
     return experience_card(result, parent, operator="Improve" if parent else "Draft",
-                           module=module, step=step, mechanism="synthetic reusable change")
+                           module=module, step=step, mechanism="synthetic reusable change",
+                           edit_scope=scope_for_module(module) if parent else None)
 
 
 def choose(cards, step=1):
@@ -95,7 +99,7 @@ class DeveloperFeedbackIntegrationTests(unittest.TestCase):
         feedback = payload["feedback"]
         self.assertEqual({c["question_id"]: c["signed_delta"] for c in feedback["cases"]},
                          {"loss": -1.0, "gain": 1.0})
-        self.assertTrue(feedback["reference_not_sent"])
+        self.assertTrue(feedback["raw_reference_objects_not_sent"])
         self.assertEqual(feedback["paired_summary"]["regressed"], 1)
         self.assertEqual(feedback["paired_summary"]["improved"], 1)
         serialized = repr(payload)
@@ -127,12 +131,14 @@ class DeveloperFeedbackIntegrationTests(unittest.TestCase):
 
 
 class ExperienceFeedbackIntegrationTests(unittest.TestCase):
-    def test_card_keeps_actual_edited_module_despite_multiple_diagnostic_priors(self):
+    def test_card_keeps_declared_intent_without_inventing_scope_from_diagnostic_priors(self):
         result = fit_result({"q": 0.5}, empty_search=True)
         result["rows"][0]["candidate_reported"]["state"]["conflicts"] = ["synthetic conflict"]
         card = make_card(result, module="answer_generation")
         self.assertGreater(len(card["diagnostics"]["module_priors"]), 1)
-        self.assertEqual(card["target_module"], "answer_generation")
+        self.assertEqual(card["intended_target_module"], "answer_generation")
+        self.assertIsNone(card["associated_module"])
+        self.assertEqual(card["module_attribution"], "unknown")
 
     def test_empty_retrieval_cold_start_changes_rotation_to_query_module(self):
         card = make_card(fit_result({"q": 0.4}, empty_search=True), module="answer_generation")

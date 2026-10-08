@@ -1,9 +1,21 @@
 """Offline tests for the v3 host-only deterministic experience policy."""
 import copy
 import math
+from functools import lru_cache
 import unittest
 
 from code_rsi.v3.experience_policy import choose_next, memory_for_action
+from code_rsi.v3.edit_scope import observe_edit_scope
+from code_rsi.v3.execution import root_files
+
+
+@lru_cache(maxsize=None)
+def scope_for_module(module):
+    config = {"query_rewrite": {"prompts": {"plan": "Synthetic guidance"}},
+              "retrieval": {"search_limit": 4},
+              "evidence_selection": {"max_context_chars": 20000},
+              "answer_generation": {"max_answer_chars": 900}}[module]
+    return observe_edit_scope(root_files(), root_files(config), module)
 
 
 def card(node, score=0.5, *, step=0, module=None, parents=None, **overrides):
@@ -14,6 +26,9 @@ def card(node, score=0.5, *, step=0, module=None, parents=None, **overrides):
         "operator": "Improve" if parents else "Draft",
         "parent_node_ids": parents or [], "target_module": module,
     }
+    if module:
+        value["intended_target_module"] = module
+        value["actual_edit_scope"] = copy.deepcopy(scope_for_module(module))
     value.update(overrides)
     return value
 

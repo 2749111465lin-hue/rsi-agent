@@ -37,16 +37,23 @@ class FixtureTransport:
 
 def fake_execute(archive, node_id, task, backend, model, directory, *, limits=None, nonce='first'):
     """Real host Measurement/runner/cache with a synthetic receipt in place of WSL."""
-    response = model.complete('answer', {'question': task['question'], 'nonce': [nonce, node_id]})
+    broker = execution.HostBroker(task, backend, model, **(limits or {}))
+    response = broker('complete', {'stage': 'answer', 'payload': {
+        'question': task['question'], 'nonce': [nonce, node_id], 'evidence': []}})
+    origin = broker.answer_origin_receipt(response['answer'])
+    citation = broker.citation_receipt(response['answer'], [])
     node = archive.load_node(node_id)
-    return {'schema': 'rag-rsi-v3-execution-2', 'node_id': node_id,
+    return {'schema': execution.EXECUTION_SCHEMA, 'node_id': node_id,
             'program_id': node['program_id'], 'question_id': task['question_id'],
-            'answer': response['answer'], 'answer_usable': True, 'execution_ok': True,
-            'citation_source_valid': False, 'citation_status': 'missing_citations',
-            'citations': [], 'failure_classes': [], 'model_errors': [],
-            'trace': [], 'host_evidence_trace': {'read_presentations': [], 'final_observations': []},
-            'candidate_reported': None,
-            'resource_usage': {'model_calls': 1, 'search_calls': 0, 'read_calls': 0}}
+            'answer': response['answer'], 'answer_usable': bool(response['answer'].strip()),
+            'execution_ok': True, 'answer_origin_valid': origin['valid'],
+            'answer_origin_status': origin['status'], 'host_answer_origin_validation': origin,
+            'citation_source_valid': citation['valid'], 'citation_status': citation['status'],
+            'host_citation_validation': citation, 'citations': [], 'failure_classes': [],
+            'model_errors': broker.model_errors, 'trace': broker.events,
+            'host_evidence_trace': {'read_presentations': broker.read_presentations,
+                                    'final_observations': broker.final_observations},
+            'candidate_reported': None, 'resource_usage': broker.counts}
 
 
 class LiveEvolutionTests(unittest.TestCase):

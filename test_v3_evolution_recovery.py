@@ -8,6 +8,7 @@ from unittest.mock import patch
 from code_rsi.budget import digest, save
 from code_rsi.v3 import evolution
 from code_rsi.v3.datasets import adapt_multihop
+from test_v3_fixture_origin import bind_synthetic_origin
 
 
 class InjectedCrash(RuntimeError):
@@ -45,10 +46,11 @@ class FakeMeasurement:
         child=node['parent_node_id'] is not None
         score=({False:.25,True:.75} if role=='D_fit' else
                {False:.2,True:.9} if role=='D_select' else self.audit.report_scores)[child]
-        rows=[{'question_id':t['question_id'],'answer':'synthetic fixture answer',
+        rows=[{'question_id':t['question_id'],'role':role,'repeat':0,'answer':'synthetic fixture answer',
                'score':score,'execution_ok':True,'answer_usable':True,
                'citation_source_valid':True,'failure_classes':[],'model_errors':[]}
               for t in tasks]
+        rows=[bind_synthetic_origin(row,synthesize_final=True) for row in rows]
         result={'node_id':node['node_id'],'program_id':node['program_id'],
                 'role':role,'panel_hash':panel_hash,'evaluator_epoch':self.epoch,
                 'score':score,'per_question':{t['question_id']:score for t in tasks},

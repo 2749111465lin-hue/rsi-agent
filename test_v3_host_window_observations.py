@@ -244,7 +244,7 @@ class HostWindowObservationTests(unittest.TestCase):
             task, reference = task_and_reference()
             receipt = execute(archive, node["node_id"], task, LocalCorpus(task["documents"]), Model(),
                               Path(tmp) / "cell", sandbox=BrokerSandbox())
-            self.assertEqual(receipt["schema"], "rag-rsi-v3-execution-2")
+            self.assertEqual(receipt["schema"], "rag-rsi-v3-execution-3")
             self.assertNotIn("observed_windows", receipt)
             self.assertNotIn("event_index", receipt)
             self.assertTrue(receipt["citation_source_valid"])
