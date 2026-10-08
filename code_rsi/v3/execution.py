@@ -6,6 +6,7 @@ recorded independently. No old stage runner is imported.
 """
 from __future__ import annotations
 import ast
+import hashlib
 import json
 from pathlib import Path
 from ..archive import ProgramArchive
@@ -168,7 +169,8 @@ class HostBroker:
                     self.verified_read_quotes.add(identity)
                     verified.append({"docid": identity[0], "start": identity[1],
                                      "end": identity[2], "quote": identity[3]})
-        self.read_presentations.append({"sources": list(sources.values()),
+        self.read_presentations.append({"event_index": len(self.events),
+                                        "sources": list(sources.values()),
                                         "verified_quotes": verified,
                                         "semantic_support": "model_assessed_only"})
 
@@ -293,7 +295,8 @@ class HostBroker:
             if completed and stage=="read":
                 self._record_read(sources,result)
             if completed and stage=="answer":
-                self.final_observations.append({"evidence":evidence,"response":_snapshot(result),
+                self.final_observations.append({"event_index":len(self.events),
+                                                "evidence":evidence,"response":_snapshot(result),
                                                 "payload_sha256":digest(visible)})
         elif name == "record_trace":
             if set(payload)!={"result"} or not isinstance(payload["result"],dict) or self.reported is not None:
@@ -301,7 +304,21 @@ class HostBroker:
             self.reported=_snapshot(payload["result"]); result={"recorded":True}
         else:
             raise ValueError("unavailable service")
-        self.events.append({"name":name,"request":payload,"response_hash":digest(result)})
+        event={"name":name,"request":payload,"response_hash":digest(result)}
+        if name in {"search","read"}:
+            # Both branches have completed _record_windows validation. Never use
+            # backend metadata or the candidate's reported trace as observations.
+            windows=result if name=="search" else [result]
+            observed=[]
+            for row in windows[:30]:
+                docid,lo,hi,text=_source_identity(row)
+                observed.append({"docid":docid,"start":lo,"end":hi,
+                                 "text_sha256":hashlib.sha256(text.encode("utf-8")).hexdigest()})
+            # A nonconforming backend can exceed its requested limit. Bound only
+            # the new log field; preserve the existing RPC result and its hash.
+            event.update(observed_windows=observed,observed_window_count=len(windows),
+                         observed_windows_truncated=len(windows)>30)
+        self.events.append(event)
         return _snapshot(result)
 
 

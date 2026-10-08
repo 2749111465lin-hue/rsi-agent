@@ -103,6 +103,74 @@ def _proposal_files(program, decision, proposal):
     return program_change(program,proposal["writes"])
 
 
+def _fit_development_request(model, payload):
+    """Reduce optional excerpts against the actual double-encoded request size.
+
+    Retain selected cases, questions, signed scores, diagnostics codes and flow
+    totals. Never truncate executable source or silently drop a learning case.
+    The provider's existing byte limit remains the final dispatch boundary.
+    """
+    size = getattr(model, "request_size", None)
+    limit = getattr(model, "max_input_bytes", None)
+    if not callable(size) or type(limit) is not int:
+        return payload  # Scripted/non-provider models have no paid request body.
+    original = size("develop", payload)
+    if original <= limit:
+        return payload
+    result = deepcopy(payload)
+    feedback = result["feedback"]
+    budget = {"limit_bytes": limit, "original_request_bytes": original,
+              "reductions": [], "cases_and_scores_preserved": True, "source_preserved": True}
+    feedback["request_budget"] = budget
+
+    def shorten(obj, field, maximum, flag):
+        text = obj.get(field)
+        if not isinstance(text, str) or len(text) <= maximum:
+            return 0
+        removed = len(text) - maximum
+        obj[field] = text[:maximum]; obj[flag] = True
+        return removed
+
+    for tier in (1, 2):
+        budget["reductions"].append("shorter_excerpts" if tier == 1 else "omit_optional_details")
+        for case in feedback["cases"]:
+            shorten(case, "prediction", 120 if tier == 1 else 0, "prediction_truncated_for_request_budget")
+            details = case.get("diagnostics", {}).get("model_details", {})
+            for field, values in list(details.items()):
+                if isinstance(values, list):
+                    smaller = [v[:80] if isinstance(v, str) else v for v in values] if tier == 1 else []
+                    if smaller != values:
+                        details[field] = smaller
+                        case["diagnostics"]["model_details_truncated_for_request_budget"] = True
+            for witness in case.get("evidence_witnesses", []):
+                shorten(witness, "quote_excerpt", 80 if tier == 1 else 0, "excerpt_truncated")
+            for name in ("execution_flow", "parent_execution_flow"):
+                flow = case.get(name)
+                if not isinstance(flow, dict) or flow.get("status") != "observed":
+                    continue
+                omitted = flow["omitted"]
+                samples = [q for r in flow["reads"] for q in r["queries"]] + flow["trailing_queries"]
+                for query in samples:
+                    omitted["query_chars"] += shorten(query, "query_excerpt", 80 if tier == 1 else 0, "query_truncated")
+                for read in flow["reads"]:
+                    for quote in read["quotes"]:
+                        omitted["quote_chars"] += shorten(quote, "quote_excerpt", 80 if tier == 1 else 0, "quote_truncated")
+                    if tier == 2:
+                        omitted["queries"] += len(read["queries"])
+                        omitted["source_samples"] += len(read["sources"])
+                        omitted["quote_samples"] += len(read["quotes"])
+                        read["queries"] = []; read["sources"] = []; read["quotes"] = []
+                omitted["answer_chars"] += shorten(flow["final"], "answer_excerpt", 120 if tier == 1 else 0, "answer_truncated")
+                if tier == 2:
+                    omitted["queries"] += len(flow["trailing_queries"])
+                    flow["trailing_queries"] = []
+                flow["truncated"] = True
+                flow["details_reduced_for_request_budget"] = True
+        if size("develop", result) <= limit:
+            return result
+    raise ValueError("full source and required development feedback exceed the complete request budget")
+
+
 class ProgramDeveloper:
     def __init__(self, model):
         self.model=model
@@ -111,9 +179,10 @@ class ProgramDeveloper:
         if result["role"]!="D_fit":
             raise ValueError("developer receives D_fit only")
         feedback=compact_feedback(result,tasks,max_cases=4)
-        output=self.model.complete("develop",{"source_files":program["files"],"decision":decision,
+        payload={"source_files":program["files"],"decision":decision,
              "experience":experience,"feedback":feedback,
-             "edit_boundary":"Change reusable module behavior, do not embed examples/answers. Return complete changed files."})
+             "edit_boundary":"Change reusable module behavior, do not embed examples/answers. Return complete changed files."}
+        output=self.model.complete("develop",_fit_development_request(self.model,payload))
         _proposal_files(program,decision,output)
         return output
 

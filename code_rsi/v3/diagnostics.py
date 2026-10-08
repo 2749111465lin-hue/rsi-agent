@@ -270,6 +270,238 @@ def diagnose_execution(receipt):
                              "semantic_support": "not_host_verified"}}
 
 
+
+FLOW_BOUNDS = {"reads": 4, "queries_per_read": 2, "sources_per_read": 2,
+               "quotes_per_read": 1, "query_chars": 320, "quote_chars": 240,
+               "docid_chars": 96, "answer_chars": 400, "json_bytes": 6000}
+
+
+def _window_key(item, *, quote=False, fingerprint=False):
+    item = _map(item)
+    docid, start, end = item.get("docid"), item.get("start"), item.get("end")
+    if (not isinstance(docid, (str, int)) or isinstance(docid, bool)
+            or type(start) is not int or type(end) is not int or not 0 <= start < end):
+        return None
+    if fingerprint:
+        hashed = item.get("text_sha256")
+        if not isinstance(hashed, str) or len(hashed) != 64 or any(c not in "0123456789abcdef" for c in hashed):
+            return None
+    else:
+        text = item.get("quote" if quote else "text")
+        if not isinstance(text, str) or len(text) != end - start:
+            return None
+        hashed = hashlib.sha256(text.encode()).hexdigest()
+    return str(docid), start, end, hashed
+
+
+def execution_flow(receipt):
+    """Bounded host execution chain; source provenance is not semantic support.
+
+    Counts cover the complete supplied host trace. Samples never inspect candidate
+    record_trace contents. Legacy response hashes cannot reveal result cardinality.
+    A returned span overlapping a presented subspan is explicitly unresolved rather
+    than labelled dropped; fingerprints cannot prove the substring relationship.
+    """
+    if not isinstance(receipt, Mapping):
+        raise TypeError("execution receipt must be a mapping")
+    _role_ok(receipt)
+    if _unavailable(receipt):
+        raise ValueError("unavailable execution cannot supply a learning flow")
+    if (not str(receipt.get("schema", "")).startswith("rag-rsi-v3-execution-")
+            or not isinstance(receipt.get("trace"), list)
+            or not isinstance(receipt.get("host_evidence_trace"), Mapping)
+            or type(receipt.get("execution_ok")) is not bool):
+        return {"schema": "rag-rsi-v3-execution-flow-1", "status": "host_trace_unavailable",
+                "semantic_support": "not_host_verified", "truncated": False}
+    trace = receipt["trace"]
+    evidence = receipt["host_evidence_trace"]
+    presentations = [_map(x) for x in _items(evidence.get("read_presentations"))]
+    error_hashes = {_digest({"_meta": {"truncated": t, "finish_reason": "error"}}) for t in (True, False)}
+    completed = [i for i, e in enumerate(trace) if _map(e).get("name") == "complete"
+                 and _map(_map(e).get("request")).get("stage") == "read"
+                 and _map(e).get("response_hash") not in error_hashes]
+    indexed = {r["event_index"]: r for r in presentations
+               if type(r.get("event_index")) is int and r["event_index"] in completed}
+    legacy = [r for r in presentations if "event_index" not in r]
+    remaining = [i for i in completed if i not in indexed]
+    if len(legacy) == len(remaining):
+        indexed.update(zip(remaining, legacy))
+    counts = Counter(search_calls=0, backend_read_calls=0, read_model_calls=0,
+                     presented_source_occurrences=0, presented_source_chars=0,
+                     new_source_occurrences=0, reused_source_occurrences=0,
+                     searches_with_unknown_return_count=0, searches_with_partial_windows=0,
+                     search_returned_count_known_sum=0, reads_with_unknown_return_comparison=0,
+                     returned_not_presented_count_known_sum=0, returned_partial_overlap_count_known_sum=0)
+    searches, pending, reads, seen = [], [], [], set()
+    read_quotes = {_window_key(q, quote=True) for r in presentations for q in _items(r.get("verified_quotes"))}
+    read_quotes.discard(None)
+    quote_occurrences = sum(len(_items(r.get("verified_quotes"))) for r in presentations)
+    all_sources = []
+
+    def query_sample(search):
+        query = search["query"]
+        return {"event_index": search["event_index"], "query_excerpt": query[:FLOW_BOUNDS["query_chars"]],
+                "query_truncated": len(query) > FLOW_BOUNDS["query_chars"],
+                "returned_count": search["returned_count"], "window_coverage": search["coverage"]}
+
+    def source_sample(key):
+        return {"docid": key[0][:FLOW_BOUNDS["docid_chars"]],
+                "docid_truncated": len(key[0]) > FLOW_BOUNDS["docid_chars"],
+                "start": key[1], "end": key[2], "text_sha256": key[3]}
+
+    for index, raw in enumerate(trace):
+        event = _map(raw); request = _map(event.get("request"))
+        if event.get("name") in ("search", "read"):
+            windows = event.get("observed_windows")
+            keys = [_window_key(w, fingerprint=True) for w in windows] if isinstance(windows, list) else []
+            count = event.get("observed_window_count")
+            known = type(count) is int and count >= 0 and isinstance(windows, list) and None not in keys
+            complete = known and count == len(keys) and event.get("observed_windows_truncated") is False
+            item = {"event_index": index, "query": request.get("query") if isinstance(request.get("query"), str) else "",
+                    "returned_count": count if known else None, "keys": keys if known else [],
+                    "coverage": "complete" if complete else "partial" if known else "unknown"}
+            pending.append(item)
+            if event.get("name") == "search":
+                searches.append(item); counts["search_calls"] += 1
+                counts["searches_with_unknown_return_count"] += int(not known)
+                counts["searches_with_partial_windows"] += int(known and not complete)
+                counts["search_returned_count_known_sum"] += count if known else 0
+            else:
+                counts["backend_read_calls"] += 1
+        elif event.get("name") == "complete" and request.get("stage") == "read":
+            counts["read_model_calls"] += 1
+            presentation = indexed.get(index, {})
+            material = _map(request.get("payload"))
+            sources = material.get("sources", presentation.get("sources"))
+            source_keys = [_window_key(x) for x in sources] if isinstance(sources, list) else []
+            source_known = isinstance(sources, list) and None not in source_keys
+            keys = source_keys if source_known else []
+            new = sum(k not in seen for k in keys)
+            counts["new_source_occurrences"] += new
+            counts["reused_source_occurrences"] += len(keys) - new
+            counts["presented_source_occurrences"] += len(keys)
+            counts["presented_source_chars"] += sum(k[2] - k[1] for k in keys)
+            seen.update(keys); all_sources.extend(keys)
+            qs = [q for q in _items(presentation.get("verified_quotes")) if _window_key(q, quote=True) is not None]
+            retrieval_complete = source_known and all(x["coverage"] == "complete" for x in pending)
+            returned = [key for x in pending for key in x["keys"]]
+            exact = sum(key in keys for key in returned)
+            overlap = sum(key not in keys and any(key[0] == k[0] and max(key[1], k[1]) < min(key[2], k[2]) for k in keys)
+                          for key in returned)
+            missing = len(returned) - exact - overlap
+            counts["reads_with_unknown_return_comparison"] += int(not retrieval_complete)
+            counts["returned_not_presented_count_known_sum"] += missing if retrieval_complete else 0
+            counts["returned_partial_overlap_count_known_sum"] += overlap if retrieval_complete else 0
+            current_searches = [x for x in pending if x in searches]
+            reads.append({"event_index": index, "sources_known": source_known,
+                          "query_count": len(current_searches),
+                          "queries": [query_sample(x) for x in current_searches[:FLOW_BOUNDS["queries_per_read"]]],
+                          "source_count": len(keys) if source_known else None,
+                          "source_chars": sum(k[2] - k[1] for k in keys) if source_known else None,
+                          "new_source_count": new if source_known else None,
+                          "reused_source_count": len(keys) - new if source_known else None,
+                          "sources": [source_sample(k) for k in keys[:FLOW_BOUNDS["sources_per_read"]]],
+                          "verified_quote_count": len(qs) if index in indexed else None,
+                          "quotes": [{**source_sample(_window_key(q, quote=True)),
+                                      "quote_excerpt": q["quote"][:FLOW_BOUNDS["quote_chars"]],
+                                      "quote_truncated": len(q["quote"]) > FLOW_BOUNDS["quote_chars"]}
+                                     for q in qs[:FLOW_BOUNDS["quotes_per_read"]]],
+                          "retrieval_window_coverage": "complete" if retrieval_complete else "unknown_or_partial",
+                          "returned_exactly_presented_count": exact if retrieval_complete else None,
+                          "returned_partial_overlap_count": overlap if retrieval_complete else None,
+                          "returned_not_presented_count": missing if retrieval_complete else None,
+                          "drop_cause": "not_observed"})
+            pending = []
+    counts["search_returned_count"] = (counts["search_returned_count_known_sum"]
+                                       if not counts["searches_with_unknown_return_count"] else None)
+    counts["unique_presented_windows"] = len(seen)
+    counts["verified_quote_occurrences"] = quote_occurrences
+    counts["unique_verified_quotes"] = len(read_quotes)
+    counts["reads_with_unknown_sources"] = sum(not r["sources_known"] for r in reads)
+    selected = None
+    for raw in _items(evidence.get("final_observations")):
+        item = _map(raw); response = _map(item.get("response"))
+        if isinstance(response.get("answer"), str) and isinstance(receipt.get("answer"), str) and response["answer"].strip() == receipt["answer"].strip():
+            selected = item
+    final = {"observation_found": selected is not None, "semantic_support": "not_host_verified",
+             "retention_basis": "read_quotes_observed_before_selected_answer"}
+    answer = ""
+    if selected is not None:
+        response = _map(selected.get("response")); answer = response["answer"]
+        final_index = selected.get("event_index")
+        alignment = "event_index"
+        def answer_event(i):
+            return (type(i) is int and 0 <= i < len(trace) and _map(trace[i]).get("name") == "complete"
+                    and _map(_map(trace[i]).get("request")).get("stage") == "answer")
+        if not answer_event(final_index):
+            matching = [i for i, event in enumerate(trace) if answer_event(i)
+                        and _map(event).get("response_hash") == _digest(response)]
+            final_index = matching[-1] if matching else None
+            alignment = "legacy_response_hash" if matching else "unknown"
+        timed = final_index is not None and len(indexed) == len(presentations)
+        eligible_quotes = {_window_key(q, quote=True) for i, r in indexed.items() if final_index is not None and i < final_index
+                           for q in _items(r.get("verified_quotes"))}
+        eligible_quotes.discard(None)
+        final.update(retention_time_alignment=alignment if timed else "unknown",
+                     verified_read_quotes_before_final_count=len(eligible_quotes) if timed else None,
+                     reads_after_final_count=sum(r["event_index"] > final_index for r in reads) if final_index is not None else None)
+        presented = selected.get("evidence")
+        by_id = dict(presented) if isinstance(presented, Mapping) else {
+            x.get("citation_id"): x for x in _items(presented) if isinstance(x, Mapping) and isinstance(x.get("citation_id"), str)}
+        final_keys = {_window_key(x, quote=True) for x in by_id.values()}; final_keys.discard(None)
+        raw_ids = response.get("citation_ids")
+        ids_known = isinstance(raw_ids, list) and all(isinstance(x, str) for x in raw_ids)
+        cited = {_window_key(by_id[x], quote=True) for x in raw_ids if x in by_id} if ids_known else set()
+        final.update(answer_excerpt=answer[:FLOW_BOUNDS["answer_chars"]],
+                     answer_truncated=len(answer) > FLOW_BOUNDS["answer_chars"],
+                     presented_evidence_count=len(by_id),
+                     verified_quotes_retained_count=len(eligible_quotes & final_keys) if timed else None,
+                     verified_quotes_not_retained_count=len(eligible_quotes - final_keys) if timed else None,
+                     raw_citation_count=len(raw_ids) if ids_known else None,
+                     verified_quotes_cited_count=len(eligible_quotes & cited) if ids_known and timed else None,
+                     citation_ids_valid=(len(raw_ids) == len(set(raw_ids)) and all(x in by_id for x in raw_ids)) if ids_known else None)
+    tail = [x for x in pending if x in searches]
+    result = {"schema": "rag-rsi-v3-execution-flow-1", "status": "observed", "trust": "host_observed",
+              "semantic_support": "not_host_verified", "counts": dict(counts),
+              "count_units": {"returned_counts": "backend_window_occurrences_not_unique_documents",
+                              "retained_and_cited_quotes": "unique_docid_offset_quote_hash",
+                              "return_comparison": "returns_since_previous_read_vs_this_read"},
+              "reads": reads[:FLOW_BOUNDS["reads"]], "searches_after_last_read": len(tail),
+              "trailing_queries": [query_sample(x) for x in tail[:FLOW_BOUNDS["queries_per_read"]]],
+              "final": final, "bounds": dict(FLOW_BOUNDS), "omitted": {}, "truncated": False}
+
+    def omissions():
+        samples = [q for r in result["reads"] for q in r["queries"]] + result["trailing_queries"]
+        source_samples = [x for r in result["reads"] for x in r["sources"]]
+        quote_samples = [x for r in result["reads"] for x in r["quotes"]]
+        result["omitted"] = {
+            "reads": len(reads) - len(result["reads"]),
+            "queries": len(searches) - len(samples),
+            "query_chars": sum(len(x["query"]) for x in searches) - sum(len(x["query_excerpt"]) for x in samples),
+            "source_samples": len(all_sources) - len(source_samples),
+            "quote_samples": quote_occurrences - len(quote_samples),
+            "quote_chars": sum(len(_map(q).get("quote")) if isinstance(_map(q).get("quote"), str) else 0 for r in presentations for q in _items(r.get("verified_quotes"))) - sum(len(x["quote_excerpt"]) for x in quote_samples),
+            "answer_chars": len(answer) - len(result["final"].get("answer_excerpt", ""))}
+        result["truncated"] = any(result["omitted"].values()) or any(x["docid_truncated"] for x in source_samples + quote_samples)
+    omissions()
+    # Enforce actual UTF-8 JSON bytes, including the bounds/omission bookkeeping.
+    while len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()) > FLOW_BOUNDS["json_bytes"]:
+        changed = False
+        for field in ("quotes", "sources", "queries"):
+            for r in reversed(result["reads"]):
+                if r[field]:
+                    r[field].pop(); changed = True; break
+            if changed: break
+        if not changed and result["trailing_queries"]:
+            result["trailing_queries"].pop(); changed = True
+        if not changed and result["reads"]:
+            result["reads"].pop(); changed = True
+        if not changed:
+            result["final"].pop("answer_excerpt", None)
+            result["final"]["answer_truncated"] = bool(answer)
+        omissions()
+    return result
+
 def _identity(measurement):
     _role_ok(measurement, required=True)
     for key in ("panel_hash", "evaluator_epoch"):
@@ -362,7 +594,7 @@ def compact_feedback(measurement, tasks, max_cases=4):
     if type(max_cases) is not int or not 0 <= max_cases <= 16:
         raise ValueError("max_cases must be an integer from 0 through 16")
     identity = _identity(measurement)
-    base = {"schema": "rag-rsi-v3-feedback-1", "role": "D_fit", **identity,
+    base = {"schema": "rag-rsi-v3-feedback-2", "role": "D_fit", **identity,
             "node_id": _text(measurement.get("node_id"), 160),
             "reference_not_sent": True, "module_priors_are_design_heuristics": True,
             "semantic_support": "not_host_verified"}
@@ -415,6 +647,7 @@ def compact_feedback(measurement, tasks, max_cases=4):
     if target is None and measurement.get("metric") in ("em", "f1"):
         target = 1.0
     cases, host_counts, model_counts, prior_totals = [], Counter(), Counter(), Counter()
+    case_rows = {}
     for qid, rows in sorted(groups.items()):
         options = []
         diagnostics = [diagnose_execution(row) for row in rows]
@@ -432,6 +665,7 @@ def compact_feedback(measurement, tasks, max_cases=4):
                     "signed_delta": scores[qid] - parent_scores[qid] if parent_scores else None,
                     "parent_host_score": parent_scores.get(qid)}
             options.append(case)
+            case_rows[id(case)] = row
         # Deterministic representative; no dependence on input file/list order.
         representative = min(options, key=lambda c: (-_case_info(c), c["sampled_repeat_score"],
                                                       _digest(c)))
@@ -478,6 +712,22 @@ def compact_feedback(measurement, tasks, max_cases=4):
             return (-len(categories - covered), -_case_info(c), c["host_score"], c["question_id"])
 
         choose([c for c in cases if c not in selected], diverse)
+
+    # Attach new observational fields only after all legacy representative/case
+    # choices, so richer traces cannot silently change scores, priors or selection.
+    for case in selected:
+        row = case_rows[id(case)]
+        case["execution_flow"] = execution_flow(row)
+        if parent_scores:
+            candidates = parent_groups[case["question_id"]]
+            same = [r for r in candidates if "repeat" in row and r.get("repeat") == row["repeat"]]
+            pool = same or candidates
+            parent_row = min(pool, key=lambda r: (float(r["score"]), _digest(diagnose_execution(r)),
+                                                  _digest(_witnesses(r)), _text(r.get("answer"), 400)))
+            case["parent_execution_flow"] = execution_flow(parent_row)
+            case["parent_flow_pairing"] = {"kind": "same_repeat" if same else "unpaired_representative",
+                                           "child_repeat": row.get("repeat"), "parent_repeat": parent_row.get("repeat"),
+                                           "causal_attribution": "not_established"}
 
     priors = {m: round(prior_totals[m] / len(groups), 4) for m in MODULES if prior_totals[m] > 0}
     deltas = [c["signed_delta"] for c in cases if c["signed_delta"] is not None]

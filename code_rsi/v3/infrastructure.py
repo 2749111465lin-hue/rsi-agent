@@ -192,7 +192,7 @@ class StructuredModel:
                 "max_input_bytes":max_input_bytes,"temperature":0,"thinking":"disabled",
                 "response_format":"json_object","prices":self.prices})
 
-    def complete(self, stage, payload):
+    def request_body(self, stage, payload):
         if stage not in PROMPTS or not isinstance(payload,dict):
             raise ValueError("unknown semantic action")
         cap = self.limits[stage]
@@ -202,6 +202,15 @@ class StructuredModel:
                 "temperature":0,"max_tokens":cap,"response_format":{"type":"json_object"},
                 "messages":[{"role":"system","content":PROMPTS[stage]},
                             {"role":"user","content":stable(payload)}]}
+        return body
+
+    def request_size(self, stage, payload):
+        """Exact complete-request bytes, without dispatch, reservation or cache I/O."""
+        return len(stable(self.request_body(stage, payload)).encode())
+
+    def complete(self, stage, payload):
+        body = self.request_body(stage, payload)
+        cap = body["max_tokens"]
         encoded = stable(body).encode()
         if len(encoded)>self.max_input_bytes:
             raise ValueError("complete request exceeds input budget")

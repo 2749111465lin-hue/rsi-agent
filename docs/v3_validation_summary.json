@@ -2,11 +2,11 @@
   "schema": "rag-rsi-v3-validation-summary-1",
   "date": "2026-10-08",
   "unit_tests": {
-    "run": 311,
-    "passed": 311,
+    "run": 348,
+    "passed": 348,
     "failed": 0,
-    "command": "python -B -m unittest discover -s . -p test_v3_*.py -q",
-    "elapsed_seconds": 47.779
+    "command": "python -B -m unittest discover -v",
+    "elapsed_seconds": 20.196
   },
   "real_wsl_end_to_end": {
     "status": "complete",
@@ -35,7 +35,10 @@
   "new_api_cost_cny": 1.01144848,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "authorized real-model retest of the repaired context window",
+    "repair and validate lexical query truncation",
+    "enforce final-model answer provenance for candidate eligibility",
+    "record actual edit scope and stop declared-module attribution",
+    "freeze separate mechanism checks and three-arm quality protocol",
     "real LLM program-development comparison",
     "independent task confirmation and experience/skill ablation"
   ],
@@ -51,18 +54,18 @@
     "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
     "code_rsi/v3/calibration.py": "7fdc0046e1a6b6d6d64f1e950ef28725504ec9b02d826270f08e4c393e0b1769",
     "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
-    "code_rsi/v3/diagnostics.py": "84599ca4b7b86bf9f23e730b93e49b2e928babcc69a5e50204b76cf03d4400ee",
-    "code_rsi/v3/evolution.py": "4ca0a7c5f5a5a2b3f31ea158938ab4ffd5ac88b9ea79b2074ee400b105271990",
-    "code_rsi/v3/execution.py": "a212923afc95752f3062f1861fcc73f2c765c14793c13897f0624beeee64e240",
+    "code_rsi/v3/diagnostics.py": "2b41529be3a9b046d2c51e9395c4680883a05fae0751cdb207bd3ba5e89b7900",
+    "code_rsi/v3/evolution.py": "10093cbff0d61c6098f155a22e027528b9e8e734eb4a3af97eeecb49327dffaa",
+    "code_rsi/v3/execution.py": "75ca536ab9ada4698f9476e061fbde6e79388fd6a506bdf14b67d335012fc2a3",
     "code_rsi/v3/experience_policy.py": "fb376c5481edb083f533a3854f5ca48d84d661da69ac7555a95ff66d57f07c6b",
-    "code_rsi/v3/infrastructure.py": "03ffa076c76e723f3d1987b12a60a4570da78cdbd04d6ce4641bf6ded7f21bb0",
+    "code_rsi/v3/infrastructure.py": "4bf196e451dc650982e27e8ce4060dceb72aa6d504b81aeea06e827f3b3151fb",
     "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
     "code_rsi/v3/rag.py": "2ccacf3cf5c820b01631c676151ac694231ca8cccc19bd076e096660fa249a2b",
     "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c",
-    "code_rsi/live_evolution.py": "a3e55f10d7a5b0ef15e6afaf5d7900b1ae2f90b51fbb90fab3b95b845505af57",
+    "code_rsi/live_evolution.py": "0a4763806e11bfd9666e738f225ad2e0cff96a909141489c66f0cfea65c8d2ae",
     "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13"
   },
-  "source_hash_encoding": "UTF-8 LF canonical bytes",
+  "source_hash_encoding": "UTF-8 LF canonical bytes (read_text normalizes line endings)",
   "real_wsl_calibration_smoke": {
     "frozen_outcomes": 2,
     "quality_claim": "engineering only, not benchmark performance",
@@ -155,8 +158,47 @@
     "unknown_request_global_resume_block": true,
     "cache_ledger_link_checked": true,
     "pending_rolling_plan_hash": "f7ac28e75d6d9ada5973619b40b0ea785d747eb060eeb025cd1455f5f949d5ea",
-    "pending_rolling_runtime_unchanged": true,
-    "pending_rolling_check": "source and input bindings checked; corpus hash not re-read this phase",
+    "pending_rolling_runtime_unchanged": false,
+    "pending_rolling_check": "frozen main worktree retained; this branch changes runtime and must not execute the old plan",
     "no_new_paid_authorization_requested": true
+  },
+  "feedback_flow_validation": {
+    "branch": "codex/v3-feedback-grounding",
+    "new_paid_api_calls": 0,
+    "credentials_read": false,
+    "real_wsl": {
+      "cells": 6,
+      "all_isolation_verified": true,
+      "synthetic": true,
+      "scripted_provider_responses": 19,
+      "scripted_develop_calls": 1,
+      "resume_additional_calls": 0,
+      "developer_received_host_flow": true
+    },
+    "old_receipt_replay": {
+      "frozen_cells": 32,
+      "search_events": 97,
+      "model_reads": 57,
+      "later_loop_reads": 25,
+      "later_loop_novel_windows": 0,
+      "old_search_candidate_counts": "unknown, not zero",
+      "references_opened": false
+    },
+    "request_byte_pressure": {
+      "limit": 120000,
+      "unpacked": [
+        133875,
+        152835,
+        175171
+      ],
+      "packed": [
+        103601,
+        112161,
+        119129
+      ],
+      "entire_source_and_selected_cases_preserved": true,
+      "synthetic": true
+    },
+    "claim": "engineering integration and frozen historical diagnostics only"
   }
 }

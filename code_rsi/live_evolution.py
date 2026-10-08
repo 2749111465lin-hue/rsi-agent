@@ -212,6 +212,16 @@ class _BoundModel:
         return self._expected
 
     @property
+    def max_input_bytes(self):
+        return self._model.max_input_bytes
+
+    def request_size(self, stage, payload):
+        if stage not in self._allowed:
+            raise HostError("model role cannot size this stage")
+        self._verify()
+        return self._model.request_size(stage, payload)
+
+    @property
     def timeout_seconds(self):
         return self._model.timeout_seconds
 
