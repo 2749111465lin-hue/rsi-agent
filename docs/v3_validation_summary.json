@@ -2,15 +2,15 @@
   "schema": "rag-rsi-v3-validation-summary-1",
   "date": "2026-10-08",
   "unit_tests": {
-    "run": 527,
-    "passed": 527,
+    "run": 540,
+    "passed": 540,
     "failed": 0,
     "skipped": 0,
-    "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
-    "elapsed_seconds": 93.441,
+    "elapsed_seconds": 108.544,
     "real_wsl_opt_in": true,
-    "ci_note": "Default CI skips the one explicit real-WSL test; local result above includes it.",
-    "local_log_sha256": "ce28762db820fc8a28b4777b253505417eb8388becc11aee8784b86403bf07ea"
+    "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+    "local_log_sha256": "b326e5e1df3b6a6c1425667c105ec1136aa147ace3bd26f24235c45dd723d2bc",
+    "ci_note": "Default CI skips the explicit real-WSL test; this local run includes it."
   },
   "real_wsl_end_to_end": {
     "status": "complete",
@@ -37,13 +37,13 @@
     "status": "pass",
     "validation_scope": "Historical validation on its original frozen runtime; not a new run on current source hashes."
   },
-  "new_paid_api_calls": 245,
-  "new_api_cost_cny": 2.2693232800000005,
+  "new_paid_api_calls": 0,
+  "new_api_cost_cny": 0,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "bounded local retrieval latency/cancellation diagnosis on frozen cases",
-    "distinguish absent facts, missed extraction and conservative final answers with fixed local case review",
-    "single-factor follow-up only after the failed mechanism is identified",
+    "fixed-input single-factor reader prompt intervention remains unimplemented and unmeasured",
+    "retrieval coroutine deadline cannot guarantee cancellation of all blocked native I/O",
+    "candidate answer evidence vs all-constraint sufficiency remains distinct",
     "actual code-evolution and experience-policy comparisons remain unverified",
     "independent task confirmation and official judging or explicit proxy limits"
   ],
@@ -59,23 +59,23 @@
     "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
     "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
     "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
+    "code_rsi/v3/browsecomp_data.py": "e9eeac9f3353e3cdc4dfa46d54695343e1b05ea892f7d7fef09c9db56d865128",
     "code_rsi/v3/calibration.py": "1d08f1b6d52069a7ee242ff73cd2de3ffb07ec4746a4bf38dec7830daa1ef203",
     "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
     "code_rsi/v3/diagnostics.py": "9f5df054df7b123529bf03565158ed28ae5c3af23bd1868d705fa210f3e93c37",
     "code_rsi/v3/edit_scope.py": "6985810eab40e8973ccef41e0478ae3a4374d9647471ed7318279cb2def64ab6",
     "code_rsi/v3/evolution.py": "b647dc86d1c512611e541d9d604fc85eae86234a5d1dfdf61bc4d1a2b9017068",
-    "code_rsi/v3/execution.py": "e6b76ff872104e916702e370c9deb41851aebb47385c4e888e2548afa3dd58cd",
+    "code_rsi/v3/execution.py": "43b6b173d05656c3bdf9bdf7188c3bdeca64eb104673675a3fe3eaea74182488",
     "code_rsi/v3/experience_policy.py": "bac5d890c970c1fd0f02a043db35da855283e34aedabb1069548819823562612",
-    "code_rsi/v3/infrastructure.py": "ef72463c5f52e597b3e21967c782bd98f958441dc3411cdc748069bac3921656",
+    "code_rsi/v3/fit_literal_audit.py": "9d88738ef7c73843c9452f73ef8b7c5a123601c418ca44b4cdb6976515d60d25",
+    "code_rsi/v3/infrastructure.py": "79e3408e14420ebb849d14b2ce29341b142387b02a448d3706ee864953ab5796",
     "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
     "code_rsi/v3/paired_analysis.py": "c96c16bd4e0c93b8a75aafd0ccfea62adec724b14387585048ed77c994055eb7",
     "code_rsi/v3/rag.py": "422fa04344dfe1ca35e3c5fc8b7430e782e6306b560126fe23d16bb390602555",
     "code_rsi/v3/request_recovery.py": "1c892ea1497717128100bd84176dcf604e63af1aa0d91847bb94a637d9db7e1e",
-    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c",
-    "code_rsi/v3/fit_literal_audit.py": "9d88738ef7c73843c9452f73ef8b7c5a123601c418ca44b4cdb6976515d60d25",
-    "code_rsi/v3/browsecomp_data.py": "e9eeac9f3353e3cdc4dfa46d54695343e1b05ea892f7d7fef09c9db56d865128"
+    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
   },
-  "source_hash_encoding": "UTF-8 LF canonical bytes (read_text normalizes line endings)",
+  "source_hash_encoding": "SHA256 of UTF-8 LF canonical file bytes (read_text normalizes line endings)",
   "real_wsl_calibration_smoke": {
     "frozen_outcomes": 2,
     "quality_claim": "engineering only, not benchmark performance",
@@ -699,6 +699,52 @@
         "legacy_main_commit": "be43a19dc38d176c14c370a0ed40023258d04265"
       },
       "note": "Historical development-literal validation; retained before deferred-reference implementation."
+    },
+    {
+      "event": "new16_pre_followup_runtime",
+      "source_commit": "7cc8163",
+      "unit_tests": {
+        "run": 527,
+        "passed": 527,
+        "failed": 0,
+        "skipped": 0,
+        "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+        "elapsed_seconds": 93.441,
+        "real_wsl_opt_in": true,
+        "ci_note": "Default CI skips the one explicit real-WSL test; local result above includes it.",
+        "local_log_sha256": "ce28762db820fc8a28b4777b253505417eb8388becc11aee8784b86403bf07ea"
+      },
+      "source_hashes": {
+        "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
+        "code_rsi/archive.py": "407add6109814e59e4d1437a42e73663a172cdc10a3de800664c1c2c52587ce2",
+        "code_rsi/budget.py": "bde4f5c69c5a7bbfedc6552019edc28a26a26632cb4393f883823c9efb5a5dbe",
+        "code_rsi/candidate_runner.py": "1e6ab18bbd86d6ff5f6b1fffbcd42c41a4025c9c1097340b50cd6094f28c8c1f",
+        "code_rsi/linux_launcher.sh": "2ca86a174e52229a4a4f45ae85a5bbe3be5f2bf77c6ea10450a838f1a783cc1c",
+        "code_rsi/live_evolution.py": "c155d5c3f5e908468fec504478d006868166d11067c06a9b11a4da986765236e",
+        "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13",
+        "code_rsi/sandbox.py": "821a21bf8d9efadc08d7c213c9b143e63d5083933a025d517953cfa0eb57f1ae",
+        "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
+        "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
+        "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
+        "code_rsi/v3/calibration.py": "1d08f1b6d52069a7ee242ff73cd2de3ffb07ec4746a4bf38dec7830daa1ef203",
+        "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
+        "code_rsi/v3/diagnostics.py": "9f5df054df7b123529bf03565158ed28ae5c3af23bd1868d705fa210f3e93c37",
+        "code_rsi/v3/edit_scope.py": "6985810eab40e8973ccef41e0478ae3a4374d9647471ed7318279cb2def64ab6",
+        "code_rsi/v3/evolution.py": "b647dc86d1c512611e541d9d604fc85eae86234a5d1dfdf61bc4d1a2b9017068",
+        "code_rsi/v3/execution.py": "e6b76ff872104e916702e370c9deb41851aebb47385c4e888e2548afa3dd58cd",
+        "code_rsi/v3/experience_policy.py": "bac5d890c970c1fd0f02a043db35da855283e34aedabb1069548819823562612",
+        "code_rsi/v3/infrastructure.py": "ef72463c5f52e597b3e21967c782bd98f958441dc3411cdc748069bac3921656",
+        "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
+        "code_rsi/v3/paired_analysis.py": "c96c16bd4e0c93b8a75aafd0ccfea62adec724b14387585048ed77c994055eb7",
+        "code_rsi/v3/rag.py": "422fa04344dfe1ca35e3c5fc8b7430e782e6306b560126fe23d16bb390602555",
+        "code_rsi/v3/request_recovery.py": "1c892ea1497717128100bd84176dcf604e63af1aa0d91847bb94a637d9db7e1e",
+        "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c",
+        "code_rsi/v3/fit_literal_audit.py": "9d88738ef7c73843c9452f73ef8b7c5a123601c418ca44b4cdb6976515d60d25",
+        "code_rsi/v3/browsecomp_data.py": "e9eeac9f3353e3cdc4dfa46d54695343e1b05ea892f7d7fef09c9db56d865128"
+      },
+      "new_paid_api_calls": 245,
+      "new_api_cost_cny": 2.2693232800000005,
+      "note": "Historical paid calibration; frozen result and protocol_invalid status unchanged."
     }
   ],
   "prior_real_calibration_accounting": {
@@ -729,5 +775,16 @@
     "stable_quality_improvement_verified": false,
     "result_json": "v3_new16_result.json",
     "result_md": "v3_new16_result.md"
+  },
+  "latest_zero_api_followup": {
+    "summary": "v3_new16_followup_20261008.json",
+    "report": "v3_new16_followup_20261008.md",
+    "tests": 540,
+    "new_api_calls": 0,
+    "new_api_cost_cny": 0,
+    "old_protocol_status_unchanged": true,
+    "retrieval_timeout_mechanism_reproduced": true,
+    "confirmed_read_extraction_miss_in_fixed_case": true,
+    "real_quality_improvement_verified": false
   }
 }

@@ -12,6 +12,7 @@ import math
 import multiprocessing
 import re
 import sqlite3
+import time
 import urllib.request
 from pathlib import Path
 from ..budget import Ledger, LimitExceeded, digest, save, stable
@@ -21,14 +22,42 @@ def terms(text):
     return set(re.findall(r"[\w]+", text.casefold()))
 
 
-def window(docid, text, query, *, size=5000):
-    # Exact source offsets survive excerpting; seek the densest paragraph/window,
-    # not always the prefix. This is a baseline reader, not semantic evidence.
-    starts = list(range(0, max(1, len(text)), max(1, size // 2)))
+class RetrievalTimeoutError(TimeoutError):
+    """A trusted retrieval deadline expired, not an empty search result.
+
+    SQL VM progress and Python boundaries cancel cooperatively. This does not
+    promise a hard OS deadline for blocked filesystem I/O or native work.
+    """
+
+
+def _retrieval_deadline(timeout_seconds):
+    if (type(timeout_seconds) not in (int, float)
+            or not math.isfinite(timeout_seconds) or timeout_seconds <= 0):
+        raise ValueError("positive finite retrieval time budget required")
+    return time.monotonic() + timeout_seconds
+
+
+def _check_retrieval_deadline(deadline):
+    if deadline is not None and time.monotonic() >= deadline:
+        raise RetrievalTimeoutError("retrieval time budget exhausted")
+
+
+def window(docid, text, query, *, size=5000, deadline=None):
+    # Exact source offsets survive excerpting; the deadline never changes which
+    # window wins. An expired search fails instead of returning partial results.
+    _check_retrieval_deadline(deadline)
     wanted = terms(query)
-    lo = max(starts, key=lambda x: (len(wanted & terms(text[x:x+size])), -x))
+    def priority(start):
+        _check_retrieval_deadline(deadline)
+        value = (len(wanted & terms(text[start:start+size])), -start)
+        _check_retrieval_deadline(deadline)
+        return value
+    lo = max(range(0, max(1, len(text)), max(1, size // 2)), key=priority)
+    _check_retrieval_deadline(deadline)
+    document_hash = hashlib.sha256(text.encode()).hexdigest()
+    _check_retrieval_deadline(deadline)
     return {"docid": str(docid), "text": text[lo:lo+size], "start": lo,
-            "end": min(len(text), lo+size), "document_hash": hashlib.sha256(text.encode()).hexdigest()}
+            "end": min(len(text), lo+size), "document_hash": document_hash}
 
 
 class LocalCorpus:
@@ -75,7 +104,7 @@ class BrowseCompCorpus:
         actual = hasher.hexdigest()
         if actual != corpus_hash:
             raise ValueError("corpus file differs from frozen SHA256")
-        self.identity = digest({"corpus_sha256":actual,"excluded":sorted(str(x) for x in excluded),"backend":"fts5-porter-v4-all-query-terms"})
+        self.identity = digest({"corpus_sha256":actual,"excluded":sorted(str(x) for x in excluded),"backend":"fts5-porter-v5-two-stage-deadline"})
         self.excluded = {str(x) for x in excluded}
 
     def _open(self):
@@ -83,27 +112,91 @@ class BrowseCompCorpus:
         con.execute("PRAGMA query_only=ON")
         return con
 
+    @staticmethod
+    def _prepare_connection(con, deadline):
+        _check_retrieval_deadline(deadline)
+        if deadline is not None:
+            # Avoid waiting the default five seconds on a lock when less remains.
+            milliseconds = max(1, min(2147483647,
+                                      int((deadline-time.monotonic())*1000)))
+            con.execute("PRAGMA busy_timeout=" + str(milliseconds))
+            con.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+        # Rank and body reads must see the same snapshot even if an external
+        # process writes to the file. This connection itself is read-only.
+        con.execute("BEGIN")
+
     def search(self, query, limit=5):
+        return self._search(query, limit, deadline=None)
+
+    def search_with_timeout(self, query, limit=5, *, timeout_seconds):
+        return self._search(query, limit, deadline=_retrieval_deadline(timeout_seconds))
+
+    def _search(self, query, limit, *, deadline):
         if not isinstance(query, str) or type(limit) is not int or not 1 <= limit <= 30:
             raise ValueError("invalid search")
-        # Keep every query term: truncating this sort silently loses later names.
+        _check_retrieval_deadline(deadline)
+        # Keep every query term, original BM25 order, and the docid tie-break.
         tokens = sorted(terms(query))
+        _check_retrieval_deadline(deadline)
         if not tokens:
             return []
         expression = " OR ".join('"'+t.replace('"','""')+'"' for t in tokens)
-        with closing(self._open()) as con:
-            rows = con.execute("SELECT docs.docid,docs.text,bm25(search) FROM search JOIN docs ON docs.rowid=search.rowid WHERE search MATCH ? ORDER BY bm25(search),docs.docid LIMIT ?",
-                               (expression, limit+len(self.excluded))).fetchall()
-        return [dict(window(d,t,query), score=s) for d,t,s in rows if str(d) not in self.excluded][:limit]
+        rows = []
+        try:
+            with closing(self._open()) as con:
+                self._prepare_connection(con, deadline)
+                # Keep large document bodies OUT of SQLite's temporary top-k
+                # record. Only fetch bodies after the final rank is known.
+                ranked = con.execute(
+                    "SELECT docs.rowid,docs.docid,bm25(search) FROM search "
+                    "JOIN docs ON docs.rowid=search.rowid WHERE search MATCH ? "
+                    "ORDER BY bm25(search),docs.docid LIMIT ?",
+                    (expression, limit+len(self.excluded))).fetchall()
+                _check_retrieval_deadline(deadline)
+                for rowid, docid, score in ranked:
+                    _check_retrieval_deadline(deadline)
+                    if str(docid) in self.excluded:
+                        continue
+                    body = con.execute("SELECT text FROM docs WHERE rowid=?", (rowid,)).fetchone()
+                    if body is None:
+                        raise RuntimeError("ranked document missing from retrieval snapshot")
+                    rows.append((docid, body[0], score))
+                    if len(rows) == limit:
+                        break
+                _check_retrieval_deadline(deadline)
+        except sqlite3.OperationalError:
+            _check_retrieval_deadline(deadline)
+            raise
+        result = [dict(window(d,t,query,deadline=deadline), score=score) for d,t,score in rows]
+        _check_retrieval_deadline(deadline)
+        return result
 
     def read(self, docid, start, end):
+        return self._read(docid, start, end, deadline=None)
+
+    def read_with_timeout(self, docid, start, end, *, timeout_seconds):
+        return self._read(docid, start, end, deadline=_retrieval_deadline(timeout_seconds))
+
+    def _read(self, docid, start, end, *, deadline):
         if str(docid) in self.excluded:
             raise ValueError("excluded document")
-        with closing(self._open()) as con:
-            row = con.execute("SELECT text FROM docs WHERE docid=?", (str(docid),)).fetchone()
+        _check_retrieval_deadline(deadline)
+        try:
+            with closing(self._open()) as con:
+                self._prepare_connection(con, deadline)
+                row = con.execute("SELECT text FROM docs WHERE docid=?", (str(docid),)).fetchone()
+                _check_retrieval_deadline(deadline)
+        except sqlite3.OperationalError:
+            _check_retrieval_deadline(deadline)
+            raise
         if row is None:
             raise ValueError("unknown document")
-        return LocalCorpus([{"docid":str(docid),"text":row[0]}]).read(docid,start,end)
+        text = row[0]
+        if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(text) or end-start > 16000:
+            raise ValueError("invalid source window")
+        result = {"docid": str(docid), "start": start, "end": end, "text": text[start:end]}
+        _check_retrieval_deadline(deadline)
+        return result
 
 
 PROMPTS = {

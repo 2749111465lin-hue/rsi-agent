@@ -1,0 +1,758 @@
+{
+  "schema": "rag-rsi-new16-followup-1",
+  "date": "2026-10-08",
+  "base_commit": "fd203f7132ec0b67ee6b4d1244ebdbd3b153d8f3",
+  "new_api_calls": 0,
+  "new_api_cost_cny": 0,
+  "credential_reads": 0,
+  "reference_reads": 0,
+  "new_questions_acquired": 0,
+  "old_paid_panel_status": "protocol_invalid_unchanged",
+  "unit_tests": {
+    "run": 540,
+    "passed": 540,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 108.544,
+    "real_wsl_opt_in": true,
+    "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+    "local_log_sha256": "b326e5e1df3b6a6c1425667c105ec1136aa147ace3bd26f24235c45dd723d2bc",
+    "ci_note": "Default CI skips the explicit real-WSL test; this local run includes it."
+  },
+  "source_hashes": {
+    "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
+    "code_rsi/archive.py": "407add6109814e59e4d1437a42e73663a172cdc10a3de800664c1c2c52587ce2",
+    "code_rsi/budget.py": "bde4f5c69c5a7bbfedc6552019edc28a26a26632cb4393f883823c9efb5a5dbe",
+    "code_rsi/candidate_runner.py": "1e6ab18bbd86d6ff5f6b1fffbcd42c41a4025c9c1097340b50cd6094f28c8c1f",
+    "code_rsi/linux_launcher.sh": "2ca86a174e52229a4a4f45ae85a5bbe3be5f2bf77c6ea10450a838f1a783cc1c",
+    "code_rsi/live_evolution.py": "c155d5c3f5e908468fec504478d006868166d11067c06a9b11a4da986765236e",
+    "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13",
+    "code_rsi/sandbox.py": "821a21bf8d9efadc08d7c213c9b143e63d5083933a025d517953cfa0eb57f1ae",
+    "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
+    "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
+    "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
+    "code_rsi/v3/browsecomp_data.py": "e9eeac9f3353e3cdc4dfa46d54695343e1b05ea892f7d7fef09c9db56d865128",
+    "code_rsi/v3/calibration.py": "1d08f1b6d52069a7ee242ff73cd2de3ffb07ec4746a4bf38dec7830daa1ef203",
+    "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
+    "code_rsi/v3/diagnostics.py": "9f5df054df7b123529bf03565158ed28ae5c3af23bd1868d705fa210f3e93c37",
+    "code_rsi/v3/edit_scope.py": "6985810eab40e8973ccef41e0478ae3a4374d9647471ed7318279cb2def64ab6",
+    "code_rsi/v3/evolution.py": "b647dc86d1c512611e541d9d604fc85eae86234a5d1dfdf61bc4d1a2b9017068",
+    "code_rsi/v3/execution.py": "43b6b173d05656c3bdf9bdf7188c3bdeca64eb104673675a3fe3eaea74182488",
+    "code_rsi/v3/experience_policy.py": "bac5d890c970c1fd0f02a043db35da855283e34aedabb1069548819823562612",
+    "code_rsi/v3/fit_literal_audit.py": "9d88738ef7c73843c9452f73ef8b7c5a123601c418ca44b4cdb6976515d60d25",
+    "code_rsi/v3/infrastructure.py": "79e3408e14420ebb849d14b2ce29341b142387b02a448d3706ee864953ab5796",
+    "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
+    "code_rsi/v3/paired_analysis.py": "c96c16bd4e0c93b8a75aafd0ccfea62adec724b14387585048ed77c994055eb7",
+    "code_rsi/v3/rag.py": "422fa04344dfe1ca35e3c5fc8b7430e782e6306b560126fe23d16bb390602555",
+    "code_rsi/v3/request_recovery.py": "1c892ea1497717128100bd84176dcf604e63af1aa0d91847bb94a637d9db7e1e",
+    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
+  },
+  "retrieval_diagnosis": {
+    "schema": "zero-api-retrieval-diagnosis-result-1",
+    "question": "Q13",
+    "repeat": 0,
+    "arm": "loop",
+    "new_api_calls": 0,
+    "production_code_changed_by_diagnosis": false,
+    "frozen_run_modified": false,
+    "reference_or_new_question_read": false,
+    "queries": [
+      {
+        "anonymous": "Q13_loop_r0_search3",
+        "query_sha256": "9cec9afcb09d6a49ea597a07b7282e88184d4e549f9e944e6b4437dcd75fe23c",
+        "characters": 101,
+        "unique_terms": 12,
+        "space_delimited_terms": 12,
+        "expression_characters": 158,
+        "query_has_quotes": false,
+        "query_has_boolean_words": false
+      },
+      {
+        "anonymous": "Q13_loop_r0_search1",
+        "query_sha256": "115f481a0480095915877cf8c7715e7f3eab9933e578223b90607079ccee0b42",
+        "characters": 83,
+        "unique_terms": 10,
+        "space_delimited_terms": 10,
+        "expression_characters": 130,
+        "query_has_quotes": false,
+        "query_has_boolean_words": false
+      },
+      {
+        "anonymous": "Q13_loop_r0_search2",
+        "query_sha256": "170f19d7800fe8ea1f6cc862aca858e64317ece191ede8f74c00f94959d1ca3e",
+        "characters": 76,
+        "unique_terms": 10,
+        "space_delimited_terms": 10,
+        "expression_characters": 123,
+        "query_has_quotes": false,
+        "query_has_boolean_words": false
+      }
+    ],
+    "root_cause": "Including complete document text in the temporary top-K sort record makes this fixed query exceed a 40-second diagnostic SQLite deadline. Deferring text retrieval until exact ranking completes avoids that work without changing query terms, BM25, tie ordering or windows. Original runtime remaining time was not recorded, so original failure timing is not reconstructed exactly.",
+    "controls": [
+      {
+        "anonymous": "Q13_loop_r0_search1",
+        "original_sql_seconds": 0.8651773000001413,
+        "two_phase_rank_seconds": 0.4611941000002844,
+        "two_phase_body_seconds": 0.0014066000003367662,
+        "two_phase_window_seconds": 0.04149119999965478,
+        "matching_documents": 78210,
+        "ranking_equal": true,
+        "complete_output_equal": true,
+        "output_sha256": "4ff4671192d2924df591332c9092065379a52a5c9757dcfa6bf079b7d678fb07"
+      },
+      {
+        "anonymous": "Q13_loop_r0_search2",
+        "original_sql_seconds": 1.502761499999906,
+        "two_phase_rank_seconds": 0.5777667000002111,
+        "two_phase_body_seconds": 0.0017690000004222384,
+        "two_phase_window_seconds": 0.06798909999997704,
+        "matching_documents": 91403,
+        "ranking_equal": true,
+        "complete_output_equal": true,
+        "output_sha256": "a5d859588cfd43f5a07acec347c7b33981565cf8906635a9c3e00b312ff64bbb"
+      }
+    ],
+    "failed_query": {
+      "original_first_status": "SQLite interrupted at 40 second cooperative deadline, no SQL result",
+      "original_warm_repeat_status": "SQLite interrupted at 40 second cooperative deadline, no SQL result",
+      "matching_documents": 80901,
+      "query_chars": 101,
+      "unique_terms": 12,
+      "two_phase_transaction_rank_seconds": 0.41613649999999325,
+      "two_phase_body_seconds": 0.0010039999997388804,
+      "two_phase_window_seconds": 0.042547600000034436,
+      "two_phase_output_sha256": "f777ba9eb2737b1aa25286b38442ce6b1fee9323e9fc8fd0d347d6042b8e78b3",
+      "output_original_equality": "unavailable_original_did_not_complete",
+      "two_phase_repeat_output_equal": true
+    },
+    "limits": [
+      "Post-hoc one-machine timings with uncontrolled filesystem cache; not a throughput benchmark.",
+      "Successful controls also match many documents: broad OR count alone does not explain the slow query.",
+      "Original failed query has no completed original output for exact equality comparison; equality proved only on the two successful controls.",
+      "SQLite progress_handler is cooperative; blocked I/O and Python window work need separate checks or a process supervisor.",
+      "No answers were generated or rescored; original panel remains protocol_invalid."
+    ],
+    "evidence_files": {
+      "metadata.json": "072cdb75dc1eb1337a8c2b8c423465592c8dca23f647ad0104b537eec9a3b8c8",
+      "query0_count.json": "d94556023fde8c2bd4441028a70c4a46d8fac8c52b7a7203060f1d4574512929",
+      "query0_explain_bytecode.json": "00fcbf34f7acfc0e96a8781aa54b82787db540fd95ddc153ff8e7d725505426c",
+      "query0_original.json": "f19e1b4266ec9f0edee595c0705b41138f63b32ad9f340a964cb8dcaacbca456",
+      "query0_original_warm_repeat.json": "038c433d340e7304ca2503098abee65d79c24054f3037e37ce619ce586e827ac",
+      "query0_rank_only.json": "9a25be64243f216b44bcb67dc010560a168f6637a629dc54116736e56e67dfdd",
+      "query0_rank_only_txn.json": "727fc02e306bb22f834b5675a0abf535dc547473298de18e9759e91856756fa0",
+      "query1_count.json": "f67c23e22b50bcb48e1bf2ab6a12259bfde2101fe4b0916f92ca4c5a9cfd4d80",
+      "query1_original.json": "9b59ae4580b84686b17ccc46b4052b8d87199c89d437fdeee614300edf45fbed",
+      "query1_rank_only.json": "1cbda4050f64ff6f5cf0a672007616348f913be019bb9ce81604c31571ec03a6",
+      "query2_count.json": "55c433eb8d0a5b84b6de6fc385628da3c022f5bd7e663108ae23dbd33f572dbb",
+      "query2_original.json": "92669a6d8daff1e795706757c273616ab45d3e4321812f47e4ab3bfdd86dc37a",
+      "query2_rank_only.json": "05facf80830e4c632a0911788a4c3308e6f2d4ed9e1730671443938b9ec37032",
+      "production_verification.json": "e9dcd88b68a8b3c7cd87ab0b5bf8fb24723dac0cbbb234b6e8ee7df9125ad84d",
+      "real_deadline_verification.json": "4bba277cf89d1070aa58cf6bb1fa1888ca54a06ab6a0bf4bee84c43d9afc04af",
+      "verify_production.py": "a0ec2414fb89043efc38655084f467331a3adf7f9d364de0422db3ad8d21fafe",
+      "verify_real_deadline.py": "2c50025e85aa05e21f85f0b46414544ce3c7e835a0cc92eb461202f2b9c05334"
+    },
+    "production_verification": {
+      "schema": "retrieval-production-local-verification-1",
+      "new_api_calls": 0,
+      "reference_reads": 0,
+      "queries": [
+        {
+          "anonymous": "Q13_loop_r0_search3",
+          "corpus_hash_verified": true,
+          "identity_seconds": 6.63746810000157,
+          "bounded_search_seconds": 3.0090791000002355,
+          "output_sha256": "f777ba9eb2737b1aa25286b38442ce6b1fee9323e9fc8fd0d347d6042b8e78b3",
+          "output_equals_prior_diagnostic": true,
+          "comparison_basis": "two_phase_diagnostic_repeat",
+          "result_count": 5,
+          "worker_cleanup_verified": true,
+          "exitcode": 0,
+          "total_seconds": 9.867107599999144
+        },
+        {
+          "anonymous": "Q13_loop_r0_search1",
+          "corpus_hash_verified": true,
+          "identity_seconds": 7.146384300000136,
+          "bounded_search_seconds": 2.8987393000006705,
+          "output_sha256": "4ff4671192d2924df591332c9092065379a52a5c9757dcfa6bf079b7d678fb07",
+          "output_equals_prior_diagnostic": true,
+          "comparison_basis": "completed_original_SQL",
+          "result_count": 5,
+          "worker_cleanup_verified": true,
+          "exitcode": 0,
+          "total_seconds": 10.32005349999963
+        },
+        {
+          "anonymous": "Q13_loop_r0_search2",
+          "corpus_hash_verified": true,
+          "identity_seconds": 6.76677429999836,
+          "bounded_search_seconds": 2.843698700000459,
+          "output_sha256": "a5d859588cfd43f5a07acec347c7b33981565cf8906635a9c3e00b312ff64bbb",
+          "output_equals_prior_diagnostic": true,
+          "comparison_basis": "completed_original_SQL",
+          "result_count": 5,
+          "worker_cleanup_verified": true,
+          "exitcode": 0,
+          "total_seconds": 9.828549899999416
+        }
+      ],
+      "source_sha256": {
+        "code_rsi/v3/infrastructure.py": "79e3408e14420ebb849d14b2ce29341b142387b02a448d3706ee864953ab5796",
+        "code_rsi/v3/execution.py": "fb8937a3e2b4ea4a9309c7c796da38ea51f806ba16aa374ef29e8fe1c25f66f9"
+      }
+    },
+    "real_deadline_verification": {
+      "schema": "retrieval-real-cooperative-deadline-1",
+      "new_api_calls": 0,
+      "reference_reads": 0,
+      "result": {
+        "status": "explicit_retrieval_timeout",
+        "empty_result_returned": false,
+        "anonymous": "Q13_loop_r0_search3",
+        "deadline_seconds": 0.01,
+        "elapsed_seconds": 0.011570200000278419,
+        "worker_cleanup_verified": true,
+        "exitcode": 0,
+        "total_seconds": 6.894886699999915
+      },
+      "source_sha256": "79e3408e14420ebb849d14b2ce29341b142387b02a448d3706ee864953ab5796"
+    },
+    "regression_tests": {
+      "file": "test_v3_retrieval_deadline.py",
+      "count": 13,
+      "passed": 13,
+      "last_seconds": 0.279,
+      "new_api_calls": 0,
+      "source_sha256": "95f49eb44fef77a4daf8edbecf54ec491f95c99bf048d0d52ec9f26e9e9b9ac0"
+    }
+  },
+  "real_corpus_production_validation": {
+    "schema": "retrieval-production-local-verification-1",
+    "new_api_calls": 0,
+    "reference_reads": 0,
+    "queries": [
+      {
+        "anonymous": "Q13_loop_r0_search3",
+        "corpus_hash_verified": true,
+        "identity_seconds": 6.63746810000157,
+        "bounded_search_seconds": 3.0090791000002355,
+        "output_sha256": "f777ba9eb2737b1aa25286b38442ce6b1fee9323e9fc8fd0d347d6042b8e78b3",
+        "output_equals_prior_diagnostic": true,
+        "comparison_basis": "two_phase_diagnostic_repeat",
+        "result_count": 5,
+        "worker_cleanup_verified": true,
+        "exitcode": 0,
+        "total_seconds": 9.867107599999144
+      },
+      {
+        "anonymous": "Q13_loop_r0_search1",
+        "corpus_hash_verified": true,
+        "identity_seconds": 7.146384300000136,
+        "bounded_search_seconds": 2.8987393000006705,
+        "output_sha256": "4ff4671192d2924df591332c9092065379a52a5c9757dcfa6bf079b7d678fb07",
+        "output_equals_prior_diagnostic": true,
+        "comparison_basis": "completed_original_SQL",
+        "result_count": 5,
+        "worker_cleanup_verified": true,
+        "exitcode": 0,
+        "total_seconds": 10.32005349999963
+      },
+      {
+        "anonymous": "Q13_loop_r0_search2",
+        "corpus_hash_verified": true,
+        "identity_seconds": 6.76677429999836,
+        "bounded_search_seconds": 2.843698700000459,
+        "output_sha256": "a5d859588cfd43f5a07acec347c7b33981565cf8906635a9c3e00b312ff64bbb",
+        "output_equals_prior_diagnostic": true,
+        "comparison_basis": "completed_original_SQL",
+        "result_count": 5,
+        "worker_cleanup_verified": true,
+        "exitcode": 0,
+        "total_seconds": 9.828549899999416
+      }
+    ],
+    "source_sha256": {
+      "code_rsi/v3/infrastructure.py": "79e3408e14420ebb849d14b2ce29341b142387b02a448d3706ee864953ab5796",
+      "code_rsi/v3/execution.py": "fb8937a3e2b4ea4a9309c7c796da38ea51f806ba16aa374ef29e8fe1c25f66f9"
+    }
+  },
+  "real_deadline_validation": {
+    "schema": "retrieval-real-cooperative-deadline-1",
+    "new_api_calls": 0,
+    "reference_reads": 0,
+    "result": {
+      "status": "explicit_retrieval_timeout",
+      "empty_result_returned": false,
+      "anonymous": "Q13_loop_r0_search3",
+      "deadline_seconds": 0.01,
+      "elapsed_seconds": 0.011570200000278419,
+      "worker_cleanup_verified": true,
+      "exitcode": 0,
+      "total_seconds": 6.894886699999915
+    },
+    "source_sha256": "79e3408e14420ebb849d14b2ce29341b142387b02a448d3706ee864953ab5796"
+  },
+  "evidence_diagnosis": {
+    "schema": "rag-rsi-fixed-semantic-diagnosis-1",
+    "created_utc": "2026-10-08T11:36:16.308440+00:00",
+    "selection_sha256": "5aa0b861c8cf60e9b01efc385b127c2fb17b9a02a968abd3447b2ad1ca351c31",
+    "new_api_calls": 0,
+    "credential_read": false,
+    "references_read": false,
+    "oracle_documents_read": false,
+    "reviewer": "Codex LLM semantic reading plus mechanical provenance verification",
+    "human_adjudication": false,
+    "blind": false,
+    "independent_confirmation": false,
+    "scope": "Four preselected executions on two already measured questions; purposive diagnostic, not a failure-rate estimate.",
+    "cases": [
+      {
+        "case": "Q01/planned/repeat0",
+        "generation_sha256": "0876b73b77fa3b5e7b841715ca4ebdd601da885a19cc86fe105689ff589c6bc7",
+        "reads": 1,
+        "presented_window_count": 6,
+        "verified_quotes_per_read": [
+          7
+        ],
+        "unique_retained_quotes": 7,
+        "final_quote_count": 7,
+        "final_payload_sha256": "bb80abc0262c88b20f75eb3bc69be8725ffdb87929aca3b68a00b3bb2dfaa52f",
+        "final_response_sha256": "cb189b72918506ab7336e9d222505bfc763ccefeb9080c5ac75840055faf2e19",
+        "abstained": false,
+        "model_claimed_sufficient": false,
+        "final_conflict_count": 1,
+        "classification": "partial_evidence_match",
+        "semantic_diagnosis": "Displayed source includes direct answer relation; missing interview-order qualification and a discrepant background fact prevent treating proxy correctness as a complete proof.",
+        "source_locations": [
+          {
+            "read": 1,
+            "source_id": "s1",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "777611ee21a20a97909fffe1f05da145300c9706369afcd1de2205b9c072c69b"
+          },
+          {
+            "read": 1,
+            "source_id": "s2",
+            "start": 5000,
+            "end": 10000,
+            "text_sha256": "8c963ae1525436acbadea890f008e01cda522a8934a8b6d1d76b7d4e9521c0cc"
+          },
+          {
+            "read": 1,
+            "source_id": "s3",
+            "start": 0,
+            "end": 1910,
+            "text_sha256": "5d67bd496d6103b213c70778ecebcaffe69a238ada095281c153e08d366a8f0f"
+          },
+          {
+            "read": 1,
+            "source_id": "s4",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "6ccf9ecea4ed54e1c1acc11da75b5af17a0f75181bff80fdc1dabb75a3b1cfd8"
+          },
+          {
+            "read": 1,
+            "source_id": "s5",
+            "start": 0,
+            "end": 3545,
+            "text_sha256": "37d21f919d83843a70370ec7edf2d8904f0c4e79eb5308f8e60d8f821de88536"
+          },
+          {
+            "read": 1,
+            "source_id": "s6",
+            "start": 0,
+            "end": 3545,
+            "text_sha256": "149e21f9571928a83693376ca77c3c0fa4f0ded7e53767488aa61b1240dee702"
+          }
+        ]
+      },
+      {
+        "case": "Q01/planned/repeat1",
+        "generation_sha256": "c3e41437d10999e43598fbbb5e89f9861751a35df68d52e6a4c61472ee1cf139",
+        "reads": 1,
+        "presented_window_count": 7,
+        "verified_quotes_per_read": [
+          7
+        ],
+        "unique_retained_quotes": 7,
+        "final_quote_count": 7,
+        "final_payload_sha256": "4a2c683d05b989e354c7e80cf80659c537a98f22431af3da4ac968e349df02f0",
+        "final_response_sha256": "0d2fb0b1498d5916bfbbfcf1637861e792cb76ac80d2a0e6db9cb2384d464fb8",
+        "abstained": true,
+        "model_claimed_sufficient": false,
+        "final_conflict_count": 0,
+        "classification": "window_omission",
+        "semantic_diagnosis": "The relevant document is retrieved but its shown middle window omits the opening answer-bearing dialogue. Refusal is consistent with what the final stage actually received.",
+        "source_locations": [
+          {
+            "read": 1,
+            "source_id": "s1",
+            "start": 2500,
+            "end": 7500,
+            "text_sha256": "4e2fd403ed656d9459a2c4d1398af395f2e6e3f8149b908520bd844be2fd506b"
+          },
+          {
+            "read": 1,
+            "source_id": "s2",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "777611ee21a20a97909fffe1f05da145300c9706369afcd1de2205b9c072c69b"
+          },
+          {
+            "read": 1,
+            "source_id": "s3",
+            "start": 2500,
+            "end": 7500,
+            "text_sha256": "94b01b040fc7db35b5754fb88b9b6ccc83a5900131b95f8a56cd9ee78dfcab7a"
+          },
+          {
+            "read": 1,
+            "source_id": "s4",
+            "start": 0,
+            "end": 1910,
+            "text_sha256": "5d67bd496d6103b213c70778ecebcaffe69a238ada095281c153e08d366a8f0f"
+          },
+          {
+            "read": 1,
+            "source_id": "s5",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "6ccf9ecea4ed54e1c1acc11da75b5af17a0f75181bff80fdc1dabb75a3b1cfd8"
+          },
+          {
+            "read": 1,
+            "source_id": "s6",
+            "start": 0,
+            "end": 1045,
+            "text_sha256": "93f40ee1e9fda03121140ebe38cab3bdd3e740a71b8ef1db557d387723e5e1d5"
+          },
+          {
+            "read": 1,
+            "source_id": "s7",
+            "start": 0,
+            "end": 1045,
+            "text_sha256": "04c4a4137d70e633ad5c6d9c52b9a3eca3aa465c1839ddb75f6034fd1dcec1aa"
+          }
+        ]
+      },
+      {
+        "case": "Q01/loop/repeat1",
+        "generation_sha256": "73e4c4c7c6cdfcc751bdcc4df8ebad018a7f93b48d7e4e1ac136e1f3946b1b78",
+        "reads": 3,
+        "presented_window_count": 16,
+        "verified_quotes_per_read": [
+          7,
+          7,
+          6
+        ],
+        "unique_retained_quotes": 18,
+        "final_quote_count": 18,
+        "final_payload_sha256": "f6d62b7f0927239ae9de900cd2553dbfa6ce745802968a71c0378e4dda4c6217",
+        "final_response_sha256": "4dea523e546193a8bd36d6d3a4ceec0e60c9552a1549a71038df88520a692aef",
+        "abstained": true,
+        "model_claimed_sufficient": false,
+        "final_conflict_count": 0,
+        "classification": "reader_omitted_answer_bearing_relation",
+        "semantic_diagnosis": "Later displayed opening window provides the sought relation, while earlier tail supports interview order; reader misses the relation and repeats scoped absence as a claim. The final receives only the extracted quotes.",
+        "source_locations": [
+          {
+            "read": 1,
+            "source_id": "s1",
+            "start": 2500,
+            "end": 7500,
+            "text_sha256": "4e2fd403ed656d9459a2c4d1398af395f2e6e3f8149b908520bd844be2fd506b"
+          },
+          {
+            "read": 1,
+            "source_id": "s2",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "777611ee21a20a97909fffe1f05da145300c9706369afcd1de2205b9c072c69b"
+          },
+          {
+            "read": 1,
+            "source_id": "s3",
+            "start": 2500,
+            "end": 7500,
+            "text_sha256": "94b01b040fc7db35b5754fb88b9b6ccc83a5900131b95f8a56cd9ee78dfcab7a"
+          },
+          {
+            "read": 1,
+            "source_id": "s4",
+            "start": 0,
+            "end": 1910,
+            "text_sha256": "5d67bd496d6103b213c70778ecebcaffe69a238ada095281c153e08d366a8f0f"
+          },
+          {
+            "read": 1,
+            "source_id": "s5",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "6ccf9ecea4ed54e1c1acc11da75b5af17a0f75181bff80fdc1dabb75a3b1cfd8"
+          },
+          {
+            "read": 1,
+            "source_id": "s6",
+            "start": 0,
+            "end": 1045,
+            "text_sha256": "93f40ee1e9fda03121140ebe38cab3bdd3e740a71b8ef1db557d387723e5e1d5"
+          },
+          {
+            "read": 1,
+            "source_id": "s7",
+            "start": 0,
+            "end": 1045,
+            "text_sha256": "04c4a4137d70e633ad5c6d9c52b9a3eca3aa465c1839ddb75f6034fd1dcec1aa"
+          },
+          {
+            "read": 2,
+            "source_id": "s8",
+            "start": 5000,
+            "end": 8505,
+            "text_sha256": "0c0e870a5dd8775661c06ef4ca2d663dcc20a98f5f51a1b7e0ab355830bf0ce8"
+          },
+          {
+            "read": 2,
+            "source_id": "s9",
+            "start": 22500,
+            "end": 27500,
+            "text_sha256": "8559258f81e381b560913c97c05a8f25e2a3ddd769c55e85cddf0b546defcfb9"
+          },
+          {
+            "read": 2,
+            "source_id": "s10",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "de54aaec80d794a0823bc2c678332cd99495da0ac179f06f7869d66a90beee3f"
+          },
+          {
+            "read": 2,
+            "source_id": "s11",
+            "start": 0,
+            "end": 3164,
+            "text_sha256": "c1ea15b58bdf3133b78541ab7740c8b9d11ef79b415c36a11aa319a2eb5733f8"
+          },
+          {
+            "read": 2,
+            "source_id": "s12",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "8ba2fcea03af3c2d6ef44f8a7881ee5b24043f3783b4feb33a0b5ec5e1e89cc4"
+          },
+          {
+            "read": 2,
+            "source_id": "s13",
+            "start": 0,
+            "end": 1165,
+            "text_sha256": "8ec6f0fe6c423cefeda0b51676c312ecfb0700f7035c6d333befb117a9d9664e"
+          },
+          {
+            "read": 2,
+            "source_id": "s14",
+            "start": 2500,
+            "end": 3666,
+            "text_sha256": "1a078c2844b8054895256d8a0ec3c7a9ede0b5a6787e9e89282323544ae61896"
+          },
+          {
+            "read": 3,
+            "source_id": "s15",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "d903a9a5f0556261cfbb05de9e8b4b0193005dc6b2bb9d61191f11b1ae2027e4"
+          },
+          {
+            "read": 3,
+            "source_id": "s16",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "53058599b28c32aa9aee8ea41e4728ac7b6f8c91dd4ac7c6b49d877db95d0235"
+          }
+        ]
+      },
+      {
+        "case": "Q02/loop/repeat0",
+        "generation_sha256": "57077aecec82d3a45c550c746a3c74e5db0c27c49ebc79ef7e96c194a55bded0",
+        "reads": 2,
+        "presented_window_count": 11,
+        "verified_quotes_per_read": [
+          0,
+          0
+        ],
+        "unique_retained_quotes": 0,
+        "final_quote_count": 0,
+        "final_payload_sha256": "0cef6c3d93ca969578c0e34ee4774018b026ae3016c5cf9d63e7e36214e42de3",
+        "final_response_sha256": "07ae337b13d624bb5e5c15298fe7764a8d7a08631ea15bf6ff1afef21ebc3ef4",
+        "abstained": true,
+        "model_claimed_sufficient": false,
+        "final_conflict_count": 0,
+        "classification": "presented_retrieval_irrelevance",
+        "semantic_diagnosis": "All 11 presented windows were semantically read; generic topic overlap does not supply the specified article-author-coach chain. No answer evidence was observed in this presented set.",
+        "source_locations": [
+          {
+            "read": 1,
+            "source_id": "s1",
+            "start": 5000,
+            "end": 10000,
+            "text_sha256": "1f700d03abaab0f4107eba6c28c95a933c94562a47f3a47dc73125ca4e3ec92f"
+          },
+          {
+            "read": 1,
+            "source_id": "s2",
+            "start": 37500,
+            "end": 42500,
+            "text_sha256": "bdadfca13985fde860c3dc695ab60e0dd9f0db2e0821307ccdcea202e5be59b6"
+          },
+          {
+            "read": 1,
+            "source_id": "s3",
+            "start": 145000,
+            "end": 150000,
+            "text_sha256": "3397479a40ecd5eccc1d869ef28bef179980c681d34712e6fc0c24d2c549bc40"
+          },
+          {
+            "read": 1,
+            "source_id": "s4",
+            "start": 0,
+            "end": 5000,
+            "text_sha256": "c80d8b476608fd97e4ac5c20c892dd73cb4b604df910128aa80eff7894f0cf8b"
+          },
+          {
+            "read": 1,
+            "source_id": "s5",
+            "start": 0,
+            "end": 2000,
+            "text_sha256": "4f3c2efaac2c84e35f7eb32986713e630337693f45f20ff4a51d440f4edc2078"
+          },
+          {
+            "read": 1,
+            "source_id": "s6",
+            "start": 10000,
+            "end": 12000,
+            "text_sha256": "99b6d9a12330dcfea0e4173562a99cedb15ec6c42936cb393afef983b03f3979"
+          },
+          {
+            "read": 2,
+            "source_id": "s7",
+            "start": 47500,
+            "end": 52500,
+            "text_sha256": "a72423ae55b6f52883bcb294775940484e9f4f490249f25a6e7202c750e69e4d"
+          },
+          {
+            "read": 2,
+            "source_id": "s8",
+            "start": 42500,
+            "end": 47500,
+            "text_sha256": "8ebaa9815d3f1c402e8657bb6b60a25ba2224ca7b198b1278c701ea94eaebd68"
+          },
+          {
+            "read": 2,
+            "source_id": "s9",
+            "start": 7500,
+            "end": 12500,
+            "text_sha256": "6d7272a162fc07979e370d90a453d0c992d3614575e83e62c2ad1e587eb18270"
+          },
+          {
+            "read": 2,
+            "source_id": "s10",
+            "start": 0,
+            "end": 4500,
+            "text_sha256": "9bdd248e53f27bb231d9e3a0bc8af36fa0cdeb5e78bf51064b7bbd497a983372"
+          },
+          {
+            "read": 2,
+            "source_id": "s11",
+            "start": 7500,
+            "end": 12000,
+            "text_sha256": "0c3d0908f3ca980c250ae1117ab42674d878540217dceb12fe519b3294a195d4"
+          }
+        ]
+      }
+    ],
+    "strongest_finding": {
+      "case": "Q01/loop/repeat1",
+      "stage": "read extraction before answer",
+      "target_span_source_sha256": "d903a9a5f0556261cfbb05de9e8b4b0193005dc6b2bb9d61191f11b1ae2027e4",
+      "target_span_absolute_start": 998,
+      "target_span_absolute_end": 1030,
+      "target_span_sha256": "c7c8ae28fb0748d3c2b2df6978343c7f5d8bd4b6a638192f1eb2affadbc8e698",
+      "source_hash_verified": true,
+      "ground_quote_accepts_target_span": true,
+      "target_span_occurs_once": true,
+      "in_raw_read_response_quotes": false,
+      "in_final_presented_quotes": false,
+      "raw_read_response_canonical_sha256": "1fcf50dd8ae930227fb1fa9ebdfd02c4f09723475816743a2a70605129d276ac",
+      "cached_request_file_sha256": "10344d47fce973058202ad8680e68f7484898d72db5fd5d99826b6d9888c9bf4",
+      "final_payload_sha256": "f6d62b7f0927239ae9de900cd2553dbfa6ce745802968a71c0378e4dda4c6217",
+      "all_existing_citations_present_at_final": true,
+      "final_existing_citations": 18,
+      "conflict_count": 0,
+      "semantic_judgment": "The direct answer-bearing relation is explicitly present in a dialogue turn but omitted by the reader; generic publisher metadata is used to support a contrary absence claim. Prior-window text establishes the relevant interview question sequence. This is an extraction/state-selection failure, not failure of the host quote validator. Full qualification of every question constraint remains imperfect."
+    },
+    "limitations": [
+      "No counterfactual model rerun was performed, so correction-to-answer conversion is unproven.",
+      "No corpus-wide retrieval audit or gold evidence documents were used.",
+      "Absence in displayed windows is not absence from the corpus.",
+      "The answer-bearing relation is inferred from dialogue semantics, not solely reference-string matching.",
+      "The uniquely correct proxy hit is not automatically fully evidenced, and its own final evidence_sufficient flag was false.",
+      "No selected case establishes sufficient final quotes followed by unjustified refusal.",
+      "No selected failure contains a conflict; append-only conflict causation is not supported by this sample.",
+      "Known-claim anchoring is a plausible hypothesis, not a causal finding."
+    ]
+  },
+  "independent_review": {
+    "blocking_findings_remaining": 0,
+    "synthetic_full_output_comparisons": 32,
+    "tiny_remaining_budget_corrected": true,
+    "api_calls": 0
+  },
+  "qualification": {
+    "new_quality_or_evolution_improvement_verified": false,
+    "cooperative_cancellation_is_not_os_hard_deadline": true,
+    "failed_original_query_has_no_output_for_direct_equality": true,
+    "four_cases_are_only_two_questions": true,
+    "posthoc_case_review_is_not_independent_human_adjudication": true
+  },
+  "next_step": {
+    "scope": "local last-read-to-answer intervention on fixed used cases",
+    "status": "design_only_not_implemented_or_authorized",
+    "changed_factor": "prompts.read only",
+    "executions": 4,
+    "distinct_questions": 2,
+    "arms": 2,
+    "fresh_repeats_per_arm": 2,
+    "proposed_max_new_calls": 32,
+    "new_queries_executed": false,
+    "hold_answer_scoring_and_abstention_rule": true
+  },
+  "source_hash_note": "Current complete runtime hashes are authoritative for unit tests. Real-corpus verification directly exercised infrastructure.py; its recorded execution.py hash predates only the min(remaining, ...) margin tightening covered by the full test run.",
+  "source_hash_encoding": "SHA256 of UTF-8 LF canonical file bytes (read_text normalizes line endings)",
+  "runtime_plan_source_hashes": {
+    "archive.py": "beb3b95644532e482b1c372484023017e8542a45605273d59f4bc3490298d675",
+    "budget.py": "eeb444d0e32456a3642bfe4b391eeb57585d1a7485ef7a985aeba0dd0fea1e73",
+    "candidate_runner.py": "ace9b1715d26f8c0d7432c766d00ba1bc47dee174b49bd5d34a989edb97617de",
+    "linux_launcher.sh": "8f76de1477d80097d47b49c154ab6d83068ab6d93a5625c48f766c531a264921",
+    "sandbox.py": "146084015add89112f7b1ec42b18dd7dca84e63813d662b7cf8ddfee78fc8889",
+    "sdk.py": "65cffb80a77f643853fa8d54fef8a60f88ae6ac08dad4a460524e559c2e95b49",
+    "v3\\__init__.py": "997c6c0fb5c807b4d2a45395faab8e0c9ca16751ae58e8a71fce920e9e30681d",
+    "v3\\__main__.py": "be4107909b66d2aa2d138f5b0759afbca1f3f6641282830a62010e5ccb602944",
+    "v3\\browsecomp_data.py": "d8fdbc2171d39e79886440b0817e5d2c04547c8f87a6fd92b2b6394fc49ac4c0",
+    "v3\\calibration.py": "9b660228bdd7d3f408f7ee4f5ecb4a8b6b4a09fc33dbc6fa5d3554669ab16e53",
+    "v3\\datasets.py": "51db5a4c77b848f1c7ed72123b0fd2c1ab8ecf6b979c8b2a300fcc877e1d0c6b",
+    "v3\\diagnostics.py": "776cd7417f5a0de0501beba864622e7ee7b37e12eadf3e13c68a6d7a857958ae",
+    "v3\\edit_scope.py": "e6849fa102584d6bed803c2fecdac7970ee555f69cc1ff99df83981a33c3e060",
+    "v3\\evolution.py": "c807a2ecf9b124d1995bf59221faec0de8ccf8804d2fedfa6634a5b91b73596d",
+    "v3\\execution.py": "a5aafbe47b7d9c253d655ff20667347fd815ffe19ad99fe25c380786e2015727",
+    "v3\\experience_policy.py": "d568a0b3e31c383494abad61ee2de38cc483650a96c58b2efdb2d9be641c7eab",
+    "v3\\fit_literal_audit.py": "9220965f03311a789b728188f8a9ab21dc5a273d601dbabe5465e74930d24d57",
+    "v3\\infrastructure.py": "caa1a1e3e22734751547a621bcbcc7328360262bfab9591ca4c28388aa53353e",
+    "v3\\offline_demo.py": "6b7ee2c7e8c6a1ea6fce3033bef6225b56d83f3f7987f9f659b2e712e5cd9f8d",
+    "v3\\paired_analysis.py": "395cdc685f3eb074b5933301e720098d2fe78202e6ce355b24ff060c485d1c33",
+    "v3\\rag.py": "af7de7a5892894b37ee0e3c5642c6a5ba55ce65dfef803aead50177e87013ba3",
+    "v3\\request_recovery.py": "fd2ee2f6e3ea263ab5372b005093ec256110181e709b2a9971a07c22b6ed463c",
+    "v3\\task_metrics.py": "1e86984ba904fc7a226bf803323254885f8f4142669cc164135f2025d6219c4a"
+  },
+  "runtime_plan_hash_encoding": "Existing runtime contract digest(JSON encoded source string); paths relative to code_rsi, distinct from raw file SHA256."
+}

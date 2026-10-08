@@ -323,7 +323,12 @@ class HostBroker:
                 raise ValueError("search limit or schema")
             self.counts["search_calls"]+=1
             try:
-                result=self.backend.search(payload["query"],payload["limit"])
+                bounded = getattr(self.backend, "search_with_timeout", None)
+                if callable(bounded):
+                    result=bounded(payload["query"],payload["limit"],
+                                   timeout_seconds=min(remaining, max(.001, remaining-1)))
+                else:
+                    result=self.backend.search(payload["query"],payload["limit"])
                 if not isinstance(result,list) or any(not isinstance(row,dict) for row in result):
                     raise HostError("backend search returned an invalid result")
                 result=[row for row in result if str(row.get("docid")) not in self.task["excluded_docids"]]
@@ -341,7 +346,12 @@ class HostBroker:
             if str(payload["docid"]) in self.task["excluded_docids"]:
                 raise ValueError("excluded source")
             try:
-                result=self._record_windows(self.backend.read(**payload),many=False)
+                bounded = getattr(self.backend, "read_with_timeout", None)
+                if callable(bounded):
+                    value=bounded(**payload, timeout_seconds=min(remaining, max(.001, remaining-1)))
+                else:
+                    value=self.backend.read(**payload)
+                result=self._record_windows(value,many=False)
             except Exception as exc:
                 self.fatal=exc if isinstance(exc,HostError) else HostError("backend read failed: "+type(exc).__name__)
                 raise self.fatal from exc
