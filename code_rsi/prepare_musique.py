@@ -17,9 +17,10 @@ from pathlib import Path
 import sys
 import unicodedata
 
-from .v3.datasets import adapt_musique, normalize_answer, validate_task_collection
+from .v3.datasets import (MUSIQUE_DOCUMENT_RENDERING, adapt_musique,
+                          normalize_answer, validate_task_collection)
 
-SCHEMA = "rag-rsi-musique-ans-panels-1"
+SCHEMA = "rag-rsi-musique-ans-panels-2"
 REVISION = "922ac98f19a201998dbdae6d7f2887a5258dbdeb"
 RUNS_ROOT = Path(__file__).resolve().parents[1] / "runs"
 ROLES = ("D_fit", "D_select", "D_report")
@@ -89,11 +90,11 @@ def _adapt(row):
     if not isinstance(row.get("answer_aliases"), list):
         raise PanelError("official answer_aliases annotation is required")
     paragraphs = row.get("paragraphs")
-    if (not isinstance(paragraphs, list) or len(paragraphs) != 20
+    if (not isinstance(paragraphs, list) or not 1 <= len(paragraphs) <= 20
             or any(not isinstance(p, dict) or type(p.get("idx")) is not int
                    or type(p.get("is_supporting")) is not bool for p in paragraphs)
-            or {p["idx"] for p in paragraphs} != set(range(20))):
-        raise PanelError("twenty indexed paragraphs with complete support annotations are required")
+            or {p["idx"] for p in paragraphs} != set(range(len(paragraphs)))):
+        raise PanelError("one to twenty original indexed paragraphs with complete support annotations are required")
     decomposition = row.get("question_decomposition")
     if not isinstance(decomposition, list) or len(decomposition) not in (2, 3, 4):
         raise PanelError("official two-to-four-hop decomposition annotation is required")
@@ -226,7 +227,9 @@ def prepare_panels(train_path, dev_path, *, seed, quotas):
                                   "singlehop_id": "string identity; integer and matching string compare equal"},
                 "filters": list(FEATURES), "audit": audits,
                 "private_fields_used_only_locally": True, "model_scores_used": False,
-                "local_corpus_paragraphs_per_task": 20,
+                "local_corpus_paragraph_limit": 20,
+                "original_paragraph_count_preserved": True,
+                "document_rendering": MUSIQUE_DOCUMENT_RENDERING,
                 "panel_claim": "frozen stratified pilot subset; not the full official benchmark"}
     for role in SELECTION_ORDER:
         candidates = dev if role == "D_report" else train
@@ -283,6 +286,9 @@ def prepare_panels(train_path, dev_path, *, seed, quotas):
         panels[role] = [task for task, _ in pairs]
         validate_task_collection(panels[role])
         references[role] = {task["question_id"]: ref for task, ref in pairs}
+    manifest["paragraph_count_distribution"] = {
+        role: dict(sorted(Counter(len(task["documents"]) for task in panels[role]).items()))
+        for role in ROLES}
     manifest["status"] = "ready"
     return {"public_panels": panels, "private_references": references, "manifest": manifest}
 

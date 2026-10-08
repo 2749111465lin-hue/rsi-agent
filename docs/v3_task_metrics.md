@@ -35,9 +35,11 @@ full_metrics = aggregate_musique_full(scored_rows)
 
 多个表示同时提供必须指向同一集合。完全缺少预测证据字段，或显式空证据对非空 gold，支持分为零。适配器目前在支持标注缺失时也可能生成 `supporting_docids=[]`，因此空列表本身不能证明 gold 是真正空集：默认返回 `unavailable_empty_annotation_ambiguous`。只有私有参考显式提供、且宿主已核验的 `support_annotation_available=True` 才允许将空 gold 视为完整标注；该字段是本地可用性合同，不是虚构的官方字段。缺少标注键或明确 `False` 时不可评分。模块不猜测标注是否完整。
 
+真实 Ans 输入准备已发现并保留 37 条少于 20 段的官方记录；适配器接受原始 1–20 段，并将非空标题与正文按 LF 连接为统一来源文本。引用偏移针对该规范文本，题目身份随公开内容变化。该发现来自 Ans train/dev，未检查 Full/Test；见[真实准备与输入修复](v3_task_recalibration_20261008.md)。
+
 ## MuSiQue-Full 配对聚合
 
-[论文 §7.1](https://arxiv.org/pdf/2108.00573) 将 Full 定义为同一问题的充分/不充分上下文对。两条预测均正确判断可回答性，才保留可回答分支的答案或支持分；否则该对联合分为零。上下文仍各自保留 20 段，评分也不会合并语料。
+[论文 §7.1](https://arxiv.org/pdf/2108.00573) 将 Full 定义为同一问题的充分/不充分上下文对。两条预测均正确判断可回答性，才保留可回答分支的答案或支持分；否则该对联合分为零。上下文各自保留原始段落集合，评分不会合并语料。
 
 这不是任意数量的 base-ID 分组：上述官方入口第 79–81 行明确断言每个 ID 出现两次；[答案联合指标](https://github.com/StonyBrookNLP/musique/blob/922ac98f19a201998dbdae6d7f2887a5258dbdeb/metrics/group_answer_sufficiency.py) 和 [支持联合指标](https://github.com/StonyBrookNLP/musique/blob/922ac98f19a201998dbdae6d7f2887a5258dbdeb/metrics/group_support_sufficiency.py) 同样要求两次 sufficiency 预测，并仅保存 gold 可回答分支的答案/支持。
 

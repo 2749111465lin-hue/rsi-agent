@@ -73,11 +73,25 @@ class DatasetAdapterTests(unittest.TestCase):
         public, _ = adapt_musique(musique_row())
         self.assertEqual(filter_documents(public, public["documents"][:2]), public["documents"][:2])
 
-    def test_exact_twenty_and_unique_paragraph_ids_required(self):
+    def test_bounded_original_context_and_unique_paragraph_ids_required(self):
         short = musique_row()
         short["paragraphs"].pop()
+        public, _ = adapt_musique(short)
+        self.assertEqual(len(public["documents"]), 19)
+        empty = copy.deepcopy(short)
+        empty["paragraphs"] = []
         with self.assertRaises(DatasetFormatError):
-            adapt_musique(short)
+            adapt_musique(empty)
+        oversized = musique_row()
+        extra = copy.deepcopy(oversized["paragraphs"][-1])
+        extra["idx"] = 20
+        oversized["paragraphs"].append(extra)
+        with self.assertRaises(DatasetFormatError):
+            adapt_musique(oversized)
+        gap = musique_row()
+        gap["paragraphs"].pop(10)
+        with self.assertRaises(DatasetFormatError):
+            adapt_musique(gap)
         duplicate = musique_row()
         duplicate["paragraphs"][1]["idx"] = 0
         with self.assertRaises(DatasetFormatError):
@@ -89,7 +103,7 @@ class DatasetAdapterTests(unittest.TestCase):
         row["question_decomposition"][0]["answer"] = "CHANGED"
         row["paragraphs"][0]["paragraph_text"] = "CHANGED"
         self.assertEqual(private["question_decomposition"][0]["answer"], "PRIVATE_STEP")
-        self.assertEqual(public["documents"][0]["text"], "Public passage 0.")
+        self.assertEqual(public["documents"][0]["text"], "Public title 0\nPublic passage 0.")
 
     def test_browsecomp_preserves_fixed_reference_but_not_labels(self):
         row = {"query_id": "bc-one", "query": "A public question?", "answer": "PRIVATE_ANSWER",

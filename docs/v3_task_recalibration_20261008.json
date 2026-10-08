@@ -1,0 +1,510 @@
+{
+  "schema": "rag-rsi-task-recalibration-evidence-1",
+  "date": "2026-10-08",
+  "base_commit": "e62b00f98df04bb194cecb35d4083da304e0e0f1",
+  "new_paid_api_calls": 0,
+  "new_api_cost_cny": 0,
+  "browsecomp_retrieval_audit": {
+    "schema": "rag-rsi-bcp-doc-recall-summary-1",
+    "new_api_calls": 0,
+    "reference_answers_read": false,
+    "raw_question_answer_context_emitted": false,
+    "source_binding": {
+      "plan_digest": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+      "plan_file_sha256": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+      "generation_freeze_sha256": "1781a189615767a4852eae008e36bbc8f8b03f80d8709c0d40a88a2f3501fae2",
+      "official_qrels_commit": "046949032b0328319cc9a02663a759ec601d9402",
+      "qrels": {
+        "evidence": {
+          "filename": "qrel_evidence.txt",
+          "sha256": "01322d07c6b8a43b61dcb679ef53cdd4ea9b4200c68342cd32666d0e815f5d0e",
+          "bytes": 81226,
+          "positive_selected_pairs": 102,
+          "duplicate_positive_pairs": 0,
+          "selected_questions_with_labels": 16,
+          "labels_per_question_sorted": [
+            2,
+            3,
+            4,
+            4,
+            5,
+            5,
+            6,
+            6,
+            6,
+            7,
+            8,
+            8,
+            9,
+            9,
+            10,
+            10
+          ]
+        },
+        "gold": {
+          "filename": "qrel_golds.txt",
+          "sha256": "6094dcf00dca1fbb14876669b9cc9b58702aacd60b84c651ede819089b805aa9",
+          "bytes": 38743,
+          "positive_selected_pairs": 36,
+          "duplicate_positive_pairs": 0,
+          "selected_questions_with_labels": 16,
+          "labels_per_question_sorted": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            3,
+            3,
+            3,
+            3,
+            3,
+            4,
+            6
+          ]
+        }
+      },
+      "cell_hashes_checked": 96,
+      "payload_hashes_checked": 96,
+      "full_panel_identity_checked": true,
+      "corpus_expected_sha256": "0dc2c0583e165625f60dd6d03081139d0503fe47461c69ce1db5031670613fe8",
+      "corpus_bytes": 4400988160,
+      "corpus_hash_recomputed_this_diagnostic": false,
+      "unique_labeled_documents": 102,
+      "labeled_documents_found_by_docid": 102,
+      "qualification": "Posthoc content/panel integrity only; current runtime is not the historical runtime. Original protocol_invalid unchanged."
+    },
+    "arms": {
+      "raw": {
+        "outcomes": 32,
+        "completed_executions": 32,
+        "known_prefix_with_zero_verified_quotes": 17,
+        "completed_with_zero_verified_quotes": 17,
+        "final_observed": 32,
+        "final_citation_count_unknown": 0,
+        "final_zero_citations": 29,
+        "final_positive_citations": 3,
+        "source_valid_final_citations": 3,
+        "phase_recall": {
+          "retrieval": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.025694444444444443,
+              "observed_prefix_rows_with_any_label": 4,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.025694444444444443,
+              "completed_known_recall_sum": 0.8222222222222222
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.0,
+              "observed_prefix_rows_with_any_label": 0,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.0,
+              "completed_known_recall_sum": 0.0
+            }
+          },
+          "presented": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.025694444444444443,
+              "observed_prefix_rows_with_any_label": 4,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.025694444444444443,
+              "completed_known_recall_sum": 0.8222222222222222
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.0,
+              "observed_prefix_rows_with_any_label": 0,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.0,
+              "completed_known_recall_sum": 0.0
+            }
+          },
+          "quoted": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.0125,
+              "observed_prefix_rows_with_any_label": 2,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.0125,
+              "completed_known_recall_sum": 0.4
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.0,
+              "observed_prefix_rows_with_any_label": 0,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.0,
+              "completed_known_recall_sum": 0.0
+            }
+          }
+        },
+        "questions_with_observed_gold_document": 0
+      },
+      "planned": {
+        "outcomes": 32,
+        "completed_executions": 32,
+        "known_prefix_with_zero_verified_quotes": 18,
+        "completed_with_zero_verified_quotes": 18,
+        "final_observed": 32,
+        "final_citation_count_unknown": 0,
+        "final_zero_citations": 26,
+        "final_positive_citations": 6,
+        "source_valid_final_citations": 6,
+        "phase_recall": {
+          "retrieval": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.090625,
+              "observed_prefix_rows_with_any_label": 9,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.090625,
+              "completed_known_recall_sum": 2.9
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.07291666666666667,
+              "observed_prefix_rows_with_any_label": 3,
+              "observed_prefix_rows_with_all_labels": 2,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.07291666666666667,
+              "completed_known_recall_sum": 2.3333333333333335
+            }
+          },
+          "presented": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.08437499999999999,
+              "observed_prefix_rows_with_any_label": 9,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.08437499999999999,
+              "completed_known_recall_sum": 2.6999999999999997
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.07291666666666667,
+              "observed_prefix_rows_with_any_label": 3,
+              "observed_prefix_rows_with_all_labels": 2,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.07291666666666667,
+              "completed_known_recall_sum": 2.3333333333333335
+            }
+          },
+          "quoted": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.06180555555555556,
+              "observed_prefix_rows_with_any_label": 9,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.06180555555555556,
+              "completed_known_recall_sum": 1.9777777777777779
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.07291666666666667,
+              "observed_prefix_rows_with_any_label": 3,
+              "observed_prefix_rows_with_all_labels": 2,
+              "completed_rows": 32,
+              "incomplete_or_unknown_rows": 0,
+              "complete_panel_macro_recall": 0.07291666666666667,
+              "completed_known_recall_sum": 2.3333333333333335
+            }
+          }
+        },
+        "questions_with_observed_gold_document": 2
+      },
+      "loop": {
+        "outcomes": 32,
+        "completed_executions": 31,
+        "known_prefix_with_zero_verified_quotes": 12,
+        "completed_with_zero_verified_quotes": 11,
+        "final_observed": 31,
+        "final_citation_count_unknown": 1,
+        "final_zero_citations": 23,
+        "final_positive_citations": 8,
+        "source_valid_final_citations": 8,
+        "phase_recall": {
+          "retrieval": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.19392361111111112,
+              "observed_prefix_rows_with_any_label": 12,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 31,
+              "incomplete_or_unknown_rows": 1,
+              "complete_panel_macro_recall": null,
+              "completed_known_recall_sum": 6.205555555555556
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.21875,
+              "observed_prefix_rows_with_any_label": 9,
+              "observed_prefix_rows_with_all_labels": 6,
+              "completed_rows": 31,
+              "incomplete_or_unknown_rows": 1,
+              "complete_panel_macro_recall": null,
+              "completed_known_recall_sum": 7.0
+            }
+          },
+          "presented": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.1907986111111111,
+              "observed_prefix_rows_with_any_label": 12,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 31,
+              "incomplete_or_unknown_rows": 1,
+              "complete_panel_macro_recall": null,
+              "completed_known_recall_sum": 6.105555555555555
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.21875,
+              "observed_prefix_rows_with_any_label": 9,
+              "observed_prefix_rows_with_all_labels": 6,
+              "completed_rows": 31,
+              "incomplete_or_unknown_rows": 1,
+              "complete_panel_macro_recall": null,
+              "completed_known_recall_sum": 7.0
+            }
+          },
+          "quoted": {
+            "evidence": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.1501736111111111,
+              "observed_prefix_rows_with_any_label": 12,
+              "observed_prefix_rows_with_all_labels": 0,
+              "completed_rows": 31,
+              "incomplete_or_unknown_rows": 1,
+              "complete_panel_macro_recall": null,
+              "completed_known_recall_sum": 4.805555555555555
+            },
+            "gold": {
+              "observed_prefix_rows": 32,
+              "observed_prefix_macro_recall": 0.17708333333333331,
+              "observed_prefix_rows_with_any_label": 9,
+              "observed_prefix_rows_with_all_labels": 3,
+              "completed_rows": 31,
+              "incomplete_or_unknown_rows": 1,
+              "complete_panel_macro_recall": null,
+              "completed_known_recall_sum": 5.666666666666666
+            }
+          }
+        },
+        "questions_with_observed_gold_document": 5
+      }
+    },
+    "scope": "Descriptive frozen-panel diagnosis only; prefix aggregates include observed partial prefixes, completed-panel mean is null with any incomplete row. No success-subset ranking.",
+    "limitations": [
+      "qrels document hits are not sentence/fact sufficiency.",
+      "qrels misses need not imply absence of alternative supporting documents.",
+      "An incomplete execution has known prefix IDs but unknown final retrieval/read/citation outcome.",
+      "No new scoring or statistical qualification."
+    ],
+    "independent_recalculation": {
+      "module": "code_rsi/retrieval_audit.py",
+      "cells": 96,
+      "layer_label_checks": 18,
+      "all_matched": true,
+      "observations_sha256": "a69d58d6a47e3b96d2e9b44a1b9fb87b4e3198860822ca3cd960c94057da4638",
+      "source_module_sha256": "d2506ed2e08009b72900c8ef290452bffb1e4690bba537bfc7113a05190ef054"
+    }
+  },
+  "musique": {
+    "official_source_commit": "922ac98f19a201998dbdae6d7f2887a5258dbdeb",
+    "official_checksum_available": false,
+    "source_provenance": "fixed official repository download pointer; local hashes; not upstream checksum authenticated",
+    "source_rows_checked": {
+      "train": {
+        "rows_validated": 19938,
+        "adapter_or_preparation_errors": 0,
+        "sha256": "83a75b1e11e4e9bb8f8308e72ac40ca617ae4431b3a0d955b61cab259248490a"
+      },
+      "dev": {
+        "rows_validated": 2417,
+        "adapter_or_preparation_errors": 0,
+        "sha256": "15fa63794d18a94ce12411aca6e2327e65b6e83b0b1490efab3f1962e48abf3b"
+      }
+    },
+    "short_context_rows_preserved": {
+      "train": 21,
+      "dev": 16
+    },
+    "seed": "musique-mechanism-calibration-20261008",
+    "seed_attempts": 1,
+    "manifest_sha256": "8114c36653f759f76c72b72c6864c0db4dd90ccf4ff786db26297506d253fcbb",
+    "panel_schema": "rag-rsi-musique-ans-panels-2",
+    "document_rendering": "title_lf_paragraph_v1",
+    "roles": {
+      "D_fit": {
+        "count": 24,
+        "hop_counts": {
+          "2": 8,
+          "3": 8,
+          "4": 8
+        },
+        "paragraph_counts": {
+          "20": 24
+        },
+        "canonical_title_prefix_visible": true,
+        "public_schema_valid": true,
+        "candidate_rows_visited": 82,
+        "rejected_candidate_count": 0,
+        "filter_hits": {}
+      },
+      "D_select": {
+        "count": 12,
+        "hop_counts": {
+          "2": 4,
+          "3": 4,
+          "4": 4
+        },
+        "paragraph_counts": {
+          "20": 12
+        },
+        "canonical_title_prefix_visible": true,
+        "public_schema_valid": true,
+        "candidate_rows_visited": 182,
+        "rejected_candidate_count": 27,
+        "filter_hits": {
+          "cross_role_normalized_question": 24,
+          "cross_role_question_id": 24,
+          "cross_role_singlehop_id": 25,
+          "cross_role_source_question_pair": 24,
+          "cross_role_subanswer": 27,
+          "cross_role_support_paragraph": 26
+        }
+      },
+      "D_report": {
+        "count": 24,
+        "hop_counts": {
+          "2": 8,
+          "3": 8,
+          "4": 8
+        },
+        "paragraph_counts": {
+          "20": 24
+        },
+        "canonical_title_prefix_visible": true,
+        "public_schema_valid": true,
+        "candidate_rows_visited": 49,
+        "rejected_candidate_count": 0,
+        "filter_hits": {}
+      }
+    },
+    "file_bindings": {
+      "D_fit/private_references.json": {
+        "sha256": "3adc3d036b6db93d095099cc18dc329297910e0dfbbb56bb10e60221afe68e14",
+        "bytes": 32446,
+        "private": true
+      },
+      "D_fit/public_tasks.json": {
+        "sha256": "697942a4ab405d4fb58a92433f3b80e16b210460555edd42566ba412fbd3fc88",
+        "bytes": 323960,
+        "private": false
+      },
+      "D_report/private_references.json": {
+        "sha256": "d8f7dffb6fa6361bbb42194b08b0cf2ab3b214c5cfae89ca4e53e87848e49eb3",
+        "bytes": 32376,
+        "private": true
+      },
+      "D_report/public_tasks.json": {
+        "sha256": "5b21f96094059f519b517edd94fef89606bf70e0b91ecf295260970321067f30",
+        "bytes": 335369,
+        "private": false
+      },
+      "D_select/private_references.json": {
+        "sha256": "4a532f11676471286b76a0352725bfaf20ce4d8a14ab313b81730bd0657dccbc",
+        "bytes": 16643,
+        "private": true
+      },
+      "D_select/public_tasks.json": {
+        "sha256": "e7c72ca5f2df123187af82661852a49ab1192c4862d9c57a4b669455b9b2f969",
+        "bytes": 168183,
+        "private": false
+      }
+    },
+    "dependency_components": {
+      "D_fit": 23,
+      "D_select": 12,
+      "D_report": 22
+    },
+    "dependency_basis": "shared single-hop ID or original support-paragraph text; not a guarantee of semantic independence",
+    "cross_role_shared_singlehop_or_support": 0,
+    "local_retrieval": {
+      "schema": "rag-rsi-musique-local-retrieval-check-1",
+      "scope": "D_fit only; raw question, existing LocalCorpus lexical overlap, k=5; not a measured LLM answer baseline",
+      "question_count": 24,
+      "actual_model_calls": 0,
+      "new_api_cost_cny": 0,
+      "answers_or_decomposition_sent_to_model": false,
+      "public_tasks_sha256": "697942a4ab405d4fb58a92433f3b80e16b210460555edd42566ba412fbd3fc88",
+      "mean_document_support_recall_at_5": 0.3298611111111111,
+      "questions_with_any_support": 13,
+      "questions_with_all_support": 3,
+      "all_public_titles_preserved": true
+    },
+    "llm_answer_measurement_started": false,
+    "selector_or_evolution_started": false
+  },
+  "reader_probe": {
+    "status": "deferred_by_task_recalibration",
+    "original_plan_hash": "3a47844ad732dfa7bbb0dab58eed767fd985bd91f78f7f78ffc70ff64891fdc9",
+    "original_runtime_commit": "e62b00f",
+    "current_runtime_requires_new_freeze": true,
+    "new_paid_calls": 0
+  },
+  "limitations": [
+    "Old new16 protocol_invalid is unchanged. These are posthoc document-level diagnostics, not qualified arm effects.",
+    "Known-prefix recall is not a complete failed trajectory and not a success-subset policy ranking.",
+    "Qrels are not exhaustive fact or span annotations. A labeled document need not contribute the needed span to its window.",
+    "MuSiQue question-local lexical retrieval is a different task/backend from BCP 100k FTS5; scores are not a cross-dataset improvement comparison.",
+    "No real MuSiQue LLM outcome exists yet. No claim of a non-floor answer baseline or RSI improvement.",
+    "Current audit checked all 102 relevant document IDs in the fixed database; the 4.4 GB corpus file was not rehashed during this diagnostic."
+  ],
+  "validation": {
+    "unit_tests": {
+      "run": 594,
+      "passed": 594,
+      "failed": 0,
+      "skipped": 0,
+      "elapsed_seconds": 232.936,
+      "real_wsl_opt_in": true,
+      "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+      "local_log_sha256": "588297022716c41160cd5979414865e3267abdfcf6dd5bca8640c74204b74089",
+      "ci_note": "Default CI skips explicit real-WSL opt-in; local result includes it."
+    },
+    "changed_source_hashes": {
+      "code_rsi/v3/datasets.py": "723b74317184ba908eacbb96ece44000cc69c69a4fb9b0614ff7850bce68fe3b",
+      "code_rsi/prepare_musique.py": "92b3788514e7c6a571e8fa9da2162b2e4c0db50e990e8fe0c45cb9bb02652d12",
+      "code_rsi/retrieval_audit.py": "d2506ed2e08009b72900c8ef290452bffb1e4690bba537bfc7113a05190ef054"
+    },
+    "independent_review": "Data contract and runtime title/offset propagation reviewed; no blocking issue found. Engineering evidence only."
+  }
+}

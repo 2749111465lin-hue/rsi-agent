@@ -33,6 +33,7 @@ class PublicTask(TypedDict):
 _PUBLIC_KEYS = set(PublicTask.__annotations__)
 _DOC_KEYS = {"docid", "text", "title", "url"}
 _DATASETS = {"musique", "browsecomp-plus", "multihop-rag", "bright"}
+MUSIQUE_DOCUMENT_RENDERING = "title_lf_paragraph_v1"
 
 
 def _mapping(value: Any, name: str) -> Mapping[str, Any]:
@@ -124,7 +125,7 @@ def _reference(row: Mapping[str, Any], task: PublicTask, official_metric: str,
 
 
 def adapt_musique(row: Mapping[str, Any]) -> tuple[PublicTask, dict[str, Any]]:
-    """Adapt official per-question 20-paragraph contexts, including Full pairs.
+    """Adapt complete official per-question contexts (up to 20), including Full pairs.
 
     Public IDs include a hash of only the question and public context. Full pairs
     with the same source ID therefore cannot overwrite one another. Never pool
@@ -134,8 +135,8 @@ def adapt_musique(row: Mapping[str, Any]) -> tuple[PublicTask, dict[str, Any]]:
     source_id = _identifier(_alias(row, ("id", "question_id")), "question id")
     question = _text(row.get("question"), "question")
     paragraphs = row.get("paragraphs")
-    if not isinstance(paragraphs, list) or len(paragraphs) != 20:
-        raise DatasetFormatError("official MuSiQue requires exactly 20 local paragraphs")
+    if not isinstance(paragraphs, list) or not 1 <= len(paragraphs) <= 20:
+        raise DatasetFormatError("MuSiQue requires 1 to 20 original local paragraphs")
     clean = []
     seen: set[int] = set()
     support: list[int] = []
@@ -145,13 +146,20 @@ def adapt_musique(row: Mapping[str, Any]) -> tuple[PublicTask, dict[str, Any]]:
         if type(idx) is not int or idx < 0 or idx in seen:
             raise DatasetFormatError("paragraph idx must be a unique nonnegative integer")
         seen.add(idx)
-        clean.append({"idx": idx, "title": _text(paragraph.get("title"), "title", empty=True),
-                      "text": _text(paragraph.get("paragraph_text"), "paragraph_text")})
+        title = _text(paragraph.get("title"), "title", empty=True)
+        body = _text(paragraph.get("paragraph_text"), "paragraph_text")
+        # Public title is part of the readable source, not a hidden annotation.
+        # All search/read/quote offsets refer to this canonical text. No padding
+        # or filtering: some official v1.0 examples have fewer than 20 paragraphs.
+        clean.append({"idx": idx, "title": title,
+                      "text": title + "\n" + body if title else body})
         if "is_supporting" in paragraph:
             if type(paragraph["is_supporting"]) is not bool:
                 raise DatasetFormatError("is_supporting must be boolean")
             if paragraph["is_supporting"]:
                 support.append(idx)
+    if seen != set(range(len(paragraphs))):
+        raise DatasetFormatError("MuSiQue paragraph indices must cover the original context")
     qid = f"musique:{source_id}:{_digest([question, clean])[:24]}"
     docs = [{"docid": f"{qid}/p/{p['idx']}", "text": p["text"], "title": p["title"]} for p in clean]
     task = _task("musique", qid, question, docs, None, local=True)
@@ -253,8 +261,8 @@ def validate_public_task(task: Mapping[str, Any]) -> None:
     if ref is not None:
         _text(ref, "corpus_ref")
     if task["dataset"] == "musique":
-        if task["corpus_scope"] != "question_local" or ref is not None or len(docs) != 20:
-            raise DatasetFormatError("MuSiQue must retain exactly 20 question-local documents")
+        if task["corpus_scope"] != "question_local" or ref is not None or not 1 <= len(docs) <= 20:
+            raise DatasetFormatError("MuSiQue must retain its original 1 to 20 question-local documents")
         if any(not doc["docid"].startswith(f"{qid}/p/") for doc in docs):
             raise DatasetFormatError("MuSiQue document belongs to another question scope")
     elif task["corpus_scope"] != "shared" or (not docs and ref is None):
