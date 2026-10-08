@@ -1,0 +1,668 @@
+{
+  "schema": "rag-rsi-new16-sanitized-postfreeze-summary-1",
+  "plan_sha256": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+  "generation_freeze_sha256": "1781a189615767a4852eae008e36bbc8f8b03f80d8709c0d40a88a2f3501fae2",
+  "report_sha256": "617cce0759bcbf0901dce34c2d43c1a9c3df3da61253a7cbf1a74bd2419addc3",
+  "local_helper_sha256": "74bacaaf5a99eff8f15dd25815ec62be4a18fd54801c1aa2aabe9d716af1fec0",
+  "report_binding": "frozen contract, analysis, panel, ledger and host grading identity map; no standalone report plan_hash",
+  "read_only": true,
+  "new_api_calls": 0,
+  "credentials_read": false,
+  "report_status": "protocol_invalid",
+  "raw_diagnostic_only": true,
+  "all_outcomes_retained": true,
+  "successful_subset_analysis": false,
+  "reference_values_read_by_helper": false,
+  "scoring_recomputed": false,
+  "execution_comparison_valid": false,
+  "quality_comparison_valid": false,
+  "mechanism_comparison_valid": false,
+  "prefix": {
+    "verified_pairs": 32,
+    "unknown_pairs": 0,
+    "mismatched_pairs": 0
+  },
+  "arms": {
+    "raw": {
+      "outcomes": 32,
+      "successful_subset_analysis": false,
+      "execution_failed_outcomes": 0,
+      "invalid_answer_origin_outcomes": 0,
+      "trusted_handler_timeout_outcomes": 0,
+      "trusted_handler_timeout_basis": "failed host receipt exact error or explicit host failure class; never candidate-reported text",
+      "fixed_string_abstentions": 32,
+      "empty_answers": 0,
+      "all_read_counts": {
+        "search_calls": {
+          "known_sum": 32.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "read_model_calls": {
+          "known_sum": 32.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "unique_presented_windows": {
+          "known_sum": 160.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "unique_verified_quotes": {
+          "known_sum": 114.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "search_returned_count": {
+          "known_sum": 160.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "searches_with_unknown_return_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "reads_with_unknown_return_comparison": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        }
+      },
+      "later_reading": {
+        "observed_read_rows": 0,
+        "omitted_read_rows": 0,
+        "complete_read_row_coverage": true,
+        "outcomes_with_observed_later_read": 0,
+        "outcomes_with_observed_new_later_source": 0,
+        "reads_with_new_source": 0,
+        "reads_with_unknown_new_source_count": 0,
+        "metrics": {
+          "source_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "source_chars": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "new_source_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "reused_source_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "verified_quote_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "returned_exactly_presented_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "returned_partial_overlap_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "returned_not_presented_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          }
+        }
+      },
+      "final_evidence": {
+        "verified_read_quotes_before_final_count": {
+          "known_sum": 114.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "presented_evidence_count": {
+          "known_sum": 114.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "verified_quotes_retained_count": {
+          "known_sum": 114.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "verified_quotes_not_retained_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "verified_quotes_cited_count": {
+          "known_sum": 11.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "raw_citation_count": {
+          "known_sum": 11.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "reads_after_final_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        }
+      },
+      "flow_samples_truncated_outcomes": 32,
+      "return_count_unit": "window_occurrences_not_unique_documents",
+      "quote_count_unit": "unique_docid_offset_quote_hash_within_outcome",
+      "semantic_support": "not_host_verified",
+      "repeat_text_consistency": {
+        "question_count": 16,
+        "exact_same_answer_questions": 16,
+        "same_whitespace_casefold_answer_questions": 16
+      },
+      "quality": {
+        "outcomes": 32,
+        "delivery_rate": 1.0,
+        "source_valid_rate": 0.09375,
+        "answer_origin_valid_rate": 1.0,
+        "eligible_outcomes": 32,
+        "proxy_answer_em": 0.0,
+        "proxy_answer_f1": 0.0,
+        "logical_model_calls": 64,
+        "raw_diagnostic_only": true,
+        "successful_subset_analysis": false,
+        "denominator_outcomes": 32
+      }
+    },
+    "planned": {
+      "outcomes": 32,
+      "successful_subset_analysis": false,
+      "execution_failed_outcomes": 0,
+      "invalid_answer_origin_outcomes": 0,
+      "trusted_handler_timeout_outcomes": 0,
+      "trusted_handler_timeout_basis": "failed host receipt exact error or explicit host failure class; never candidate-reported text",
+      "fixed_string_abstentions": 31,
+      "empty_answers": 0,
+      "all_read_counts": {
+        "search_calls": {
+          "known_sum": 64.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "read_model_calls": {
+          "known_sum": 32.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "unique_presented_windows": {
+          "known_sum": 196.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "unique_verified_quotes": {
+          "known_sum": 111.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "search_returned_count": {
+          "known_sum": 320.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "searches_with_unknown_return_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "reads_with_unknown_return_comparison": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        }
+      },
+      "later_reading": {
+        "observed_read_rows": 0,
+        "omitted_read_rows": 0,
+        "complete_read_row_coverage": true,
+        "outcomes_with_observed_later_read": 0,
+        "outcomes_with_observed_new_later_source": 0,
+        "reads_with_new_source": 0,
+        "reads_with_unknown_new_source_count": 0,
+        "metrics": {
+          "source_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "source_chars": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "new_source_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "reused_source_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "verified_quote_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "returned_exactly_presented_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "returned_partial_overlap_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          },
+          "returned_not_presented_count": {
+            "known_sum": 0.0,
+            "known_observations": 0,
+            "unknown_observations": 0
+          }
+        }
+      },
+      "final_evidence": {
+        "verified_read_quotes_before_final_count": {
+          "known_sum": 111.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "presented_evidence_count": {
+          "known_sum": 111.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "verified_quotes_retained_count": {
+          "known_sum": 111.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "verified_quotes_not_retained_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "verified_quotes_cited_count": {
+          "known_sum": 24.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "raw_citation_count": {
+          "known_sum": 24.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "reads_after_final_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        }
+      },
+      "flow_samples_truncated_outcomes": 32,
+      "return_count_unit": "window_occurrences_not_unique_documents",
+      "quote_count_unit": "unique_docid_offset_quote_hash_within_outcome",
+      "semantic_support": "not_host_verified",
+      "repeat_text_consistency": {
+        "question_count": 16,
+        "exact_same_answer_questions": 15,
+        "same_whitespace_casefold_answer_questions": 15
+      },
+      "quality": {
+        "outcomes": 32,
+        "delivery_rate": 1.0,
+        "source_valid_rate": 0.1875,
+        "answer_origin_valid_rate": 1.0,
+        "eligible_outcomes": 32,
+        "proxy_answer_em": 0.03125,
+        "proxy_answer_f1": 0.03125,
+        "logical_model_calls": 96,
+        "raw_diagnostic_only": true,
+        "successful_subset_analysis": false,
+        "denominator_outcomes": 32
+      }
+    },
+    "loop": {
+      "outcomes": 32,
+      "successful_subset_analysis": false,
+      "execution_failed_outcomes": 1,
+      "invalid_answer_origin_outcomes": 1,
+      "trusted_handler_timeout_outcomes": 1,
+      "trusted_handler_timeout_basis": "failed host receipt exact error or explicit host failure class; never candidate-reported text",
+      "fixed_string_abstentions": 30,
+      "empty_answers": 1,
+      "all_read_counts": {
+        "search_calls": {
+          "known_sum": 172.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "read_model_calls": {
+          "known_sum": 86.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "unique_presented_windows": {
+          "known_sum": 489.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "unique_verified_quotes": {
+          "known_sum": 335.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "search_returned_count": {
+          "known_sum": 860.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "searches_with_unknown_return_count": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        },
+        "reads_with_unknown_return_comparison": {
+          "known_sum": 0.0,
+          "known_observations": 32,
+          "unknown_observations": 0
+        }
+      },
+      "later_reading": {
+        "observed_read_rows": 54,
+        "omitted_read_rows": 0,
+        "complete_read_row_coverage": true,
+        "outcomes_with_observed_later_read": 31,
+        "outcomes_with_observed_new_later_source": 31,
+        "reads_with_new_source": 54,
+        "reads_with_unknown_new_source_count": 0,
+        "metrics": {
+          "source_count": {
+            "known_sum": 293.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "source_chars": {
+            "known_sum": 1226994.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "new_source_count": {
+            "known_sum": 293.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "reused_source_count": {
+            "known_sum": 0.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "verified_quote_count": {
+            "known_sum": 270.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "returned_exactly_presented_count": {
+            "known_sum": 211.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "returned_partial_overlap_count": {
+            "known_sum": 111.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          },
+          "returned_not_presented_count": {
+            "known_sum": 218.0,
+            "known_observations": 54,
+            "unknown_observations": 0
+          }
+        }
+      },
+      "final_evidence": {
+        "verified_read_quotes_before_final_count": {
+          "known_sum": 335.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        },
+        "presented_evidence_count": {
+          "known_sum": 326.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        },
+        "verified_quotes_retained_count": {
+          "known_sum": 326.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        },
+        "verified_quotes_not_retained_count": {
+          "known_sum": 9.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        },
+        "verified_quotes_cited_count": {
+          "known_sum": 29.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        },
+        "raw_citation_count": {
+          "known_sum": 29.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        },
+        "reads_after_final_count": {
+          "known_sum": 0.0,
+          "known_observations": 31,
+          "unknown_observations": 1
+        }
+      },
+      "flow_samples_truncated_outcomes": 32,
+      "return_count_unit": "window_occurrences_not_unique_documents",
+      "quote_count_unit": "unique_docid_offset_quote_hash_within_outcome",
+      "semantic_support": "not_host_verified",
+      "repeat_text_consistency": {
+        "question_count": 16,
+        "exact_same_answer_questions": 14,
+        "same_whitespace_casefold_answer_questions": 14
+      },
+      "quality": {
+        "outcomes": 32,
+        "delivery_rate": 0.96875,
+        "source_valid_rate": 0.25,
+        "answer_origin_valid_rate": 0.96875,
+        "eligible_outcomes": 31,
+        "proxy_answer_em": 0.03125,
+        "proxy_answer_f1": 0.03125,
+        "logical_model_calls": 149,
+        "raw_diagnostic_only": true,
+        "successful_subset_analysis": false,
+        "denominator_outcomes": 32
+      }
+    }
+  },
+  "analysis": {
+    "qualified": false,
+    "raw_diagnostic_only": true,
+    "status": "protocol_invalid_raw_diagnostics_only",
+    "all_outcome_cell_count": 96,
+    "successful_subset_analysis": false,
+    "ineligible_outcome_count": 1,
+    "ineligible_outcomes": [
+      {
+        "question": "Q13",
+        "arm": "loop",
+        "repeat": 0
+      }
+    ],
+    "primary_metric": "internal_answer_f1_proxy",
+    "comparisons": {
+      "planning": {
+        "baseline": "raw",
+        "candidate": "planned",
+        "raw_diagnostic_only": true,
+        "interpretation": "raw_all_outcome_differences_no_effect_inference",
+        "mean_delta": 0.03125,
+        "sample_size": 16,
+        "cluster_count": 16,
+        "question_sign_counts": {
+          "positive": 1,
+          "zero": 15,
+          "negative": 0
+        },
+        "per_anonymous_question": {
+          "Q01": 0.5,
+          "Q02": 0.0,
+          "Q03": 0.0,
+          "Q04": 0.0,
+          "Q05": 0.0,
+          "Q06": 0.0,
+          "Q07": 0.0,
+          "Q08": 0.0,
+          "Q09": 0.0,
+          "Q10": 0.0,
+          "Q11": 0.0,
+          "Q12": 0.0,
+          "Q13": 0.0,
+          "Q14": 0.0,
+          "Q15": 0.0,
+          "Q16": 0.0
+        },
+        "confidence_interval": null,
+        "design_sensitivity": null,
+        "posthoc_repeat_delta_direction_counts": {
+          "positive/zero": 1,
+          "zero/zero": 15
+        }
+      },
+      "iteration": {
+        "baseline": "planned",
+        "candidate": "loop",
+        "raw_diagnostic_only": true,
+        "interpretation": "raw_all_outcome_differences_no_effect_inference",
+        "mean_delta": 0.0,
+        "sample_size": 16,
+        "cluster_count": 16,
+        "question_sign_counts": {
+          "positive": 0,
+          "zero": 16,
+          "negative": 0
+        },
+        "per_anonymous_question": {
+          "Q01": 0.0,
+          "Q02": 0.0,
+          "Q03": 0.0,
+          "Q04": 0.0,
+          "Q05": 0.0,
+          "Q06": 0.0,
+          "Q07": 0.0,
+          "Q08": 0.0,
+          "Q09": 0.0,
+          "Q10": 0.0,
+          "Q11": 0.0,
+          "Q12": 0.0,
+          "Q13": 0.0,
+          "Q14": 0.0,
+          "Q15": 0.0,
+          "Q16": 0.0
+        },
+        "confidence_interval": null,
+        "design_sensitivity": null,
+        "posthoc_repeat_delta_direction_counts": {
+          "zero/zero": 16
+        }
+      }
+    },
+    "arms": {
+      "raw": {
+        "mean_score": 0.0,
+        "mean_repeat_sample_stddev": 0.0,
+        "mean_repeat_range": 0.0,
+        "questions_with_repeat_variation": 0,
+        "adjacent_exact_match_flip_count": 0,
+        "adjacent_exact_match_flip_rate": 0.0
+      },
+      "planned": {
+        "mean_score": 0.03125,
+        "mean_repeat_sample_stddev": 0.04419417382415922,
+        "mean_repeat_range": 0.0625,
+        "questions_with_repeat_variation": 1,
+        "adjacent_exact_match_flip_count": 1,
+        "adjacent_exact_match_flip_rate": 0.0625
+      },
+      "loop": {
+        "mean_score": 0.03125,
+        "mean_repeat_sample_stddev": 0.04419417382415922,
+        "mean_repeat_range": 0.0625,
+        "questions_with_repeat_variation": 1,
+        "adjacent_exact_match_flip_count": 1,
+        "adjacent_exact_match_flip_rate": 0.0625
+      }
+    },
+    "independent_units": 16,
+    "repeats_are_independent_units": false,
+    "posthoc_patterns_are_new_significance_tests": false
+  },
+  "physical_cost": {
+    "physical_calls": 245,
+    "physical_cost_cny": 2.2693232800000005
+  },
+  "limitations": [
+    "Answer F1 and EM are internal proxies, not official judging.",
+    "When protocol_invalid, all numeric contrasts and repeat statistics are raw diagnostics only; no effect inference, intervals, or successful-subset rescue.",
+    "delivery_rate is nonempty output, not non-abstention or correctness.",
+    "Abstention uses the frozen engine's exact whitespace/casefold string rule only.",
+    "New windows, retained quotes and citations establish transmission, not factual sufficiency.",
+    "Omitted/unknown flow rows are disclosed and never imputed as zero.",
+    "Two repeats quantify observed variation only; 16 questions remain exploratory.",
+    "Shared request caching prevents defensible per-arm physical cost attribution.",
+    "Anonymous sequence numbers are local to this summary; no qid or text is emitted.",
+    "No oracle documents, private reference values or semantic judging were accessed by this helper."
+  ],
+  "run_status": "completed_and_locally_scored",
+  "source_commit": "7cc816352be6ac31d16b063dcbf485d2e75878b9",
+  "measurement_elapsed_first_reservation_to_last_settlement_seconds": 1992.596,
+  "budget": {
+    "approved_new_hard_cny": 82,
+    "approved_max_actual_provider_calls": 320,
+    "actual_provider_calls": 245,
+    "usage_at_frozen_prices_cny": 2.2693232800000005,
+    "archived_startup_conservative_cny": 0.015326,
+    "combined_conservative_cny": 2.28464928,
+    "official_provider_invoice_verified": false
+  },
+  "reference_acquisition": {
+    "only_after_complete_generation": true,
+    "decoded_question_count": 16,
+    "decoded_answer_count": 16,
+    "official_followup_acquired": false,
+    "full_file_sha256_verified": false
+  },
+  "record_sha256": {
+    "ledger.jsonl": "81c76a89fe518513ccc014febf2ad7ba818f41f4b04c3a36ed526bb786f5a48b",
+    "generation_freeze.json": "1781a189615767a4852eae008e36bbc8f8b03f80d8709c0d40a88a2f3501fae2",
+    "report.json": "617cce0759bcbf0901dce34c2d43c1a9c3df3da61253a7cbf1a74bd2419addc3",
+    "references/acquired.json": "2f6a3fcae2261da43808623d9dd70f15fdeb7ee849927eebf6061ef42074c8c1"
+  },
+  "local_startup_recovery_record_sha256": "e4edb56450a065336e9c5a5b98ad527a2a60c308f4f1d2e0ea58f80832929de6",
+  "claims": {
+    "new_window_delivery_observed": true,
+    "stable_quality_improvement_verified": false,
+    "code_evolution_tested_in_this_run": false,
+    "selector_effectiveness_tested": false
+  }
+}

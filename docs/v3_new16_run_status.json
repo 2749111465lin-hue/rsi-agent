@@ -1,1 +1,25 @@
-{"answer_outcomes":96,"completed_outcomes_at_snapshot":6,"explicit_scope_approved":true,"local_startup_incident":{"archived_original_records":true,"cause":"temporary Windows wrapper missing main guard; official entrypoint used after diagnosis","combined_conservative_upper_bound_cny":81.515486,"conservative_cny_retained":0.015326,"provider_target_reached":false},"max_actual_provider_calls":320,"measurement_ledger_at_snapshot":{"alerts":[],"pending":0,"used":{"run":{"calls":15,"cny":0.17239496,"input":65365,"output":5459}}},"new_hard_cny":82,"note":"Progress snapshot, not final result. Actual questions, references, prompts and raw ledgers stay local.","plan_hash":"aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c","quality_results_available":false,"question_count":16,"references_acquired":false,"schema":"rag-rsi-new16-run-status-1","source_commit":"7cc816352be6ac31d16b063dcbf485d2e75878b9","status":"running","updated_at_utc":"2026-10-08T10:39:26.393451+00:00"}
+{
+  "schema": "rag-rsi-new16-run-status-1",
+  "updated_at_utc": "2026-10-08T11:16:34.340006+00:00",
+  "status": "completed_and_locally_scored_protocol_invalid",
+  "source_commit": "7cc816352be6ac31d16b063dcbf485d2e75878b9",
+  "plan_hash": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+  "explicit_scope_approved": true,
+  "max_actual_provider_calls": 320,
+  "new_hard_cny": 82,
+  "question_count": 16,
+  "answer_outcomes": 96,
+  "completed_outcomes": 96,
+  "actual_provider_calls": 245,
+  "measurement_cny": 2.2693232800000005,
+  "startup_conservative_cny": 0.015326,
+  "combined_conservative_cny": 2.28464928,
+  "pending_requests": 0,
+  "references_acquired_after_complete_generation": true,
+  "quality_comparison_valid": false,
+  "execution_failed_outcomes": 1,
+  "official_benchmark_score": false,
+  "stable_improvement_verified": false,
+  "result_document": "v3_new16_result.md",
+  "sanitized_result": "v3_new16_result.json"
+}

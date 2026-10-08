@@ -37,14 +37,15 @@
     "status": "pass",
     "validation_scope": "Historical validation on its original frozen runtime; not a new run on current source hashes."
   },
-  "new_paid_api_calls": 105,
-  "new_api_cost_cny": 1.01144848,
+  "new_paid_api_calls": 245,
+  "new_api_cost_cny": 2.2693232800000005,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "explicit authorization of frozen new16 three-arm scope and budget",
-    "real three-arm quality measurement and target reference acquisition after complete generation",
-    "fixed/rotation module and feedback ablations before experience-guided real LLM development claims",
-    "independent task confirmation and official benchmark judging or explicitly limited proxy claims"
+    "bounded local retrieval latency/cancellation diagnosis on frozen cases",
+    "distinguish absent facts, missed extraction and conservative final answers with fixed local case review",
+    "single-factor follow-up only after the failed mechanism is identified",
+    "actual code-evolution and experience-policy comparisons remain unverified",
+    "independent task confirmation and official judging or explicit proxy limits"
   ],
   "source_hashes": {
     "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
@@ -135,7 +136,7 @@
     "later_new_sources_presented": 0,
     "official_metric": false
   },
-  "new_api_cost_note": "Historical first calibration only: conservative peak-price ledger estimate, not supplier invoice. Current review-fix implementation adds zero calls/cost.",
+  "new_api_cost_note": "Latest new16 three-arm measurement; archived predispatch startup adds conservative ¥0.015326, combined ¥2.28464928. Previous 105-call calibration is separate; provider invoice not independently queried.",
   "latest_offline_implementation": {
     "status": "complete",
     "stage": "question_only_acquisition_and_deferred_reference_grading",
@@ -699,5 +700,34 @@
       },
       "note": "Historical development-literal validation; retained before deferred-reference implementation."
     }
-  ]
+  ],
+  "prior_real_calibration_accounting": {
+    "api_calls": 105,
+    "usage_at_frozen_prices_cny": 1.01144848,
+    "scope": "historical used-eight two-arm calibration, unchanged"
+  },
+  "latest_real_calibration": {
+    "status": "completed_and_locally_scored_protocol_invalid",
+    "plan_hash": "aa2164dea5084862ba70d867d90226d04a94ef2d2be924762924707847c5ca1c",
+    "questions": 16,
+    "outcomes": 96,
+    "execution_ok": 95,
+    "execution_failed": 1,
+    "actual_provider_calls": 245,
+    "proxy_em_counts": {
+      "raw": 0,
+      "planned": 1,
+      "loop": 1
+    },
+    "outcomes_per_arm": 32,
+    "later_reads": 54,
+    "later_reads_with_new_sources": 54,
+    "new_later_windows": 293,
+    "known_final_quotes_retained": 326,
+    "known_pre_final_quotes": 335,
+    "qualified_effect_inference": false,
+    "stable_quality_improvement_verified": false,
+    "result_json": "v3_new16_result.json",
+    "result_md": "v3_new16_result.md"
+  }
 }
