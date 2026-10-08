@@ -2,7 +2,7 @@
 
 基于固定大模型的 RAG 程序自改进系统。LLM 负责问题分解、证据阅读、动态查询、答案综合和程序修改；宿主负责语料访问、预算、隔离执行与独立评分。
 
-当前状态：**v3 统一核心正在验证。离线机制测试已贯通；尚未证明真实 DeepSeek 或题库上的质量提升。** 旧实验保留在本地历史项目，历史成绩不计作新核心结果。
+当前状态：**v3 已完成首轮真实校准、上下文链路修复，并接通完整程序演化入口。311项离线测试与真实WSL合成验证通过；尚未证明真实LLM改程序能带来稳定质量提升。** 旧实验保留在本地历史项目，历史成绩不计作新核心结果。
 
 ## 架构
 
@@ -50,8 +50,10 @@ python -B -m code_rsi.v3 offline-demo --out D:\Codex\Projects\rsi-agent\runs\off
 - `code_rsi/v3/diagnostics.py`：从执行记录提取失败与父子配对反馈，区分观测和模型自报。
 - `code_rsi/v3/task_metrics.py`：任务专用指标，缺失标注明确不可评分。
 - `code_rsi/v3/calibration.py`：固定两臂真实调用入口，完整生成冻结后再解锁评分。
+- `code_rsi/live_evolution.py`：完整代码演化入口，统一预算、模型身份与恢复保护。
+- `code_rsi/prepare_musique.py`：本地MuSiQue-Ans三角色分组与组成问题去重。
 
-正式运行由显式 `manifest`、任务适配器、评分器、模型/语料身份与费用账本组成，再实例化 `EvolutionRunner`。真实模型试跑需冻结具体方案与授权范围。没有默认凭据文件读取，也不在导入时发请求。
+完整演化使用[正式入口与分组说明](docs/v3_live_evolution.md)，内部直接复用 `EvolutionRunner`；固定流程校准使用下列入口。真实模型试跑需冻结具体方案与授权范围。没有默认凭据文件读取，也不在导入时发请求。
 
 ```powershell
 python -B -m code_rsi.v3 preflight --plan <本地冻结方案.json>
@@ -74,6 +76,7 @@ python -B -m code_rsi.v3 grade --plan <本地冻结方案.json>
 - [8题真实流程校准方案](docs/v3_calibration_protocol.md)
 - [首轮真实校准结果](docs/v3_calibration_result.md)
 - [上下文轮换修复与复测](docs/v3_rolling_protocol.md)
+- [正式演化入口与MuSiQue分组](docs/v3_live_evolution.md)
 - [最新验证摘要](docs/v3_validation_summary.json)
 
 MuSiQue开发适配、BrowseComp高难确认、MultiHop回归、BRIGHT检索侧轨各有不同语料与评分要求。内部EM/F1不冒充BrowseComp官方模型裁判成绩。

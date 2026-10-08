@@ -1,11 +1,12 @@
 {
   "schema": "rag-rsi-v3-validation-summary-1",
-  "date": "2026-10-07",
+  "date": "2026-10-08",
   "unit_tests": {
-    "run": 270,
-    "passed": 270,
+    "run": 311,
+    "passed": 311,
     "failed": 0,
-    "command": "python -B -m unittest discover -s . -p test_v3_*.py -q"
+    "command": "python -B -m unittest discover -s . -p test_v3_*.py -q",
+    "elapsed_seconds": 47.779
   },
   "real_wsl_end_to_end": {
     "status": "complete",
@@ -57,7 +58,9 @@
     "code_rsi/v3/infrastructure.py": "03ffa076c76e723f3d1987b12a60a4570da78cdbd04d6ce4641bf6ded7f21bb0",
     "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
     "code_rsi/v3/rag.py": "2ccacf3cf5c820b01631c676151ac694231ca8cccc19bd076e096660fa249a2b",
-    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
+    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c",
+    "code_rsi/live_evolution.py": "a3e55f10d7a5b0ef15e6afaf5d7900b1ae2f90b51fbb90fab3b95b845505af57",
+    "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13"
   },
   "source_hash_encoding": "UTF-8 LF canonical bytes",
   "real_wsl_calibration_smoke": {
@@ -117,5 +120,43 @@
     "later_new_sources_presented": 0,
     "official_metric": false
   },
-  "new_api_cost_note": "conservative peak-price ledger estimate, not supplier invoice"
+  "new_api_cost_note": "conservative peak-price ledger estimate, not supplier invoice",
+  "latest_offline_implementation": {
+    "status": "complete",
+    "real_api_calls": 0,
+    "actual_spend_cny": 0,
+    "new_entry_tests": 19,
+    "new_panel_builder_tests": 22,
+    "real_wsl": {
+      "cells": 6,
+      "all_isolation_verified": true,
+      "roles": [
+        "D_fit",
+        "D_select",
+        "D_report"
+      ],
+      "synthetic": true,
+      "predefined_edit": true,
+      "scripted_provider_responses": 19,
+      "scripted_development_calls": 1,
+      "resume_additional_calls": 0,
+      "delivery_locked": true,
+      "claim": "engineering integration only; no real-model program-improvement evidence"
+    },
+    "musique_panel_interoperability": {
+      "synthetic_questions": 9,
+      "metric": "f1",
+      "allow_proxy_metric": false,
+      "api_calls": 0,
+      "credentials_read": false,
+      "real_dataset_read": false,
+      "preflight_passed": true
+    },
+    "unknown_request_global_resume_block": true,
+    "cache_ledger_link_checked": true,
+    "pending_rolling_plan_hash": "f7ac28e75d6d9ada5973619b40b0ea785d747eb060eeb025cd1455f5f949d5ea",
+    "pending_rolling_runtime_unchanged": true,
+    "pending_rolling_check": "source and input bindings checked; corpus hash not re-read this phase",
+    "no_new_paid_authorization_requested": true
+  }
 }
