@@ -2,14 +2,15 @@
   "schema": "rag-rsi-v3-validation-summary-1",
   "date": "2026-10-08",
   "unit_tests": {
-    "run": 458,
-    "passed": 458,
+    "run": 483,
+    "passed": 483,
     "failed": 0,
     "skipped": 0,
     "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
-    "elapsed_seconds": 144.121,
+    "elapsed_seconds": 190.27,
     "real_wsl_opt_in": true,
-    "ci_note": "Default CI skips the one explicit real-WSL test; local result above includes it."
+    "ci_note": "Default CI skips the one explicit real-WSL test; local result above includes it.",
+    "local_log_sha256": "d72b946d37203b6679c304abd7b3a03120df1dcc0747cb4201714cfd23e729b0"
   },
   "real_wsl_end_to_end": {
     "status": "complete",
@@ -40,11 +41,11 @@
   "new_api_cost_cny": 1.01144848,
   "real_llm_improvement_verified": false,
   "outstanding": [
-    "verify unused question inventory and dependence groups, then freeze real three-arm scope and budget",
-    "real three-arm quality measurement with frozen analysis",
-    "question-specific hardcoding lint before real code-development trial",
-    "real LLM program-development comparison",
-    "independent task confirmation and experience/skill ablation"
+    "acquire question-only new panel and check historical/textual overlap and dependence groups",
+    "freeze and authorize concrete real three-arm plan and analysis",
+    "real three-arm quality measurement",
+    "fixed/rotation module and feedback ablations before experience-guided real LLM development claims",
+    "independent task confirmation and official benchmark judging or explicitly limited proxy claims"
   ],
   "source_hashes": {
     "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
@@ -62,7 +63,7 @@
     "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
     "code_rsi/v3/diagnostics.py": "9f5df054df7b123529bf03565158ed28ae5c3af23bd1868d705fa210f3e93c37",
     "code_rsi/v3/edit_scope.py": "6985810eab40e8973ccef41e0478ae3a4374d9647471ed7318279cb2def64ab6",
-    "code_rsi/v3/evolution.py": "3b00dc8223a3e61f9b7d1c91d4f960ece472c6745487669776f6da5c32fe19db",
+    "code_rsi/v3/evolution.py": "b647dc86d1c512611e541d9d604fc85eae86234a5d1dfdf61bc4d1a2b9017068",
     "code_rsi/v3/execution.py": "e6b76ff872104e916702e370c9deb41851aebb47385c4e888e2548afa3dd58cd",
     "code_rsi/v3/experience_policy.py": "bac5d890c970c1fd0f02a043db35da855283e34aedabb1069548819823562612",
     "code_rsi/v3/infrastructure.py": "ef72463c5f52e597b3e21967c782bd98f958441dc3411cdc748069bac3921656",
@@ -70,7 +71,8 @@
     "code_rsi/v3/paired_analysis.py": "c96c16bd4e0c93b8a75aafd0ccfea62adec724b14387585048ed77c994055eb7",
     "code_rsi/v3/rag.py": "422fa04344dfe1ca35e3c5fc8b7430e782e6306b560126fe23d16bb390602555",
     "code_rsi/v3/request_recovery.py": "1c892ea1497717128100bd84176dcf604e63af1aa0d91847bb94a637d9db7e1e",
-    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
+    "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c",
+    "code_rsi/v3/fit_literal_audit.py": "9d88738ef7c73843c9452f73ef8b7c5a123601c418ca44b4cdb6976515d60d25"
   },
   "source_hash_encoding": "UTF-8 LF canonical bytes (read_text normalizes line endings)",
   "real_wsl_calibration_smoke": {
@@ -136,50 +138,64 @@
   "new_api_cost_note": "Historical first calibration only: conservative peak-price ledger estimate, not supplier invoice. Current review-fix implementation adds zero calls/cost.",
   "latest_offline_implementation": {
     "status": "complete",
-    "stage": "three_workflow_calibration_and_paired_analysis",
+    "stage": "fit_literal_audit_and_usage_inventory",
     "real_api_calls": 0,
     "actual_spend_cny": 0,
     "credentials_read": false,
-    "three_arm_schema": "rag-rsi-v3-calibration-2",
-    "new_mode": "planned_single",
-    "declared_comparisons": [
-      "planned_single minus single_pass",
-      "iterative minus planned_single"
-    ],
-    "strict_complete_panel": true,
-    "shared_exact_requests_within_question_repeat": true,
-    "ordinary_repeat_is_not_independent_question": true,
-    "group_bootstrap": "equal-question ratio, shared group draws, Bonferroni percentile approximate intervals",
-    "mde": "pilot-variance normal approximation only; no guaranteed power",
-    "degenerate_intervals_not_reported_as_zero_width_evidence": true,
-    "mechanism_prefix_qualification": "verified / unknown / mismatch; mismatch blocks inference without filtering raw rows",
-    "run_wide_unknown_request_resume_block_shared_with_live_evolution": true,
-    "host_search_profile_preflight": true,
+    "new_tests": 25,
+    "static_literal_rules_version": "fit-literals-1",
+    "references_used_as_scan_targets": false,
+    "audit_uses_actual_packed_fit_feedback": true,
+    "received_proposal_checkpoint": true,
+    "tampered_rejection_type_cannot_skip_audit": true,
+    "scope_limit": "Conservative static rule matches; no proof against computed/short/semantic hardcoding.",
     "real_wsl": {
-      "all_answer_origin_verified": true,
-      "all_isolation_verified": true,
+      "synthetic": true,
       "cells": 6,
-      "claim": "Actual WSL + scripted complete mechanism only; no real-model or benchmark improvement",
-      "credentials_read": false,
-      "declared_groups": 2,
-      "declared_questions": 2,
-      "interval_status": {
-        "iteration": "insufficient_variation",
-        "planning": "insufficient_variation"
+      "all_isolation_verified": true,
+      "all_answer_origin_verified": true,
+      "scripted_provider_responses": 20,
+      "stage_counts": {
+        "answer": 6,
+        "develop": 2,
+        "plan": 3,
+        "read": 9
       },
-      "logical_model_calls_by_arm": {
-        "loop": 8,
-        "planned": 6,
-        "raw": 4
-      },
-      "new_api_calls": 0,
-      "new_api_cost_cny": 0,
-      "prefix_verified_pairs": 2,
+      "literal_rejected_before_child": true,
+      "rejection_reaches_next_develop": true,
+      "accepted_generic_edit": true,
       "resume_additional_calls": 0,
-      "scripted_provider_responses": 14,
-      "synthetic": true
+      "delivery_locked": true,
+      "runtime_and_entry_hash_match": true,
+      "plan_sha256": "b85d2b95a913e697a033b335f49f70b6f711585bd898cebdd1c8058c1b056e1b",
+      "summary_sha256": "a23a4ac4bb80e9d64a234bd5571eaa79583962db07b3265995713d9956fed866",
+      "claim": "Actual WSL with fictional tasks, predetermined edits and scripted responses; engineering only."
     },
-    "runtime_hash_matches_wsl_fixture": true,
+    "unused_inventory": {
+      "schema": "rag-rsi-bcp-usage-summary-1",
+      "date": "2026-10-08",
+      "scope": "checked local records only; not a guarantee of all-history non-use",
+      "local_audit_sha256": "292b085b7c8009b052cfe0df8ea2d24ba9a5006266cc5dcb9d424a1151a5fc24",
+      "question_id_frame": 830,
+      "confirmed_executed_or_diagnosed": 40,
+      "acquired_official_material_but_not_activated": 32,
+      "id_difference_only": 758,
+      "complete_local_public_question_only_pool_found": false,
+      "source_revision": "144cff8e35b5eaef7e526346aa60774a9deb941f",
+      "source_evidence_file_count": 41,
+      "new_api_calls": 0,
+      "downloads": 0,
+      "credential_files_read": 0,
+      "private_reference_files_read": 0,
+      "limitations": [
+        "758 is only the difference in checked evidence, not proven all-history independence.",
+        "Two historical projects lacked attributable BrowseComp run ledgers.",
+        "The 32 unactivated questions already have acquired question/followup material and are excluded from fresh selection.",
+        "Question-only extraction and textual overlap/dependence checks are not complete."
+      ],
+      "next_step": "Pin query_id/query extraction; exclude both executed and material-acquired sets before freezing an exploratory panel."
+    },
+    "independent_read_only_review": "No additional blocking issue after fixing rejection-type and missing-checkpoint recovery bypasses.",
     "no_real_model_quality_or_evolution_claim": true,
     "legacy_main_commit": "be43a19dc38d176c14c370a0ed40023258d04265"
   },
@@ -419,6 +435,95 @@
         "no_new_paid_authorization_requested": true
       },
       "note": "Historical pre-three-arm validation; original reports and local frozen artifacts retained."
+    },
+    {
+      "source_commit": "cfc1c4a5a63d1c79b73ab896b965ae94bb78e37c",
+      "unit_tests": {
+        "run": 458,
+        "passed": 458,
+        "failed": 0,
+        "skipped": 0,
+        "command": "RUN_V3_ANSWER_ORIGIN_WSL=1 python -B -m unittest discover -s . -p \"test_v3_*.py\" -v",
+        "elapsed_seconds": 144.121,
+        "real_wsl_opt_in": true,
+        "ci_note": "Default CI skips the one explicit real-WSL test; local result above includes it."
+      },
+      "source_hashes": {
+        "code_rsi/__init__.py": "0f627a65febe0c7ddda592fccf3e45149e6950ac7852cbb148fad9463c37d7a5",
+        "code_rsi/archive.py": "407add6109814e59e4d1437a42e73663a172cdc10a3de800664c1c2c52587ce2",
+        "code_rsi/budget.py": "bde4f5c69c5a7bbfedc6552019edc28a26a26632cb4393f883823c9efb5a5dbe",
+        "code_rsi/candidate_runner.py": "1e6ab18bbd86d6ff5f6b1fffbcd42c41a4025c9c1097340b50cd6094f28c8c1f",
+        "code_rsi/linux_launcher.sh": "2ca86a174e52229a4a4f45ae85a5bbe3be5f2bf77c6ea10450a838f1a783cc1c",
+        "code_rsi/live_evolution.py": "c155d5c3f5e908468fec504478d006868166d11067c06a9b11a4da986765236e",
+        "code_rsi/prepare_musique.py": "2176a568d98f125690591d2baa79203b163b15efc27da65ae8d1e9fe4572de13",
+        "code_rsi/sandbox.py": "821a21bf8d9efadc08d7c213c9b143e63d5083933a025d517953cfa0eb57f1ae",
+        "code_rsi/sdk.py": "3a29b01a07197f3cd9224a1600918f983d302fc77328a75af630ec91007d2dd9",
+        "code_rsi/v3/__init__.py": "9e3f0010f6c88b7f02fee841674496d83c6e7b9535e9ae3c0b3c94724cfca644",
+        "code_rsi/v3/__main__.py": "9924b943e67e77bda8f15c1dd54224d67a2049e3e9518d0a2bc77bc1de38a497",
+        "code_rsi/v3/calibration.py": "32c507e943090a4bd1d21eeba797aa8f304c20f4ff88da751251587d1f38d68c",
+        "code_rsi/v3/datasets.py": "de3de82ca890779af86c9b7eb1cca5c7643a7da124eba96a4aff70ea2f0199e4",
+        "code_rsi/v3/diagnostics.py": "9f5df054df7b123529bf03565158ed28ae5c3af23bd1868d705fa210f3e93c37",
+        "code_rsi/v3/edit_scope.py": "6985810eab40e8973ccef41e0478ae3a4374d9647471ed7318279cb2def64ab6",
+        "code_rsi/v3/evolution.py": "3b00dc8223a3e61f9b7d1c91d4f960ece472c6745487669776f6da5c32fe19db",
+        "code_rsi/v3/execution.py": "e6b76ff872104e916702e370c9deb41851aebb47385c4e888e2548afa3dd58cd",
+        "code_rsi/v3/experience_policy.py": "bac5d890c970c1fd0f02a043db35da855283e34aedabb1069548819823562612",
+        "code_rsi/v3/infrastructure.py": "ef72463c5f52e597b3e21967c782bd98f958441dc3411cdc748069bac3921656",
+        "code_rsi/v3/offline_demo.py": "b5926f2be08e0f53d43b87bf61fcdf2c27d5c073bbbc176425a06920479b6f34",
+        "code_rsi/v3/paired_analysis.py": "c96c16bd4e0c93b8a75aafd0ccfea62adec724b14387585048ed77c994055eb7",
+        "code_rsi/v3/rag.py": "422fa04344dfe1ca35e3c5fc8b7430e782e6306b560126fe23d16bb390602555",
+        "code_rsi/v3/request_recovery.py": "1c892ea1497717128100bd84176dcf604e63af1aa0d91847bb94a637d9db7e1e",
+        "code_rsi/v3/task_metrics.py": "d8f0c33c074baba0608eb76ecd3a2e50446a7f3efcd62e36eeabb62c78b5802c"
+      },
+      "latest_offline_implementation": {
+        "status": "complete",
+        "stage": "three_workflow_calibration_and_paired_analysis",
+        "real_api_calls": 0,
+        "actual_spend_cny": 0,
+        "credentials_read": false,
+        "three_arm_schema": "rag-rsi-v3-calibration-2",
+        "new_mode": "planned_single",
+        "declared_comparisons": [
+          "planned_single minus single_pass",
+          "iterative minus planned_single"
+        ],
+        "strict_complete_panel": true,
+        "shared_exact_requests_within_question_repeat": true,
+        "ordinary_repeat_is_not_independent_question": true,
+        "group_bootstrap": "equal-question ratio, shared group draws, Bonferroni percentile approximate intervals",
+        "mde": "pilot-variance normal approximation only; no guaranteed power",
+        "degenerate_intervals_not_reported_as_zero_width_evidence": true,
+        "mechanism_prefix_qualification": "verified / unknown / mismatch; mismatch blocks inference without filtering raw rows",
+        "run_wide_unknown_request_resume_block_shared_with_live_evolution": true,
+        "host_search_profile_preflight": true,
+        "real_wsl": {
+          "all_answer_origin_verified": true,
+          "all_isolation_verified": true,
+          "cells": 6,
+          "claim": "Actual WSL + scripted complete mechanism only; no real-model or benchmark improvement",
+          "credentials_read": false,
+          "declared_groups": 2,
+          "declared_questions": 2,
+          "interval_status": {
+            "iteration": "insufficient_variation",
+            "planning": "insufficient_variation"
+          },
+          "logical_model_calls_by_arm": {
+            "loop": 8,
+            "planned": 6,
+            "raw": 4
+          },
+          "new_api_calls": 0,
+          "new_api_cost_cny": 0,
+          "prefix_verified_pairs": 2,
+          "resume_additional_calls": 0,
+          "scripted_provider_responses": 14,
+          "synthetic": true
+        },
+        "runtime_hash_matches_wsl_fixture": true,
+        "no_real_model_quality_or_evolution_claim": true,
+        "legacy_main_commit": "be43a19dc38d176c14c370a0ed40023258d04265"
+      },
+      "note": "Historical three-arm implementation before development literal auditing; original frozen results retained."
     }
   ]
 }

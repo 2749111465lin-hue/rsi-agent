@@ -15,6 +15,7 @@ from .execution import Measurement, root_files, validate_sources
 from .experience_policy import choose_next, memory_for_action
 from .diagnostics import compact_feedback
 from .edit_scope import observe_edit_scope, validated_scope
+from .fit_literal_audit import audit_fit_literals
 
 
 def freeze(path, value):
@@ -178,7 +179,8 @@ class ProgramDeveloper:
     def __init__(self, model):
         self.model=model
 
-    def propose(self, program, decision, experience, result, tasks, references):
+    def prepare_request(self, program, decision, experience, result, tasks):
+        """Exact outbound request; private references are deliberately not an argument."""
         if result["role"]!="D_fit":
             raise ValueError("developer receives D_fit only")
         feedback=compact_feedback(result,tasks,max_cases=4)
@@ -187,8 +189,14 @@ class ProgramDeveloper:
              "edit_boundary":("Change reusable behavior; do not embed examples/answers. Return complete changed files. "
                 "intended_target_module (legacy target_module) declares intent only. General refactors are allowed. "
                 "The host separately records actual AST scopes and intent mismatches; mixed or unknown edits "
-                "retain whole-program scores but cannot supply a single-module gain. Scope associations are not causal.")}
-        output=self.model.complete("develop",_fit_development_request(self.model,payload))
+                "retain whole-program scores but cannot supply a single-module gain. Scope associations are not causal. "
+                "The host rejects newly embedded development-question literals and sufficiently specific strings "
+                "from feedback already shown; keep fixes reusable rather than task-specific lookup code.")}
+        return _fit_development_request(self.model,payload)
+
+    def propose(self, program, decision, experience, result, tasks, references):
+        payload=self.prepare_request(program,decision,experience,result,tasks)
+        output=self.model.complete("develop",payload)
         _proposal_files(program,decision,output)
         return output
 
@@ -242,6 +250,12 @@ def experience_card(result, parent, *, operator, module, step, mechanism, edit_s
            "delivery_rate":sum(r["answer_usable"] for r in result["rows"])/len(result["rows"]),
            "source_valid_rate":sum(r["citation_source_valid"] for r in result["rows"])/len(result["rows"]),
            "proxy_added_to_terminal_quality":False}}
+
+
+def _literal_rejection(audit):
+    return {"reason":"new development-specific code literals", "reason_code":"fit_literal_match",
+            "audit_sha256":digest(audit),"findings":deepcopy(audit["findings"][:8]),
+            "finding_count":len(audit["findings"]),"next_step_allowed":True}
 
 
 class EvolutionRunner:
@@ -306,6 +320,20 @@ class EvolutionRunner:
         self._assert_frozen()
         return result
 
+    def _audit_literals(self, folder, program, proposed, decision, cards, development_result):
+        public=[{"question_id":t["question_id"],"question":t["question"]} for t in self.panels["D_fit"]]
+        feedback=None
+        if isinstance(self.developer,ProgramDeveloper):
+            payload=self.developer.prepare_request(deepcopy(program),deepcopy(decision),
+                memory_for_action(cards,decision),deepcopy(development_result),deepcopy(self.panels["D_fit"]))
+            feedback=payload["feedback"]
+        # Local receipt only; never includes private answers or select/report questions.
+        context={"schema":"rag-rsi-v3-literal-context-1","public_tasks":public,"exposed_feedback":feedback}
+        freeze(folder/"literal_context.json",context)
+        audit=audit_fit_literals(program["files"],proposed,public,exposed_feedback=feedback)
+        freeze(folder/"literal_audit.json",audit)
+        return audit
+
     def run(self):
         self._assert_frozen()
         files=root_files(self.manifest.get("root_config")); validate_sources(files)
@@ -332,28 +360,47 @@ class EvolutionRunner:
             freeze(folder/"decision.json",decision)
             parent=self.archive.load_node(decision["parent_node_id"])
             program=self.archive.load_program(parent["program_id"])
+            development_result=deepcopy(results[parent["node_id"]])
+            if parent.get("parent_node_id") in results:
+                development_result["parent_measurement"]=deepcopy(results[parent["parent_node_id"]])
             proposal=read(folder/"proposal.json")
+            received=read(folder/"received_proposal.json")
             child=read(folder/"child.json")
             rejected=read(folder/"rejected.json")
             if rejected:
                 if proposal is not None or child is not None:
                     raise ValueError("rejected attempt also has a proposal or child receipt")
+                if rejected.get("reason_code")=="fit_literal_match" or (folder/"literal_audit.json").exists():
+                    if received is None:
+                        raise ValueError("literal rejection has no received proposal")
+                    proposed=_proposal_files(program,decision,received)
+                    audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
+                    if audit["status"]=="reject":
+                        if rejected!=_literal_rejection(audit):
+                            raise ValueError("saved literal rejection differs from observed source audit")
+                    elif (rejected!={"reason":"previously visited program","next_step_allowed":True}
+                          or not any(self.archive.load_program(c["program_id"])["files"]==proposed for c in cards)):
+                        raise ValueError("saved rejection is not supported by literal audit or visited source")
                 continue
             if proposal is None:
                 if child is not None:
                     raise ValueError("child receipt has no proposal")
                 try:
-                    development_result=deepcopy(results[parent["node_id"]])
-                    if parent.get("parent_node_id") in results:
-                        development_result["parent_measurement"]=deepcopy(results[parent["parent_node_id"]])
-                    proposal=deepcopy(self.developer.propose(deepcopy(program),deepcopy(decision),
-                      memory_for_action(cards,decision),development_result,
-                      deepcopy(self.panels["D_fit"]),deepcopy(self.references["D_fit"])))
-                    self._assert_frozen()
+                    if received is None:
+                        received=deepcopy(self.developer.propose(deepcopy(program),deepcopy(decision),
+                          memory_for_action(cards,decision),deepcopy(development_result),
+                          deepcopy(self.panels["D_fit"]),deepcopy(self.references["D_fit"])))
+                        self._assert_frozen()
+                        freeze(folder/"received_proposal.json",received)
+                    proposal=received
                     proposed=_proposal_files(program,decision,proposal)
                 except (ValueError,SyntaxError) as exc:
                     self._assert_frozen()
                     save(folder/"rejected.json",{"reason":str(exc),"next_step_allowed":True})
+                    continue
+                audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
+                if audit["status"]=="reject":
+                    freeze(folder/"rejected.json",_literal_rejection(audit))
                     continue
                 if any(self.archive.load_program(c["program_id"])["files"]==proposed for c in cards):
                     save(folder/"rejected.json",{"reason":"previously visited program","next_step_allowed":True})
@@ -364,6 +411,13 @@ class EvolutionRunner:
             else:
                 # A saved proposal is an input to recovery, not an exemption from validation.
                 proposed=_proposal_files(program,decision,proposal)
+                if received is None:
+                    raise ValueError("approved proposal has no received proposal checkpoint")
+                if (_proposal_files(program,decision,received)!=proposed or received["mechanism"]!=proposal["mechanism"]):
+                    raise ValueError("approved proposal receipt source differs from received proposal")
+                audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
+                if audit["status"]=="reject":
+                    raise ValueError("saved accepted proposal fails current literal audit")
                 if any(self.archive.load_program(c["program_id"])["files"]==proposed for c in cards):
                     raise ValueError("replayed proposal repeats a previously visited program")
             expected={"session_id":"v3-evolution","attempt":step,"parent_node_id":parent["node_id"]}

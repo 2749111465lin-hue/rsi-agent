@@ -1,0 +1,24 @@
+{
+  "schema": "rag-rsi-bcp-usage-summary-1",
+  "date": "2026-10-08",
+  "scope": "checked local records only; not a guarantee of all-history non-use",
+  "local_audit_sha256": "292b085b7c8009b052cfe0df8ea2d24ba9a5006266cc5dcb9d424a1151a5fc24",
+  "question_id_frame": 830,
+  "confirmed_executed_or_diagnosed": 40,
+  "acquired_official_material_but_not_activated": 32,
+  "id_difference_only": 758,
+  "complete_local_public_question_only_pool_found": false,
+  "source_revision": "144cff8e35b5eaef7e526346aa60774a9deb941f",
+  "source_evidence_file_count": 41,
+  "new_api_calls": 0,
+  "downloads": 0,
+  "credential_files_read": 0,
+  "private_reference_files_read": 0,
+  "limitations": [
+    "758 is only the difference in checked evidence, not proven all-history independence.",
+    "Two historical projects lacked attributable BrowseComp run ledgers.",
+    "The 32 unactivated questions already have acquired question/followup material and are excluded from fresh selection.",
+    "Question-only extraction and textual overlap/dependence checks are not complete."
+  ],
+  "next_step": "Pin query_id/query extraction; exclude both executed and material-acquired sets before freezing an exploratory panel."
+}
