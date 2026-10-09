@@ -1,0 +1,291 @@
+{
+  "answer_repeats": 1,
+  "baselines": {
+    "CB": {
+      "config": null,
+      "files_sha256": {
+        "rag.py": "d93fe08f0841f1929e7b723d8e5dd2fddb9abc74054e1c0b71dd17cc24892890",
+        "rag_core.py": "8585fc848a002b48445efc6d8e737be18d452dabcde09f55a22c5dd242462c20"
+      },
+      "human_designed": true,
+      "program_sha256": "38bf3e9bccac35b99ad4538b42a06deadb2ca4037839119bcffc10968e64a2fe",
+      "quality_improvement_verified": false
+    },
+    "H": {
+      "config": {
+        "final_context_radius": 256,
+        "max_answer_chars": 1000,
+        "max_context_chars": 24000,
+        "max_evidence_items": 24,
+        "max_model_calls": 7,
+        "max_output_chars": 30000,
+        "max_payload_chars": 64000,
+        "max_queries_per_round": 2,
+        "max_rounds": 3,
+        "max_source_chars": 6000,
+        "max_stagnant_rounds": 2,
+        "mode": "iterative",
+        "prompts": {},
+        "search_limit": 5
+      },
+      "files_sha256": {
+        "rag.py": "fba30e3420aaa05856788e2b94b9e9a788948c97758c2ffadc9876a51c3a00c4",
+        "rag_core.py": "c912299ce3f6dc0fffc62e3019e8ccf7022c631cdcc252bde6096b8a8a2c4233"
+      },
+      "human_designed": true,
+      "program_sha256": "a73e0326821f47bfd552be08e43da0625fad82fbd27bb8790bc526ee3851a0cc",
+      "quality_improvement_verified": false
+    },
+    "R0": {
+      "config": {
+        "final_context_radius": 0,
+        "max_answer_chars": 1000,
+        "max_context_chars": 24000,
+        "max_evidence_items": 24,
+        "max_model_calls": 7,
+        "max_output_chars": 30000,
+        "max_payload_chars": 64000,
+        "max_queries_per_round": 2,
+        "max_rounds": 3,
+        "max_source_chars": 6000,
+        "max_stagnant_rounds": 2,
+        "mode": "iterative",
+        "prompts": {},
+        "search_limit": 5
+      },
+      "files_sha256": {
+        "rag.py": "3ad9799dbc53f7aa749e6153e1afb60dfcabc987a43727c94ad93d9f571ccea6",
+        "rag_core.py": "c912299ce3f6dc0fffc62e3019e8ccf7022c631cdcc252bde6096b8a8a2c4233"
+      },
+      "human_designed": true,
+      "program_sha256": "359c564942074f62a7d99bc9d722ba011448fec1b6927d6115b8c954d7a5410a",
+      "quality_improvement_verified": false
+    }
+  },
+  "candidate_scoring_questions": 12,
+  "closed_book_limits": {
+    "max_models": 1,
+    "max_reads": 0,
+    "max_searches": 0
+  },
+  "controls": {
+    "developer_bank": "unique_per_paired_block_condition_slot",
+    "feedback_cases_identical": true,
+    "memory": "none",
+    "module_policy": "fixed",
+    "normal_candidate_cache": "freeze existing exact-body reuse semantics within paired block; no reuse across independent paired blocks; record hits",
+    "paired_block_root_measurement": "shared_between_cases_and_trace; fresh_between_blocks",
+    "parent_policy": "fixed_root",
+    "rejections_count_as_opportunities": true,
+    "successful_candidate_replacements": false
+  },
+  "credentials_read": false,
+  "execution_blockers": [
+    "search-only phase with no D_select/D_report reference parsing or execution is not implemented",
+    "shared root feedback and independent block bindings must be integrated and verified",
+    "complete real outgoing cases/trace requests must pass byte limits without asymmetric truncation",
+    "new runtime and source plan hash require freezing after changes",
+    "no current authorization for this new source/feedback scope and cost cap"
+  ],
+  "formal_panel_use": {
+    "CB_and_H_not_to_consume_report_during_development": true,
+    "D_fit": 96,
+    "D_report": 168,
+    "D_report_reserved_for": "locked_program_improvement_comparisons_for_first_paper",
+    "D_select": 107
+  },
+  "host_limits": {
+    "max_models": 7,
+    "max_reads": 8,
+    "max_searches": 8
+  },
+  "long_term_goal_preserved": true,
+  "model": {
+    "max_input_bytes": 120000,
+    "name": "deepseek-flash",
+    "output_limits": {
+      "answer": 800,
+      "develop": 18000,
+      "plan": 1200,
+      "read": 2200
+    },
+    "prices": {
+      "input_hit": 0.04,
+      "input_miss": 2,
+      "output": 8
+    },
+    "temperature": 0,
+    "thinking": "disabled"
+  },
+  "model_scores_used_for_selection": false,
+  "new_external_api_calls": 0,
+  "next_phases": [
+    "improvement_policy_learning",
+    "full_dual_loop"
+  ],
+  "phase": "first_paper_rag_program_improvement",
+  "private_annotations_used_for_trusted_selection": true,
+  "proposal_schedule": [
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 0
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 0
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 1
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 1
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 2
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 2
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 3
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 0,
+      "parent": "R0",
+      "proposal_slot": 3
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 0
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 0
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 1
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 1
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 2
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 2
+    },
+    {
+      "condition": "cases",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 3
+    },
+    {
+      "condition": "trace",
+      "module_intent": "answer_generation",
+      "paired_block": 1,
+      "parent": "R0",
+      "proposal_slot": 3
+    }
+  ],
+  "resources": {
+    "all_calls_conservative_max": 1696,
+    "approved": false,
+    "developer_calls_max": 16,
+    "expected_cost_cny": null,
+    "expected_duration_seconds": null,
+    "full_provider_body_max_utf8_bytes": 120000,
+    "interpretation": "engineering reservation envelope under frozen prices; not expected invoice or guaranteed provider billing limit",
+    "per_request_input_token_allowance": 1024,
+    "price_checked_date": "2026-10-09",
+    "price_reference": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "price_source_access": "Official Chinese pricing table returned by web search on 2026-10-09; direct canonical page fetch timed out. Verify price envelope again before any execution.",
+    "prices_cny_per_million": {
+      "input_hit": 0.04,
+      "input_miss": 2,
+      "output": 8
+    },
+    "proposed_complete_run_spend_cap_cny": 443,
+    "qa_calls_conservative_max": 1680,
+    "root_sharing_credit_in_bound": false,
+    "upper_envelope_cny": 442.385408
+  },
+  "schema": "rag-rsi-stage-one-paper-smoke-draft-1",
+  "smoke_panel": {
+    "case_schedule_sha256": "0984a4a50cdf0a18e46d08082679c385721c570e8d93e997519fa4c4a5ec386a",
+    "count": 12,
+    "exposure": "previously_used_development_questions",
+    "generalization_claim": false,
+    "hop_counts": {
+      "2": 4,
+      "3": 4,
+      "4": 4
+    },
+    "ordering": "four questions per hop; sha256(canonical JSON([seed,question_id])); no score use",
+    "private_sha256": "2cc66c9cf31115c12321c533e390ecb63e56d5680586ebc4f1872a88293ea46a",
+    "public_sha256": "6df6ed995b76b826f4a979d3646afb5a2e96601ef9daca6f5adfb77d23ceefbd",
+    "question_identity_sha256": "eb6c4a61dd08575061a3a406d1f5930400c20325d9b58e46a23d9c5700db42d2",
+    "selection_seed": "rag-program-improvement-smoke-exposed-20261009"
+  },
+  "source_calibration_plan_sha256": "114f97ce4606d2b345947fbfb419d55ee3002364399bb2af664e4b289034968c",
+  "source_commit": "a2f78838195f79ca0925eea2dc7ead85aa077f50",
+  "source_public_fit_sha256": "697942a4ab405d4fb58a92433f3b80e16b210460555edd42566ba412fbd3fc88",
+  "status": "draft_not_executable",
+  "terminology": {
+    "program_improvement_loop": "程序改进循环",
+    "qa_loop": "问答循环",
+    "same_dataset_generalization": "跨题泛化"
+  },
+  "total_developer_calls_max": 16
+}
