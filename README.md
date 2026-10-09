@@ -4,7 +4,7 @@
 
 **最新真实结果：MuSiQue开发24题三条件各两次已完成。** 单轮／循环／完整支持原文的F1为22.22%／32.41%／37.38%；主差+10.19个百分点，95%区间[−4.17,+26.09]，尚不能宣称稳定提升。144结果均通过协议核验，350次真实调用，峰时包络账本约¥1.13。[完整报告与链路图](docs/v3_musique_calibration_result_20261009.md) · [聚合结果](docs/v3_musique_calibration_result_20261009.json)
 
-这批题已产生非地板信号，但给足材料仍有拒答；新定位包括规划添加额外约束及答案表达与评分不匹配。下一步检验派生判断如何影响终答。本轮不含修改器，**尚未证明LLM改程序或经验选择有稳定收益**。[当前状态](docs/CURRENT_STATUS.md) · [证据等级](docs/EVIDENCE_STATUS.md)
+这批题已产生非地板信号，但给足材料仍有拒答；新定位包括规划添加额外约束及答案表达与评分不匹配。终答派生判断对照已实现并通过真实WSL脚本演示；24状态、96次新终答、费用硬帽¥2，尚未启动真实测量。[本轮协议](docs/v3_answer_probe_protocol_20261009.md)。本轮不含修改器，**尚未证明LLM改程序或经验选择有稳定收益**。[当前状态](docs/CURRENT_STATUS.md) · [证据等级](docs/EVIDENCE_STATUS.md)
 
 活动代码在 `codex/v3-feedback-grounding`，`main` 的 `be43a19` 保留历史版本。运行源码 `528825f` 本地632项测试通过，含真实WSL；工程验收不等于模型效果。MuSiQue作为机制开发校准，BrowseComp保留困难检索和迁移；旧new16的无效结果未回写。[冻结协议](docs/v3_musique_calibration_protocol.md) · [旧检索及任务诊断](docs/v3_task_recalibration_20261008.md)
 
@@ -32,7 +32,7 @@ flowchart LR
 需要 Python 3.10+。本核心及本地测试仅使用标准库。
 
 ```powershell
-python -B -m unittest discover -s . -p "test_v3_*.py" -v
+python -B -m unittest discover -s . -p "test_*.py" -v
 ```
 
 完整隔离执行演示需要 Windows + 已具备 namespace/cgroup 支持的 Ubuntu-22.04 WSL。没有对应环境时明确失败，不在宿主直接执行模型生成代码。
@@ -59,6 +59,7 @@ python -B -m code_rsi.v3 offline-demo --out D:\Codex\Projects\rsi-agent\runs\off
 - `code_rsi/v3/reader_replay.py` 与 `reader_probe.py`：精确回放前缀，隔离末轮阅读提示的局部干预，生成冻结后才做锚点诊断和本地评分。
 - `code_rsi/live_evolution.py`：完整代码演化入口，统一预算、模型身份与恢复保护。
 - `code_rsi/prepare_musique.py`：本地MuSiQue-Ans三角色分组与组成问题去重。
+- `code_rsi/prepare_answer_probe.py`、`answer_replay.py`、`answer_probe.py`：固定历史证据，只改变终答派生判断输入；共用原隔离、预算、恢复和评分接口。
 
 完整演化使用[正式入口与分组说明](docs/v3_live_evolution.md)，内部直接复用 `EvolutionRunner`；固定流程校准使用下列入口。真实模型试跑需冻结具体方案与授权范围。没有默认凭据文件读取，也不在导入时发请求。
 
