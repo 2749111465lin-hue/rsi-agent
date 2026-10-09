@@ -1,0 +1,280 @@
+{
+  "branch": "codex/v3-experience-ablation",
+  "closed_book_wsl": {
+    "actual_wsl_executions": 2,
+    "all_cells_valid": true,
+    "cases": [
+      {
+        "answer_origin_valid": true,
+        "diagnostic": {
+          "answer_origin_valid": true,
+          "model_calls": 1,
+          "profile": "rag-rsi-closed-book-1",
+          "read_calls": 0,
+          "search_calls": 0,
+          "source_status": "not_applicable_closed_book",
+          "source_valid": null
+        },
+        "execution_ok": true,
+        "isolation_verified": true,
+        "provider_body_sha256": "d6293b37600b25b5bc9477e6e3116ed9efe410acb29488cafb8ffea2cbc0cda6",
+        "receipt_sha256": "486371d020c41f3eff804f992cd4b87e72ab4ae9bd200b8067bbc6d6c627ef87"
+      },
+      {
+        "answer_origin_valid": true,
+        "diagnostic": {
+          "answer_origin_valid": true,
+          "model_calls": 1,
+          "profile": "rag-rsi-closed-book-1",
+          "read_calls": 0,
+          "search_calls": 0,
+          "source_status": "not_applicable_closed_book",
+          "source_valid": null
+        },
+        "execution_ok": true,
+        "isolation_verified": true,
+        "provider_body_sha256": "d6293b37600b25b5bc9477e6e3116ed9efe410acb29488cafb8ffea2cbc0cda6",
+        "receipt_sha256": "db5115ef4349245dd9f4ffa8577bc5f68cf73102765aa1949e8d06da452caa87"
+      }
+    ],
+    "cost_cny": 0,
+    "credentials_read": false,
+    "new_external_api_calls": 0,
+    "real_quality_improvement_verified": false,
+    "reference_answers_parsed": false,
+    "runner_integration_complete": false,
+    "schema": "rag-rsi-closed-book-wsl-validation-1",
+    "synthetic": true
+  },
+  "code_sha256": {
+    "code_rsi/prepare_musique.py": "264cf67947dad638312796bddd73e54dfcb488518a2d4bf139b1d3c9556c96b7",
+    "code_rsi/v3/closed_book.py": "439591a78370c11d8904ea0fc1942a13257786f5e2461ea45b9bfe7cfeddf773",
+    "test_prepare_musique_grouped.py": "cd7d5971515f6eddddfd69ca66fe26f038d4337770c62ad26094f43b823bdcde",
+    "test_v3_closed_book.py": "3843c053652995e40715367af071435e91f5b751658836c7db0b5e8903a793e8"
+  },
+  "cost_cny": 0,
+  "credentials_read": false,
+  "date": "2026-10-09",
+  "decision": {
+    "counts": {
+      "D_fit": 96,
+      "D_report": 168,
+      "D_select": 107
+    },
+    "design_id": "musique-independent-evidence-capacity-v1-20261009",
+    "history_file_sha256": "3efa453b444bd0837f6a31d7a027687c88079e6134d81bdcaac37af961a67ef8",
+    "membership_rule": "Must match the prior deterministic selection exactly; no new seed, order, sample search, score-based filtering or fallback.",
+    "model_measurements": 0,
+    "model_scores_used": false,
+    "new_quotas": {
+      "D_fit": {
+        "2": 32,
+        "3": 32,
+        "4": 32
+      },
+      "D_report": {
+        "2": 80,
+        "3": 68,
+        "4": 20
+      },
+      "D_select": {
+        "2": 40,
+        "3": 40,
+        "4": 27
+      }
+    },
+    "ordering_namespace": "rag-rsi-musique-observed-atomic-disjoint-1",
+    "prior_feasibility_manifest_sha256": "cc5646e1c2df94f0c80323ac5090b5df91e1951b46e1cdf5309d459847d8acb7",
+    "prior_requested_quotas": {
+      "D_fit": {
+        "2": 32,
+        "3": 32,
+        "4": 32
+      },
+      "D_report": {
+        "2": 80,
+        "3": 80,
+        "4": 80
+      },
+      "D_select": {
+        "2": 40,
+        "3": 40,
+        "4": 40
+      }
+    },
+    "publication_rule": "Publish only if all new quotas are complete and prior identities match. Retain the original 96/120/240 shortfall as a distinct failed feasibility target.",
+    "reason": "Fix the feasible panel before model outcomes; 168 report questions satisfy the requested 100-200 scale without additional search for favorable sample identities.",
+    "required_selected_identity_sha256": {
+      "D_fit": "0109eb291432d913c39a165992379aa274bd09848209f48fb3d7a9ff3041d867",
+      "D_report": "71d3dc4dcc2a39451a416709b994ab769ab941e8f3312dc9b0da87e390fe096a",
+      "D_select": "262e691a7717ef23cdfe0fd0681d991be91317ac5edd13f65b6904f5ecd8aa7b"
+    },
+    "runner_integration_complete": false,
+    "sampling_policy": "known_atomic_disjoint_observed_panel_v1",
+    "schema": "rag-rsi-musique-capacity-panel-decision-1",
+    "seed": "musique-independent-evidence-20261009",
+    "source_sha256": {
+      "dev": "15fa63794d18a94ce12411aca6e2327e65b6e83b0b1490efab3f1962e48abf3b",
+      "train": "83a75b1e11e4e9bb8f8308e72ac40ca617ae4431b3a0d955b61cab259248490a"
+    },
+    "statistics": {
+      "hop_stratified_results": "mandatory secondary results with uncertainty; four-hop n=20 is not a standalone confirmation",
+      "independence_guaranteed": false,
+      "population_claim": "the frozen atomically-disjoint panel, not a uniform or full benchmark sample",
+      "power_guaranteed": false,
+      "primary_report_weighting": "equal_question_weights_on_frozen_report_panel",
+      "primary_unit": "question; one representative per known-atomic-disjoint observed group",
+      "report_hop_counts": {
+        "2": 80,
+        "3": 68,
+        "4": 20
+      }
+    },
+    "status": "frozen_before_panel_materialization_and_any_model_measurement"
+  },
+  "model_scores_used_for_sampling": false,
+  "new_external_api_calls": 0,
+  "old_held_probe_current_preflight": {
+    "plan_unchanged": true,
+    "reason": "runtime or answer-probe source changed after freeze",
+    "status": "rejected"
+  },
+  "original_capacity_check": {
+    "manifest_sha256": "cc5646e1c2df94f0c80323ac5090b5df91e1951b46e1cdf5309d459847d8acb7",
+    "requested_quotas": {
+      "D_fit": {
+        "2": 32,
+        "3": 32,
+        "4": 32
+      },
+      "D_report": {
+        "2": 80,
+        "3": 80,
+        "4": 80
+      },
+      "D_select": {
+        "2": 40,
+        "3": 40,
+        "4": 40
+      }
+    },
+    "selected_quotas": {
+      "D_fit": {
+        "2": 32,
+        "3": 32,
+        "4": 32
+      },
+      "D_report": {
+        "2": 80,
+        "3": 68,
+        "4": 20
+      },
+      "D_select": {
+        "2": 40,
+        "3": 40,
+        "4": 27
+      }
+    },
+    "status": "quota_shortfall"
+  },
+  "panel_preparation": {
+    "cost_cny": 0,
+    "counts": {
+      "D_fit": 96,
+      "D_report": 168,
+      "D_select": 107
+    },
+    "credentials_read": false,
+    "decision_sha256": "aa64016fc4aee5d4842335c6f9a2e2ca2c2591f80c5a8b2b1c0107afb1e57e73",
+    "design_id": "musique-independent-evidence-capacity-v1-20261009",
+    "groups_sha256": "95bf5c44685d06a3c4a7e472a1a181a2083145e6d1aa67dcd5af497e58953eb5",
+    "hop_counts": {
+      "D_fit": {
+        "2": 32,
+        "3": 32,
+        "4": 32
+      },
+      "D_report": {
+        "2": 80,
+        "3": 68,
+        "4": 20
+      },
+      "D_select": {
+        "2": 40,
+        "3": 40,
+        "4": 27
+      }
+    },
+    "known_atomic_groups": 371,
+    "manifest_sha256": "f0d19cb76022319c747b2946541501ba6fa6217bc416b9d8a6d49fd0f66320cb",
+    "model_scores_used": false,
+    "new_capacity_target_satisfied": true,
+    "new_external_api_calls": 0,
+    "prior_requested_target_satisfied": false,
+    "prior_selected_identity_preserved": true,
+    "private_annotations_used_for_trusted_preparation": true,
+    "quality_improvement_verified": false,
+    "reserved_history_entries": 431,
+    "reserved_history_sha256": "227f41f297426737d749a8592a095d5e83e6efc7625efb4769e8346c2c4a55b9",
+    "runner_integration_complete": false,
+    "schema": "rag-rsi-capacity-panel-preparation-1",
+    "status": "ready",
+    "task_files": {
+      "D_fit": {
+        "count": 96,
+        "private_sha256": "e78cad60a83477cf73c3a6f7d347fa7ca7cd8bbd279829e6803e021e1383fd2a",
+        "public_sha256": "b1cb6c0f760a7268239671f4f11b3154c454a3276edc08b014b82794590e5922",
+        "selected_identity_sha256": "0109eb291432d913c39a165992379aa274bd09848209f48fb3d7a9ff3041d867"
+      },
+      "D_report": {
+        "count": 168,
+        "private_sha256": "2bfd6ff9019e342ca2034aa21a8542fef86af56390e3610d0f456f12b7e0ca9c",
+        "public_sha256": "4acd7b3d27648f9fe7eadf6237d06cac43bdadeb308bd0e17dd22a5533c2958f",
+        "selected_identity_sha256": "71d3dc4dcc2a39451a416709b994ab769ab941e8f3312dc9b0da87e390fe096a"
+      },
+      "D_select": {
+        "count": 107,
+        "private_sha256": "c920ef49a658c7463033e037f32782fddbe909f84e5a9047d1a6a82bed556668",
+        "public_sha256": "4fa805ffa54e683c8c108640cc35954cda362cd49db941660ba148102d4ce8ec",
+        "selected_identity_sha256": "262e691a7717ef23cdfe0fd0681d991be91317ac5edd13f65b6904f5ecd8aa7b"
+      }
+    },
+    "total_questions": 371
+  },
+  "parent_commit": "bd4f98e",
+  "private_annotations_used_for_trusted_preparation": true,
+  "real_quality_improvement_verified": false,
+  "sampling_audit": {
+    "direct_reserved_associations": 0,
+    "directly_excluded_rows": 1431,
+    "explicit_history_completeness_guaranteed": false,
+    "exposed": 24,
+    "history_count": 60,
+    "hypothetical_family_reserved_associations": 6,
+    "independence_guaranteed": false,
+    "raw_template_closure_used": false,
+    "reserved": 36,
+    "source_rows": 22355,
+    "unobserved_bridge_propagation_used": false,
+    "unresolved_numeric_references": 2
+  },
+  "schema": "rag-rsi-closed-book-grouped-panels-validation-1",
+  "source_files": {
+    "dev": {
+      "rows": 2417,
+      "sha256": "15fa63794d18a94ce12411aca6e2327e65b6e83b0b1490efab3f1962e48abf3b"
+    },
+    "train": {
+      "rows": 19938,
+      "sha256": "83a75b1e11e4e9bb8f8308e72ac40ca617ae4431b3a0d955b61cab259248490a"
+    }
+  },
+  "tests": {
+    "log_sha256": "b950e311ba10bc678f2f55b343be9d1a0a5ad8c99b4dd5636e1babdf32ea41c3",
+    "passed": 853,
+    "ran": 854,
+    "seconds": 154.193,
+    "skipped": 1
+  },
+  "unified_runner_complete": false
+}
