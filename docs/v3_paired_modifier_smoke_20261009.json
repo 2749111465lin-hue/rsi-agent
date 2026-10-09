@@ -1,0 +1,271 @@
+{
+  "approval_received": false,
+  "blocks": 2,
+  "conditions": [
+    "cases",
+    "trace"
+  ],
+  "conservative_cny_upper_bound": 398.764544,
+  "controls": {
+    "feedback": "cases",
+    "fixed_module": "answer_generation",
+    "memory": "none",
+    "module_policy": "fixed",
+    "parent_policy": "fixed_root"
+  },
+  "credentials_read": false,
+  "data": {
+    "already_exposed_development_questions": 12,
+    "answer_repeats": 1,
+    "feedback_case_count": 12,
+    "feedback_covers_all_fit_questions": true,
+    "question_identity_sha256": "eb6c4a61dd08575061a3a406d1f5930400c20325d9b58e46a23d9c5700db42d2",
+    "select_or_report_bound": false
+  },
+  "host_limits": {
+    "max_models": 7,
+    "max_reads": 8,
+    "max_searches": 8
+  },
+  "independence_note": "one physical root measurement per block; distinct request/measurement banks across blocks; temperature0 does not promise stochastic independence of provider outputs",
+  "max_calls": 1528,
+  "model": {
+    "max_input_bytes": 120000,
+    "name": "deepseek-flash",
+    "output_limits": {
+      "answer": 800,
+      "develop": 18000,
+      "plan": 1200,
+      "read": 2200
+    },
+    "prices": {
+      "input_hit": 0.04,
+      "input_miss": 2,
+      "output": 8
+    },
+    "temperature": 0,
+    "thinking": "disabled"
+  },
+  "new_external_api_calls": 0,
+  "plan_hash": "78562cc67697fc44221ccc4f15bd899184bf5b853cb7100b2ac2e3b3bac03863",
+  "price_verification_date": "2026-10-09",
+  "price_verified_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+  "proposals_per_block_condition": 4,
+  "real_llm_improvement_verified": false,
+  "remaining_execution_requirement": "exact new budget/data/source authorization; fresh root must pass joint full-request gate at runtime",
+  "requested_hard_cny": 399,
+  "root_program_sha256": "359c564942074f62a7d99bc9d722ba011448fec1b6927d6115b8c954d7a5410a",
+  "schedule": [
+    {
+      "block": 0,
+      "condition": "cases",
+      "slot": 0
+    },
+    {
+      "block": 0,
+      "condition": "trace",
+      "slot": 0
+    },
+    {
+      "block": 0,
+      "condition": "trace",
+      "slot": 1
+    },
+    {
+      "block": 0,
+      "condition": "cases",
+      "slot": 1
+    },
+    {
+      "block": 0,
+      "condition": "cases",
+      "slot": 2
+    },
+    {
+      "block": 0,
+      "condition": "trace",
+      "slot": 2
+    },
+    {
+      "block": 0,
+      "condition": "trace",
+      "slot": 3
+    },
+    {
+      "block": 0,
+      "condition": "cases",
+      "slot": 3
+    },
+    {
+      "block": 1,
+      "condition": "trace",
+      "slot": 0
+    },
+    {
+      "block": 1,
+      "condition": "cases",
+      "slot": 0
+    },
+    {
+      "block": 1,
+      "condition": "cases",
+      "slot": 1
+    },
+    {
+      "block": 1,
+      "condition": "trace",
+      "slot": 1
+    },
+    {
+      "block": 1,
+      "condition": "trace",
+      "slot": 2
+    },
+    {
+      "block": 1,
+      "condition": "cases",
+      "slot": 2
+    },
+    {
+      "block": 1,
+      "condition": "cases",
+      "slot": 3
+    },
+    {
+      "block": 1,
+      "condition": "trace",
+      "slot": 3
+    }
+  ],
+  "schedule_policy": "alternate_block_and_slot_v1",
+  "schema": "rag-rsi-paired-smoke-ready-1",
+  "size_gate": "complete cases and trace provider bodies after fresh shared root before either developer; stop if either exceeds 120000 bytes; never crop one arm",
+  "status": "offline_prepared_not_authorized",
+  "total_proposal_opportunities": 16,
+  "historical_size_diagnostic": {
+    "status": "diagnostic_complete",
+    "question_count": 12,
+    "selected_row_count": 12,
+    "source_arm": "loop",
+    "source_repeat": 0,
+    "conditions": {
+      "cases": {
+        "case_count": 12,
+        "case_json_bytes": {
+          "maximum": 360,
+          "median": 300.0,
+          "minimum": 237,
+          "total": 3681
+        },
+        "headroom_bytes": 74909,
+        "max_input_bytes": 120000,
+        "reference_field_sentinel_ignored": true,
+        "request_body_bytes": 45091,
+        "request_body_sha256": "d406f65e57b36247f95e9f1c9a176ccb938cf445713d4824261f1302f87854e0",
+        "strict_projection_accepted": true,
+        "strict_projection_error": null,
+        "within_limit": true
+      },
+      "trace": {
+        "case_count": 12,
+        "case_json_bytes": {
+          "maximum": 6877,
+          "median": 5242.0,
+          "minimum": 3661,
+          "total": 60688
+        },
+        "headroom_bytes": 13206,
+        "max_input_bytes": 120000,
+        "reference_field_sentinel_ignored": true,
+        "request_body_bytes": 106794,
+        "request_body_sha256": "960a3adedd812c9b64b615ab8e806f95a9d9374c97eadb6dcec727edf79fd68f",
+        "strict_projection_accepted": true,
+        "strict_projection_error": null,
+        "within_limit": true
+      }
+    },
+    "all_full_12_bodies_within_120k": true,
+    "all_generation_hashes_verified": true,
+    "all_origin_receipts_revalidated": true,
+    "cases_trace_common_fields_equal": true,
+    "historical_source_matches_current_R0": false,
+    "source_program_may_differ": true,
+    "not_reusable_as_new_root": true,
+    "selection_depends_on_scores": false,
+    "raw_reference_objects_not_sent": true,
+    "prediction_and_score_can_reveal_accepted_answers": true,
+    "limitations": [
+      "Historical loop outputs size current feedback; they are not new R0 observations.",
+      "Size does not bound future root traces or evolved source growth.",
+      "No cases were omitted or cropped after inspecting scores or byte counts."
+    ],
+    "new_external_api_calls": 0,
+    "credentials_read": false,
+    "local_summary_sha256": "c7eda05d9b16b2cb877d1fb695c1f2128a4881fecb9f3ff21c3d4c428d39b7ff"
+  },
+  "validation": {
+    "paired_core_tests": {
+      "run": 19,
+      "passed": 19
+    },
+    "paired_entry_tests": {
+      "run": 15,
+      "passed": 15
+    },
+    "full_regression": {
+      "status": "passed",
+      "tests_run": 928,
+      "passed": 927,
+      "skipped": 1,
+      "elapsed_seconds": 766.486,
+      "log_sha256": "bc910ddd967a7f6ed6cfdda8807f534dbd0694e9b41524c7e45698a144e69d52",
+      "skip_reason": "real WSL integration test requires explicit opt-in; separate paired WSL validation completed"
+    },
+    "wsl": {
+      "all_answer_origins_valid": true,
+      "all_execution_ok": true,
+      "completed_opportunities": 8,
+      "completed_resume_new_calls": 0,
+      "completed_resume_new_transport": 0,
+      "credentials_read": false,
+      "developer_order": [
+        "cases",
+        "trace",
+        "trace",
+        "cases",
+        "trace",
+        "cases",
+        "cases",
+        "trace"
+      ],
+      "new_external_api_calls": 0,
+      "plan_hash": "fa2a33d12b472f213ac19b7d3c222bfdf8adcd9834281cfac375d383b6f8034b",
+      "real_llm_improvement_verified": false,
+      "real_wsl_measurements": 6,
+      "rejected_opportunities": 4,
+      "root_scope_calls": {
+        "0": 2,
+        "1": 2
+      },
+      "schema": "rag-rsi-paired-wsl-validation-1",
+      "scripted_provider_calls": 28,
+      "synthetic": true
+    },
+    "independent_static_preflight_review": "passed_current_plan_matches_frozen_preflight"
+  },
+  "implementation_files_sha256": {
+    "code_rsi/paired_evolution.py": "9ffc3c642bfdef7797e8b357640207156fe9caba45017aa42f974f70663063aa",
+    "code_rsi/v3/evolution.py": "c0dbe73eaf461b8273b71dd3b49b7f1594c0f18cb51403478254ad2f04f4a656",
+    "code_rsi/v3/execution.py": "e63ddb35bb97d88b1f6ab9f0297e773c07b953d2b7bbc87a0af5bd214c1740f4",
+    "test_v3_paired_core.py": "0da4f7260d77d61e778dd5c12b593d5c2c8d4710fa22a73afb7419c13c9a241f",
+    "test_v3_paired_entry.py": "5448dcd54d29a3a73e8226d4decd41b81fe6a726b338e13a7d4ed25bf1426969"
+  },
+  "formal_paper_complete": false,
+  "remaining_formal_implementation": [
+    "continuous_controlled_feedback",
+    "prompt_only_preexecution_scope",
+    "root_pseudo_candidates",
+    "search_run_and_question_group_statistics",
+    "unified_CB_R0_H_measurement"
+  ]
+}

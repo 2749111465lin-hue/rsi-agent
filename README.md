@@ -16,6 +16,8 @@
 
 **阶段入口已完成：**开发搜索可单独冻结；选择和报告显式执行并延迟解析各自参考，同一本账本约束总额与阶段额。新增40项测试；完整894项中893通过、1项跳过，另11次真实WSL合成测量全部通过；本轮零新API，真实修改器试跑仍未启动。[实现与验收](docs/v3_evolution_phases_20261009.md)。
 
+**配对修改器试跑已就绪，待新增付费授权：**12道已用开发题、cases/trace两条件、两个区组共16个提案机会；区组内共享一次完整根测量，交错执行并统一记账。928项测试中927通过、1项跳过；另6次真实WSL合成测量全部通过。历史完整请求尺寸通过，真实根仍须联合过门槛。冻结上限1,528次／¥399，保守包络¥398.764544；本轮零新API，不能作为真实修改收益证据。[计划与验收](docs/v3_paired_modifier_smoke_20261009.md)。
+
 ## 架构
 
 ```mermaid
@@ -59,6 +61,7 @@ python -B -m code_rsi.v3 offline-demo --out D:\Codex\Projects\rsi-agent\runs\off
 - `code_rsi/v3/execution.py`：复用已验证的 WSL 隔离执行和宿主测量。
 - `code_rsi/v3/experience_policy.py`：经验驱动的父代和改进模块选择。
 - `code_rsi/v3/evolution.py`：单一程序演化、交付选择和报告流程。
+- `code_rsi/paired_evolution.py`：共享根、交错提案、统一预算的开发题配对试跑。
 - `code_rsi/v3/diagnostics.py`：从执行记录提取失败与父子配对反馈，区分观测和模型自报。
 - `code_rsi/v3/browsecomp_data.py`：固定版本列获取，问题先读、参考在完整生成冻结后取得。
 - `code_rsi/v3/fit_literal_audit.py`：对新增开发题常量与已展示长摘录做保守检查，不读取私有参考。

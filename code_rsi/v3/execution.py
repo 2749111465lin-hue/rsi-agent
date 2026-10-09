@@ -660,8 +660,9 @@ class Measurement:
             raise ValueError("shared corpus adapter required")
         return self.backend_factory(task)
 
-    def run(self,node,public_tasks,references,*,role,bank,repeats=1):
-        if role not in {"D_fit","D_select","D_report"} or type(repeats) is not int or not 1<=repeats<=8:
+    def run(self,node,public_tasks,references,*,role,bank,repeats=1,cached_only=False):
+        if (role not in {"D_fit","D_select","D_report"} or type(repeats) is not int or not 1<=repeats<=8
+                or type(cached_only) is not bool):
             raise ValueError("measurement contract")
         if not public_tasks:
             raise ValueError("empty panel")
@@ -715,6 +716,8 @@ class Measurement:
                 if done.exists():
                     row=_verified_cell(done,expected)
                 else:
+                    if cached_only:
+                        raise ValueError("cached-only measurement lacks the exact frozen cell")
                     backend,model=backends[qid],models[(qid,rep)]
                     if backend.identity!=expected["backend_identity"] or model.identity!=expected["model_identity"]:
                         raise HostError("measurement environment changed before execution")

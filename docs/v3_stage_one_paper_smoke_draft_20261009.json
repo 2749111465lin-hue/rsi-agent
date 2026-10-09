@@ -81,10 +81,8 @@
   },
   "credentials_read": false,
   "execution_blockers": [
-    "shared root feedback and independent block bindings must be integrated and verified",
-    "complete real outgoing cases/trace requests must pass byte limits without asymmetric truncation",
-    "new runtime and source plan hash require freezing after changes",
-    "no current authorization for this new source/feedback scope and cost cap"
+    "fresh shared root complete bodies must jointly pass the runtime size gate",
+    "new exact data/source/cost authorization has not been received"
   ],
   "formal_panel_use": {
     "CB_and_H_not_to_consume_report_during_development": true,
@@ -239,7 +237,11 @@
     }
   ],
   "resolved_execution_blockers": [
-    "schema3 explicit search-only phase implemented and validated; see v3_evolution_phases_20261009.json"
+    "schema3 explicit search-only phase implemented and validated; see v3_evolution_phases_20261009.json",
+    "paired shared-root measurement and independent block identities implemented and tested",
+    "alternating proposal schedule with one ledger implemented and tested",
+    "new runtime/source plan frozen and static preflight passed",
+    "fixed historical 12-case complete request size diagnostic passed; not a new root measurement"
   ],
   "resources": {
     "all_calls_conservative_max": 1696,
@@ -302,7 +304,8 @@
       "new_exact_authorization"
     ],
     "schema": "rag-rsi-stage-one-phase-entry-preflight-1",
-    "status": "single_search_static_preflight_only_not_approved_or_paired_ready"
+    "status": "single_search_static_preflight_only_not_approved_or_paired_ready",
+    "historical_not_current_execution_plan": true
   },
   "smoke_panel": {
     "case_schedule_sha256": "0984a4a50cdf0a18e46d08082679c385721c570e8d93e997519fa4c4a5ec386a",
@@ -329,5 +332,8 @@
     "qa_loop": "问答循环",
     "same_dataset_generalization": "跨题泛化"
   },
-  "total_developer_calls_max": 16
+  "total_developer_calls_max": 16,
+  "historical_draft_preserved": true,
+  "superseded_for_execution_by": "v3_paired_modifier_smoke_20261009.json",
+  "current_paired_plan_hash": "78562cc67697fc44221ccc4f15bd899184bf5b853cb7100b2ac2e3b3bac03863"
 }

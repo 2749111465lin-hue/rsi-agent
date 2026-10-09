@@ -9,7 +9,7 @@ from copy import deepcopy
 import json
 import hashlib
 from pathlib import Path
-from ..archive import ProgramArchive, Conflict
+from ..archive import ProgramArchive, Conflict, _safe as _safe_archive_path
 from ..budget import digest, save, stable
 from .datasets import validate_task_collection
 from .execution import Measurement, root_files, validate_sources
@@ -425,7 +425,7 @@ def _reference_group(ref):
 
 
 class EvolutionRunner:
-    def __init__(self,directory,manifest,panels,references,model_factory,developer,backend_factory=None,scorer=None,*,reference_loader=None):
+    def __init__(self,directory,manifest,panels,references,model_factory,developer,backend_factory=None,scorer=None,*,reference_loader=None,root_model_factory=None):
         self.directory=Path(directory)
         manifest,panels,references=deepcopy((manifest,panels,references))
         self.manifest=manifest; self.panels=panels; self.references=references
@@ -434,6 +434,8 @@ class EvolutionRunner:
         self.reference_loader = reference_loader
         self._loaded_reference_hashes = {}
         self._active_phase = None
+        self.shared_root = deepcopy(manifest.get("shared_root"))
+        self.root_measure = None
         if self.lifecycle is not None:
             lc = self.lifecycle
             if (not isinstance(lc, dict) or set(lc) != {"schema", "phase_order", "reference_bindings", "reference_groups"}
@@ -508,6 +510,24 @@ class EvolutionRunner:
                 raise ValueError("developer configuration differs from frozen controls or independent proposal banks")
         elif self.controlled_run and self.controls["feedback"] != "rich":
             raise ValueError("controlled feedback requires the host ProgramDeveloper")
+        if self.shared_root is not None:
+            shared = self.shared_root
+            if (self.lifecycle is None or not isinstance(shared, dict)
+                    or set(shared) != {"schema", "directory", "block_id", "bank"}
+                    or shared["schema"] != "rag-rsi-shared-root-1"
+                    or not isinstance(shared["directory"], str) or not Path(shared["directory"]).is_absolute()
+                    or not isinstance(shared["block_id"], str) or not shared["block_id"].strip()
+                    or shared["bank"] != "shared-root/" + shared["block_id"]
+                    or self.controls["parent_policy"] != "fixed_root" or self.controls["memory"] != "none"
+                    or self.controls["feedback"] not in ("cases", "trace") or not callable(root_model_factory)
+                    or not isinstance(manifest.get("model_identity"), str) or not manifest["model_identity"]):
+                raise ValueError("shared root requires a bounded staged fixed-root feedback experiment")
+            shared_dir = _safe_archive_path(shared["directory"])
+            own_dir = self.directory.resolve()
+            if shared_dir == own_dir or shared_dir in own_dir.parents or own_dir in shared_dir.parents:
+                raise ValueError("shared root and condition directories must not contain one another")
+        elif root_model_factory is not None:
+            raise ValueError("root_model_factory requires a frozen shared-root binding")
         self._frozen_manifest=deepcopy(self._snapshot())
         if self.lifecycle is not None and self._frozen_manifest["private_reference_file_hashes"] != {
                 r: b["sha256"] for r, b in self.lifecycle["reference_bindings"].items()}:
@@ -517,6 +537,107 @@ class EvolutionRunner:
         self.measure=Measurement(self.archive,self.directory/"measurements",model_factory,backend_factory,
              metric=manifest["metric"],scorer=scorer,limits=manifest.get("limits"),
              allow_proxy_metrics=manifest.get("allow_proxy_metric",False))
+        if self.shared_root is not None:
+            def checked_root_model(bank):
+                model = root_model_factory(bank)
+                if getattr(model, "identity", None) != self.manifest["model_identity"]:
+                    raise ValueError("shared root model identity differs from its frozen contract")
+                return model
+            self.root_measure = Measurement(self.archive, shared_dir, checked_root_model, backend_factory,
+                metric=manifest["metric"], scorer=scorer, limits=manifest.get("limits"),
+                allow_proxy_metrics=manifest.get("allow_proxy_metric", False))
+            root_source = root_files(manifest.get("root_config"))
+            self._shared_contract = {"schema": "rag-rsi-shared-root-contract-1",
+                "root_files_sha256": {name: hashlib.sha256(value.encode("utf-8")).hexdigest()
+                                       for name, value in root_source.items()},
+                "panel_hash": digest(self.panels["D_fit"]),
+                "reference_file_sha256": self.lifecycle["reference_bindings"]["D_fit"]["sha256"],
+                "metric": manifest["metric"], "evaluator_epoch": self.root_measure.epoch,
+                "limits": deepcopy(manifest.get("limits")), "repeats": manifest.get("repeats", 1),
+                "model_identity": manifest["model_identity"], "runtime_source_hashes": _runtime_source_hashes(),
+                "block_id": shared["block_id"], "bank": shared["bank"]}
+            contract_path = shared_dir/"contract.json"
+            if not contract_path.exists() and any(shared_dir.rglob("*.json")):
+                raise ValueError("shared root artifacts exist without their contract")
+            freeze(contract_path, self._shared_contract)
+            self._verify_shared_root()
+
+    def _shared_json_inventory(self):
+        directory = _safe_archive_path(self.shared_root["directory"])
+        result = []
+        for path in directory.rglob("*.json"):
+            _safe_archive_path(path)
+            relative = path.relative_to(directory).as_posix()
+            if relative != "shared_root_seal.json":
+                result.append(relative)
+        return sorted(result)
+
+    def _verify_shared_root(self):
+        if self.shared_root is None:
+            return None
+        directory = _safe_archive_path(self.shared_root["directory"])
+        if read(directory/"contract.json") != self._shared_contract:
+            raise ValueError("shared root contract changed")
+        local = self.directory/"measurements"/"shared_root.json"
+        seal_path = directory/"shared_root_seal.json"
+        if not seal_path.exists():
+            if local.exists():
+                raise ValueError("shared root reference has no frozen external seal")
+            return None
+        seal = read(seal_path)
+        fields = {"schema", "contract_sha256", "measurement_identity", "result_sha256", "artifacts", "seal_hash"}
+        if (not isinstance(seal, dict) or set(seal) != fields
+                or seal["schema"] != "rag-rsi-shared-root-seal-1"
+                or seal["contract_sha256"] != digest(self._shared_contract)
+                or seal["seal_hash"] != digest({k: v for k, v in seal.items() if k != "seal_hash"})
+                or not isinstance(seal["measurement_identity"], str) or len(seal["measurement_identity"]) != 64
+                or any(c not in "0123456789abcdef" for c in seal["measurement_identity"])
+                or not isinstance(seal["artifacts"], dict)
+                or sorted(seal["artifacts"]) != self._shared_json_inventory()):
+            raise ValueError("invalid or incomplete shared root seal")
+        identity = seal["measurement_identity"]
+        required = {"contract.json", identity + "/measurement.json"}
+        measured = [name for name in seal["artifacts"] if name.endswith("/measured.json")]
+        if (not required <= set(seal["artifacts"]) or not measured
+                or any(name != "contract.json" and not name.startswith(identity + "/") for name in seal["artifacts"])):
+            raise ValueError("shared root seal does not cover one complete measurement")
+        for name, expected in seal["artifacts"].items():
+            path = _safe_archive_path(directory/name)
+            if Path(name).is_absolute() or ".." in Path(name).parts or _byte_hash(path) != expected:
+                raise ValueError("shared root artifact changed")
+        result = read(directory/identity/"measurement.json")
+        if (not isinstance(result, dict) or result.get("identity_hash") != identity
+                or result.get("role") != "D_fit" or result.get("panel_hash") != self._shared_contract["panel_hash"]
+                or result.get("evaluator_epoch") != self._shared_contract["evaluator_epoch"]
+                or result.get("metric") != self._shared_contract["metric"]
+                or result.get("complete") is not True or digest(result) != seal["result_sha256"]):
+            raise ValueError("shared root result differs from its sealed measurement")
+        reference = {"schema": "rag-rsi-shared-root-reference-1", "shared_root": deepcopy(self.shared_root),
+            "contract_sha256": digest(self._shared_contract), "seal_sha256": _byte_hash(seal_path),
+            "result": result}
+        if local.exists() and read(local) != reference:
+            raise ValueError("local shared root reference differs from the frozen external result")
+        return reference
+
+    def _measure_shared_root(self, node):
+        _validate_receipt(self.archive, node, root_files(self.manifest.get("root_config")), {},
+                          session_id="v3-root", attempt=0)
+        existing = self._verify_shared_root()
+        result = self.root_measure.run(node, deepcopy(self.panels["D_fit"]), deepcopy(self.references["D_fit"]),
+            role="D_fit", bank=self.shared_root["bank"], repeats=self.manifest.get("repeats", 1),
+            cached_only=existing is not None)
+        if existing is not None and result != existing["result"]:
+            raise ValueError("shared root cache reconstruction changed its sealed result")
+        directory = Path(self.shared_root["directory"])
+        if existing is None:
+            seal = {"schema": "rag-rsi-shared-root-seal-1", "contract_sha256": digest(self._shared_contract),
+                "measurement_identity": result["identity_hash"], "result_sha256": digest(result),
+                "artifacts": {name: _byte_hash(directory/name) for name in self._shared_json_inventory()}}
+            seal["seal_hash"] = digest(seal)
+            freeze(directory/"shared_root_seal.json", seal)
+        reference = self._verify_shared_root()
+        freeze(self.directory/"measurements"/"shared_root.json", reference)
+        return result
 
     def _snapshot(self):
         return {**deepcopy(self.manifest),
@@ -533,6 +654,10 @@ class EvolutionRunner:
                    if self.controlled_run else {})}
 
     def _assert_frozen(self):
+        if self.shared_root != self.manifest.get("shared_root"):
+            raise ValueError("shared root binding changed")
+        if self.shared_root is not None:
+            self._verify_shared_root()
         if self.lifecycle != self.manifest.get("lifecycle"):
             raise ValueError("frozen lifecycle changed")
         if self.lifecycle is not None and {r: digest(ref) for r, ref in self.references.items()} != self._loaded_reference_hashes:
@@ -546,8 +671,11 @@ class EvolutionRunner:
         self._assert_frozen()
         if self.lifecycle is not None and (self._active_phase is None or PHASE_ROLES[self._active_phase] != role):
             raise ValueError("measurement role differs from active phase")
-        result=self.measure.run(node,deepcopy(self.panels[role]),deepcopy(self.references[role]),
-                    role=role,bank="common",repeats=self.manifest.get("repeats",1))
+        if self.shared_root is not None and role == "D_fit" and node.get("parent_node_id") is None:
+            result = self._measure_shared_root(node)
+        else:
+            result=self.measure.run(node,deepcopy(self.panels[role]),deepcopy(self.references[role]),
+                        role=role,bank="common",repeats=self.manifest.get("repeats",1))
         self._assert_frozen()
         return result
 
@@ -609,7 +737,10 @@ class EvolutionRunner:
         freeze(folder/"literal_audit.json",audit)
         return audit
 
-    def _run_search(self):
+    def _run_search(self, stop_after=None):
+        target = self.manifest["expansions"] if stop_after is None else stop_after
+        if type(target) is not int or not 0 <= target <= self.manifest["expansions"]:
+            raise ValueError("partial search count must be within frozen expansion count")
         self._assert_frozen()
         files=root_files(self.manifest.get("root_config")); validate_sources(files)
         self._assert_frozen()
@@ -622,7 +753,7 @@ class EvolutionRunner:
         results={}; cards=[]; attempts=[]
         baseline=self._measure(root,"D_fit"); results[root["node_id"]]=baseline
         cards.append(experience_card(baseline,None,operator="Draft",module="retrieval",step=0,mechanism="frozen root"))
-        for step in range(self.manifest["expansions"]):
+        for step in range(target):
             folder=self.directory/"steps"/str(step)
             decision=self._decision(cards,root,baseline,step,attempts)
             decision["recent_rejections"]=[r for i in range(max(0,step-4),step)
@@ -710,8 +841,9 @@ class EvolutionRunner:
             cards.append(card); freeze(folder/"experience.json",card)
             self._terminal_attempt(folder,decision,step,"measured",attempts,child["node_id"])
         # One immutable search freeze, one selection, one report. No shadow judging.
-        freeze(self.directory/"search_frozen.json",{"cards":cards,"order":[c["node_id"] for c in cards],
-            **({"terminal_attempts": attempts, "controls": self.controls} if self.controlled_run else {})})
+        if target == self.manifest["expansions"]:
+            freeze(self.directory/"search_frozen.json",{"cards":cards,"order":[c["node_id"] for c in cards],
+                **({"terminal_attempts": attempts, "controls": self.controls} if self.controlled_run else {})})
         return root, cards, attempts
 
     def _run_select(self, root, cards):
@@ -804,7 +936,7 @@ class EvolutionRunner:
 
     def _seal_phase(self, phase, result):
         paths = {"manifest.json", "root.json", "search_frozen.json"}
-        for name in ("archive", "steps", "measurements"):
+        for name in ("archive", "steps", "measurements", "search_progress"):
             paths.update(self._tree_inventory(name))
         for previous in self.lifecycle["phase_order"][:self.lifecycle["phase_order"].index(phase)]:
             paths.add(f"phase_{previous}.json")
@@ -878,9 +1010,97 @@ class EvolutionRunner:
             raise ValueError("frozen phase result differs from its artifacts")
         return deepcopy(seal["result"])
 
+    def _progress_files(self):
+        files = {}
+        for path in (self.directory/"search_progress").glob("*.json"):
+            if not path.stem.isdigit() or str(int(path.stem)) != path.stem:
+                raise ValueError("invalid partial search checkpoint identity")
+            n = int(path.stem)
+            if not 0 <= n < self.manifest["expansions"]:
+                raise ValueError("partial search checkpoint exceeds frozen expansions")
+            files[n] = path
+        return dict(sorted(files.items()))
+
+    def _verify_search_progress(self, n):
+        path = self.directory/"search_progress"/(str(n)+".json")
+        checkpoint = read(path)
+        fields = {"schema", "manifest_hash", "completed_opportunities", "result", "artifacts", "measurement_files", "checkpoint_hash"}
+        if (not isinstance(checkpoint, dict) or set(checkpoint) != fields
+                or checkpoint["schema"] != "rag-rsi-search-progress-checkpoint-1"
+                or checkpoint["manifest_hash"] != digest(self._frozen_manifest)
+                or checkpoint["completed_opportunities"] != n
+                or checkpoint["checkpoint_hash"] != digest({k: v for k, v in checkpoint.items() if k != "checkpoint_hash"})
+                or not isinstance(checkpoint["artifacts"], dict)
+                or not isinstance(checkpoint["measurement_files"], list) or not checkpoint["measurement_files"]):
+            raise ValueError("invalid partial search checkpoint")
+        required = {"manifest.json", "root.json", *checkpoint["measurement_files"]}
+        if not required <= set(checkpoint["artifacts"]):
+            raise ValueError("partial search checkpoint omits required artifacts")
+        for name, expected in checkpoint["artifacts"].items():
+            if not isinstance(name, str) or Path(name).is_absolute() or ".." in Path(name).parts:
+                raise ValueError("unsafe partial search artifact path")
+            target = self.directory/name
+            if not target.is_file() or _byte_hash(target) != expected:
+                raise ValueError("partial search artifact changed")
+        result = checkpoint["result"]
+        if (not isinstance(result, dict) or set(result) != {"schema", "status", "completed_opportunities", "search"}
+                or result["schema"] != "rag-rsi-v3-search-progress-1" or result["status"] != "search_in_progress"
+                or result["completed_opportunities"] != n or not isinstance(result["search"], dict)):
+            raise ValueError("partial search result differs")
+        search = result["search"]
+        root = read(self.directory/"root.json")
+        if (not isinstance(search.get("cards"), list) or not search["cards"]
+                or search.get("order") != [c["node_id"] for c in search["cards"]]
+                or search["order"][0] != root["node_id"]
+                or (self.controlled_run and len(search.get("terminal_attempts", [])) != n)):
+            raise ValueError("partial search result has incomplete opportunities")
+        return deepcopy(result)
+
+    def _freeze_search_progress(self, n, result):
+        paths = {"manifest.json", "root.json"}
+        for name in ("archive", "steps", "measurements", "search_progress"):
+            paths.update(self._tree_inventory(name))
+        checkpoint = {"schema": "rag-rsi-search-progress-checkpoint-1",
+            "manifest_hash": digest(self._frozen_manifest), "completed_opportunities": n,
+            "result": deepcopy(result), "measurement_files": self._tree_inventory("measurements"),
+            "artifacts": {name: _byte_hash(self.directory/name) for name in sorted(paths)}}
+        checkpoint["checkpoint_hash"] = digest(checkpoint)
+        freeze(self.directory/"search_progress"/(str(n)+".json"), checkpoint)
+        return result
+
+    def run_search_until(self, n):
+        if type(n) is not int or not 0 <= n <= self.manifest["expansions"]:
+            raise ValueError("partial search count must be within frozen expansion count")
+        complete = self.check_phase("search")
+        if complete is not None:
+            return complete
+        progress = self._progress_files()
+        if n in progress:
+            return self._verify_search_progress(n)
+        if progress and n < max(progress):
+            raise ValueError("cannot reconstruct an unrecorded earlier partial search prefix")
+        self._load_phase_reference("search")
+        self.check_phase("search")
+        self._active_phase = "search"
+        try:
+            root, cards, attempts = self._run_search(stop_after=n)
+            search = {"cards": cards, "order": [c["node_id"] for c in cards],
+                **({"terminal_attempts": attempts, "controls": self.controls} if self.controlled_run else {})}
+            self._assert_frozen()
+            if n == self.manifest["expansions"]:
+                return self._seal_phase("search", {"schema": "rag-rsi-v3-search-phase-1",
+                    "status": "search_frozen", "search": read(self.directory/"search_frozen.json")})
+            result = {"schema": "rag-rsi-v3-search-progress-1", "status": "search_in_progress",
+                "completed_opportunities": n, "search": search}
+            return self._freeze_search_progress(n, result)
+        finally:
+            self._active_phase = None
+
     def check_phase(self, phase):
         """Validate predecessors without parsing any private answer references."""
         self._assert_frozen()
+        for n in self._progress_files():
+            self._verify_search_progress(n)
         if self.lifecycle is None or phase not in self.lifecycle["phase_order"]:
             raise ValueError("phase is outside frozen lifecycle")
         for previous in self.lifecycle["phase_order"][:self.lifecycle["phase_order"].index(phase)]:
