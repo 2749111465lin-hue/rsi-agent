@@ -18,6 +18,7 @@ from .v3.execution import HostError
 from .v3.infrastructure import StructuredModel, BrowseCompCorpus, PROMPTS
 
 SCHEMA = "rag-rsi-paired-development-1"
+SCHEMA2 = "rag-rsi-paired-development-2"
 FIELDS = {"schema", "purpose", "output_dir", "search_template", "blocks", "schedule_policy",
           "max_calls", "hard_cny", "entry_sha256"}
 CONDITIONS = ("cases", "trace")
@@ -34,7 +35,7 @@ def _cost(template, qa_calls, developer_calls):
 
 
 def _prepare(plan):
-    if (not isinstance(plan, dict) or set(plan) != FIELDS or plan["schema"] != SCHEMA
+    if (not isinstance(plan, dict) or set(plan) != FIELDS or plan["schema"] not in (SCHEMA, SCHEMA2)
             or plan["purpose"] != "paired_development_smoke"
             or plan["schedule_policy"] != SCHEDULE_POLICY):
         raise ValueError("exact paired development plan required")
@@ -45,10 +46,11 @@ def _prepare(plan):
     if (live.PROJECT / "runs").resolve() not in out.parents:
         raise ValueError("paired output must be a project runs child")
     template = plan["search_template"]
-    if (not isinstance(template, dict) or template.get("schema") != live.SCHEMA3
+    expected_template = live.SCHEMA3 if plan["schema"] == SCHEMA else live.SCHEMA5
+    if (not isinstance(template, dict) or template.get("schema") != expected_template
             or template.get("phase_order") != ["search"]
             or Path(template["output_dir"]).resolve() != out / "template_validation_only"):
-        raise ValueError("paired smoke requires a search-only schema3 template")
+        raise ValueError("paired smoke requires its matching search-only template version")
     checked, panels, refs = live._prepare(template, phase="search")
     controls = checked["controls"]
     if (controls["parent_policy"] != "fixed_root" or controls["module_policy"] != "fixed"
@@ -78,7 +80,7 @@ def _prepare(plan):
         for slot in range(expansions):
             order = CONDITIONS if (b + slot) % 2 == 0 else CONDITIONS[::-1]
             schedule.extend({"block": b, "condition": condition, "slot": slot} for condition in order)
-    report = {"schema": SCHEMA, "status": "static_preflight_only", "plan_hash": digest(plan),
+    report = {"schema": plan["schema"], "status": "static_preflight_only", "plan_hash": digest(plan),
               "blocks": blocks, "conditions": list(CONDITIONS), "question_count": len(panels["D_fit"]),
               "proposal_opportunities": len(schedule), "schedule": schedule, "max_calls": total_calls,
               "feedback_case_count": len(controls["case_schedule"]),
@@ -197,7 +199,7 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, stop
             model = StructuredModel(out / "requests", _ScopedLedger(ledger, block, condition), transport,
                 bank=f"paired/{block}/{condition}/{bank}", prices=model_config["prices"],
                 model=model_config["name"], max_input_bytes=model_config["max_input_bytes"],
-                limits=model_config["output_limits"])
+                limits=model_config["output_limits"], proposal_protocol=template_check.get("proposal_protocol"))
             return _PairedModel(model, template_check["model_identity"], stages, check_binding,
                                 proposal_gate=lambda: gates.get((block, condition)))
 
@@ -223,9 +225,13 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, stop
                         "reference_groups_file": deepcopy(template["reference_groups_file"]),
                         "shared_root": {"schema": "rag-rsi-shared-root-1", "directory": str(out / "blocks" / str(block) / "root_measurements"),
                                         "block_id": str(block), "bank": f"shared-root/{block}"}}
+            if plan["schema"] == SCHEMA2:
+                manifest["edit_policy"] = deepcopy(template_check["edit_policy"])
+                manifest["proposal_protocol"] = deepcopy(template_check["proposal_protocol"])
             developer = ProgramDeveloper(bound(block, condition, "develop", ("develop",)),
                 feedback_condition=condition, case_schedule=controls["case_schedule"],
-                proposal_model_factory=lambda slot: bound(block, condition, f"develop/proposal/{slot}", ("develop",)))
+                proposal_model_factory=lambda slot: bound(block, condition, f"develop/proposal/{slot}", ("develop",)),
+                edit_policy=template_check.get("edit_policy"), proposal_protocol=template_check.get("proposal_protocol"))
             return EvolutionRunner(out / "blocks" / str(block) / condition, manifest, panels, {},
                 lambda bank: bound(block, condition, bank, ("plan", "read", "answer")), developer,
                 backend_factory=backend_factory,
@@ -284,7 +290,7 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, stop
                 if {k: record.get(k) for k in ("block", "condition", "slot")} != item:
                     raise HostError("paired terminal schedule differs from plan")
                 completed.append(record)
-            result = {"schema": SCHEMA, "status": "complete" if len(completed) == total else "in_progress",
+            result = {"schema": plan["schema"], "status": "complete" if len(completed) == total else "in_progress",
                       "plan_hash": checked["plan_hash"], "completed_opportunities": len(completed),
                       "planned_opportunities": total, "terminal_records": completed,
                       "planned_root_measurements_per_block": 1, "prepared_blocks": sorted(runners_by_block),

@@ -1,8 +1,8 @@
 """Frozen live entrypoint for the existing v3 evolution runner.
 
 Preflight reads local public tasks/private references for host validation only.
-Schema3/4 preflight only hashes references; phases unlock their own reference map.
-Schema4 additionally freezes an explicit program or prompt-only edit policy.
+Schema3/4/5 preflight only hashes references; phases unlock their own reference map.
+Schema4 freezes an edit policy; schema5 also freezes the proposal representation.
 References never enter the ProgramDeveloper model payload. No API or credential
 access occurs on import/preflight. This file is outside v3's frozen source set.
 """
@@ -21,9 +21,10 @@ from .v3.evolution import (EvolutionRunner, ProgramDeveloper, _runtime_source_ha
                            freeze, validate_controls)
 from .v3.execution import HostError
 from .v3.infrastructure import (BrowseCompCorpus, StructuredModel, UnknownProviderOutcome,
-                                deepseek_transport, DeepSeekTransport, PROMPTS)
+                                deepseek_transport, DeepSeekTransport, PROMPTS, proposal_model_prompts)
 from .v3.rag import RagEngine
 from .v3.edit_policy import validate_edit_policy
+from .v3.proposal_protocol import validate_proposal_protocol
 from .v3.request_recovery import (check_request_recovery as _check_request_recovery,
                                    check_request_accounting as _check_request_accounting)
 
@@ -31,6 +32,7 @@ SCHEMA = "rag-rsi-live-evolution-1"
 SCHEMA2 = "rag-rsi-live-evolution-2"
 SCHEMA3 = "rag-rsi-live-evolution-3"
 SCHEMA4 = "rag-rsi-live-evolution-4"
+SCHEMA5 = "rag-rsi-live-evolution-5"
 GROUPS_SCHEMA = "rag-rsi-role-reference-groups-1"
 PHASE_ROLES = {"search": "D_fit", "select": "D_select", "report": "D_report"}
 PROPOSAL_BANK_POLICY = "host_proposal_slot_v1"
@@ -44,6 +46,7 @@ FIELDS = {"schema", "purpose", "output_dir", "panels", "corpus", "corpus_ref", "
 FIELDS_V2 = FIELDS | {"controls"}
 FIELDS_V3 = FIELDS_V2 | {"phase_order", "reference_groups_file"}
 FIELDS_V4 = FIELDS_V3 | {"edit_policy"}
+FIELDS_V5 = FIELDS_V4 | {"proposal_protocol"}
 
 
 def _hash(path):
@@ -82,10 +85,12 @@ class _NoIO:
         raise AssertionError("preflight cannot call a model")
 
 
-def _model_identity(model, prompts):
-    return digest({"model": model["name"], "prompts": prompts, "limits": model["output_limits"],
+def _model_identity(model, prompts, proposal_protocol=None):
+    protocol = validate_proposal_protocol(proposal_protocol)
+    return digest({"model": model["name"], "prompts": proposal_model_prompts(protocol, prompts), "limits": model["output_limits"],
                    "max_input_bytes": model["max_input_bytes"], "temperature": 0,
-                   "thinking": "disabled", "response_format": "json_object", "prices": model["prices"]})
+                   "thinking": "disabled", "response_format": "json_object", "prices": model["prices"],
+                   **({"proposal_protocol":protocol} if protocol is not None else {})})
 
 
 def _prepare(plan, *, phase=None):
@@ -93,12 +98,16 @@ def _prepare(plan, *, phase=None):
         raise ValueError("exact live-evolution plan schema required")
     schema = plan.get("schema")
     fields = (FIELDS if schema == SCHEMA else FIELDS_V2 if schema == SCHEMA2 else
-              FIELDS_V3 if schema == SCHEMA3 else FIELDS_V4 if schema == SCHEMA4 else None)
+              FIELDS_V3 if schema == SCHEMA3 else FIELDS_V4 if schema == SCHEMA4 else
+              FIELDS_V5 if schema == SCHEMA5 else None)
     if fields is None or set(plan) != fields:
         raise ValueError("exact live-evolution plan schema required")
-    staged = schema in (SCHEMA3, SCHEMA4)
-    edit_policy = validate_edit_policy(plan["edit_policy"]) if schema == SCHEMA4 else None
-    if schema == SCHEMA4 and edit_policy is None:
+    staged = schema in (SCHEMA3, SCHEMA4, SCHEMA5)
+    edit_policy = validate_edit_policy(plan["edit_policy"]) if schema in (SCHEMA4, SCHEMA5) else None
+    proposal_protocol = validate_proposal_protocol(plan["proposal_protocol"]) if schema == SCHEMA5 else None
+    if schema == SCHEMA5 and proposal_protocol is None:
+        raise ValueError("schema5 requires an explicit proposal protocol")
+    if schema in (SCHEMA4, SCHEMA5) and edit_policy is None:
         raise ValueError("schema4 requires an explicit edit policy")
     if staged:
         if plan["phase_order"] not in (["search"], ["search", "select", "report"]):
@@ -207,7 +216,7 @@ def _prepare(plan, *, phase=None):
         raise ValueError("root profile cannot reserve all declared rounds and final")
     repeats = _integer(plan["repeats"], 1, 8, "repeats")
     controls = (validate_controls(plan["controls"], panels["D_fit"], repeats, allow_legacy=False)
-                if schema in (SCHEMA2, SCHEMA3, SCHEMA4) else None)
+                if schema in (SCHEMA2, SCHEMA3, SCHEMA4, SCHEMA5) else None)
     expansions = _integer(plan["expansions"], 0, 16, "expansions")
     candidates = _integer(plan["select_candidates"], 1, 17, "select_candidates")
     model = plan["model"]
@@ -246,9 +255,11 @@ def _prepare(plan, *, phase=None):
               "question_counts": {r: len(panels[r]) for r in roles}, "max_calls": calls,
               "qa_call_ceiling": qa_calls, "developer_call_ceiling": expansions,
               "conservative_cny_upper_bound": round(worst, 6), "hard_cny": hard,
-              "model_identity": _model_identity(model, PROMPTS), "new_api_calls": 0,
+              "model_identity": _model_identity(model, PROMPTS, proposal_protocol), "new_api_calls": 0,
               "credentials_read": False, "private_references_read_locally": not staged,
               "developer_receives_gold": False, "synthetic": plan["synthetic"]}
+    if proposal_protocol is not None:
+        report["proposal_protocol"] = deepcopy(proposal_protocol)
     if edit_policy is not None:
         report["edit_policy"] = deepcopy(edit_policy)
     if controls is not None:
@@ -361,7 +372,7 @@ class _BoundModel:
         self._check()
         current = {"name": self._model.model, "max_input_bytes": self._model.max_input_bytes,
                    "output_limits": self._model.limits, "prices": self._model.prices}
-        if self._model.identity != self._expected or _model_identity(current, PROMPTS) != self._expected:
+        if self._model.identity != self._expected or _model_identity(current, PROMPTS, self._model.proposal_protocol) != self._expected:
             raise HostError("live model identity drift; no dispatch allowed")
 
     @property
@@ -409,7 +420,7 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, phas
         raise ValueError("execute and the exact approved plan hash are required")
     if plan["synthetic"] != (transport_factory is not None):
         raise ValueError("synthetic runs require an injected transport; live runs forbid injection")
-    staged = plan["schema"] in (SCHEMA3, SCHEMA4)
+    staged = plan["schema"] in (SCHEMA3, SCHEMA4, SCHEMA5)
     out = Path(plan["output_dir"]).resolve()
     with run_lock(out):
         freeze(out / "live_plan.json", plan)
@@ -446,7 +457,7 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, phas
             scoped_ledger = _PhaseLedger(ledger, phase) if staged else ledger
             model = StructuredModel(out / "requests", scoped_ledger, transport, bank=bank,
                                     prices=model_config["prices"], model=model_config["name"],
-                                    max_input_bytes=model_config["max_input_bytes"], limits=model_config["output_limits"])
+                                    max_input_bytes=model_config["max_input_bytes"], limits=model_config["output_limits"], proposal_protocol=check.get("proposal_protocol"))
             def check_phase_bank():
                 if _phase_for_bank(bank) != phase:
                     raise HostError("model bank is outside the requested execution phase")
@@ -467,15 +478,17 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, phas
                     "model_identity": check["model_identity"], "synthetic": plan["synthetic"],
                     **{key: deepcopy(plan[key]) for key in ("metric", "expansions", "repeats", "root_config",
                                                           "select_candidates", "limits", "allow_proxy_metric")}}
-        if plan["schema"] == SCHEMA4:
+        if plan["schema"] in (SCHEMA4, SCHEMA5):
             manifest["edit_policy"] = deepcopy(check["edit_policy"])
-        if plan["schema"] in (SCHEMA2, SCHEMA3, SCHEMA4):
+        if plan["schema"] == SCHEMA5:
+            manifest["proposal_protocol"] = deepcopy(check["proposal_protocol"])
+        if plan["schema"] in (SCHEMA2, SCHEMA3, SCHEMA4, SCHEMA5):
             controls = deepcopy(check["controls"])
             manifest.update(controls=controls, proposal_bank_policy=PROPOSAL_BANK_POLICY)
             developer = ProgramDeveloper(bound("develop", ("develop",)),
                 feedback_condition=controls["feedback"], case_schedule=controls["case_schedule"],
                 proposal_model_factory=lambda slot: bound(f"develop/proposal/{slot}", ("develop",)),
-                edit_policy=check.get("edit_policy"))
+                edit_policy=check.get("edit_policy"), proposal_protocol=check.get("proposal_protocol"))
         else:
             # Retain the original manifest and proposal cache identity for v1 resumes.
             developer = ProgramDeveloper(bound("develop", ("develop",)))

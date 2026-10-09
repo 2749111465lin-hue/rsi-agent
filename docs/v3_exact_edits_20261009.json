@@ -1,0 +1,183 @@
+{
+  "schema": "rag-rsi-exact-edits-validation-1",
+  "date": "2026-10-09",
+  "status": "validated_authorized_ready_to_launch",
+  "branch": "codex/v3-paper-controls",
+  "live_schema": "rag-rsi-live-evolution-5",
+  "paired_schema": "rag-rsi-paired-development-2",
+  "proposal_protocol": {
+    "schema": "rag-rsi-proposal-protocol-1",
+    "format": "exact_edits",
+    "max_edits": 8,
+    "max_edit_chars": 12000
+  },
+  "edit_policy": {
+    "schema": "rag-rsi-edit-policy-1",
+    "mode": "program"
+  },
+  "markers": {
+    "declaration": "change_status",
+    "source_text": "source_changed",
+    "ast_structure": "ast_changed",
+    "ast_change_proves_behavior_change": false
+  },
+  "parent_immutable_and_child_materialized_separately": true,
+  "previous_paid_run_unchanged": true,
+  "wsl_validation": {
+    "all_execution_and_origins_valid": true,
+    "allowed_candidates": 1,
+    "completed_phase_resume_new_calls": 0,
+    "credentials_read": false,
+    "explicit_no_change": 1,
+    "formal_data_used": false,
+    "genuine_core_ast_change": 1,
+    "new_external_api_calls": 0,
+    "parent_child_program_ids_distinct": true,
+    "plan_hash": "db631d0c56d936834c91b45567b8ee36571111a5f95fb00ee971946e5942ca40",
+    "proposal_opportunities": 4,
+    "real_llm_improvement_verified": false,
+    "real_wsl_measurements": 6,
+    "rejected": 3,
+    "schema": "rag-rsi-proposal-protocol-wsl-validation-1",
+    "schema5_phases": [
+      "search",
+      "select",
+      "report"
+    ],
+    "scripted_provider_calls": 13,
+    "synthetic": true,
+    "text_change_without_ast_change": 1,
+    "wrong_parent_rejected": 1
+  },
+  "wsl_summary_file_sha256": "0f642fce7e76d393d4e6893f9cc65a0ed7cea768ed7388b6f8357b52f2133e30",
+  "full_regression": {
+    "status": "initial_run_failed_then_targeted_repairs",
+    "tests_run": 1028,
+    "failures": 1,
+    "errors": 83,
+    "skipped": 1,
+    "initial_log_sha256": "c2dd5b7368502e8f194559b306791a63a029fcebede7f6af623c6f069aaa63a8",
+    "failure_causes": [
+      "83 missing optional protocol attribute errors in old read-only request shape adapters; fixed with legacy default",
+      "1 old fixture loaded before its unique anchor correction"
+    ],
+    "final_source_complete_suite_rerun": false
+  },
+  "compatibility_followup": {
+    "status": "fixed_102_affected_module_tests_passed",
+    "component": "legacy read-only request shapes",
+    "fix": "default absent proposal_protocol to None, preserving legacy request bytes",
+    "tests_run": 102,
+    "passed": 102,
+    "log_sha256": "1d3bc7f2e65da8904411954af59809b9b36d59d445dff0730dd53574d91e0cca"
+  },
+  "source_binding": {
+    "status": "refrozen_after_compatibility_fix",
+    "executable_plan_hash": "f66896338a454a2a9302c8a495126ae3ae23c49c406d8b1fae678d7a63ef730a"
+  },
+  "authorized_trial": {
+    "authorization": "explicit_human_confirmation_received",
+    "requires_repeat_authorization_for_same_scope": false,
+    "execution_status": "not_started_in_this_document_snapshot",
+    "role": "D_fit",
+    "already_exposed_questions": 12,
+    "hop_quotas": {
+      "2": 4,
+      "3": 4,
+      "4": 4
+    },
+    "blocks": 1,
+    "conditions": [
+      "cases",
+      "trace"
+    ],
+    "opportunities_per_condition": 2,
+    "total_opportunities": 4,
+    "repeats": 1,
+    "memory": "none",
+    "parent_policy": "fixed_root",
+    "max_calls": 424,
+    "conservative_cny_upper_bound": 110.596352,
+    "hard_cny": 110.6,
+    "prior_calls": 154,
+    "prior_conservative_settled_cny": 1.74111468,
+    "combined_call_ceiling": 578,
+    "combined_cny_ceiling": 112.34111468,
+    "task_total_calls_cap": 1566,
+    "task_total_cny_cap": 399,
+    "heldout_roles_bound": false,
+    "heldout_roles_used": false
+  },
+  "historical_projection": {
+    "kind": "historical_root_complete_body_projection_not_new_live_gate",
+    "audit_file_sha256": "0395b9992f0a512913a9ca79764c376aac66b9ffd6b927b8c270badca2800632",
+    "historical_draft_plan_hash": "7f4c6ea5f69ae334c0e0113a4215783911511719f25affe4d038907e5d57c64a",
+    "all_fit_cases_retained": true,
+    "records": [
+      {
+        "historical_block": 0,
+        "condition": "cases",
+        "projected_request_bytes": 46243,
+        "limit_bytes": 120000,
+        "spare_bytes": 73757,
+        "feedback_cases": 12
+      },
+      {
+        "historical_block": 0,
+        "condition": "trace",
+        "projected_request_bytes": 109478,
+        "limit_bytes": 120000,
+        "spare_bytes": 10522,
+        "feedback_cases": 12
+      },
+      {
+        "historical_block": 1,
+        "condition": "cases",
+        "projected_request_bytes": 46263,
+        "limit_bytes": 120000,
+        "spare_bytes": 73737,
+        "feedback_cases": 12
+      },
+      {
+        "historical_block": 1,
+        "condition": "trace",
+        "projected_request_bytes": 112986,
+        "limit_bytes": 120000,
+        "spare_bytes": 7014,
+        "feedback_cases": 12
+      }
+    ]
+  },
+  "new_trial_external_model_calls": 0,
+  "engineering_validation_external_model_calls": 0,
+  "engineering_credential_reads": 0,
+  "quality_gain_verified": false,
+  "equal_opportunity_comparison_to_prior_trial": false,
+  "full_dual_loop_completed": false,
+  "sources": [
+    {
+      "title": "SWE-agent",
+      "url": "https://arxiv.org/abs/2405.15793"
+    },
+    {
+      "title": "SWE-Edit",
+      "url": "https://arxiv.org/abs/2604.26102"
+    },
+    {
+      "title": "Aider edit formats",
+      "url": "https://aider.chat/docs/more/edit-formats.html"
+    }
+  ],
+  "body_and_protocol_tests": {
+    "tests_run": 34,
+    "passed": 34,
+    "log_sha256": "214ef2efe4bb3722365130918f5fa4fa09a751f6cd7118b2e7251e2874b44216"
+  },
+  "final_entry_tests": {
+    "tests_run": 29,
+    "passed": 29,
+    "log_sha256": "3be057980756b3e8c6a1170a46b33a52684b745e92f5ff1085501638d64c4dd0",
+    "source_sha256": "ef2f0f948ff3774eb0796bf382979ee51c934f49d1d0e59a568fb819502e9f87"
+  },
+  "postfix_targeted_tests_passed": 165
+}

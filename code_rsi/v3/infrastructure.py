@@ -16,6 +16,7 @@ import time
 import urllib.request
 from pathlib import Path
 from ..budget import Ledger, LimitExceeded, digest, save, stable
+from .proposal_protocol import validate_proposal_protocol
 
 
 def terms(text):
@@ -269,13 +270,35 @@ def deepseek_transport(api_key):
     return DeepSeekTransport(api_key)
 
 
+def proposal_model_prompts(proposal_protocol=None, base=None):
+    """Bind the output contract without changing legacy prompt bytes."""
+    protocol = validate_proposal_protocol(proposal_protocol)
+    prompts = dict(PROMPTS if base is None else base)
+    if protocol is not None and protocol["format"] == "exact_edits":
+        old = "Return JSON {writes:{filename:complete_utf8_source},mechanism:string,intended_target_module:string}."
+        new = (
+            "Return one JSON object {parent_source_sha256:string,change_status:string,"
+            "edits:[{file:string,old:string,new:string}],mechanism:string,intended_target_module:string}. "
+            "Copy the supplied parent_source_sha256 exactly. For change_status='modified', return actual "
+            "localized edits, not complete unchanged files; every nonempty old fragment must occur exactly "
+            "once in the original parent file, and edits must not overlap. All offsets refer to the parent, "
+            "not earlier edits. For change_status='no_change', return edits=[] and explain why. "
+            "Do not claim an implementation that is absent from the edits. The host materializes a separate "
+            "candidate and independently checks source/AST changes; descriptions are not changes.")
+        if prompts["develop"].count(old) != 1:
+            raise ValueError("base developer prompt lacks its unique output contract")
+        prompts["develop"] = prompts["develop"].replace(old, new)
+    return prompts
+
+
 class StructuredModel:
     """One bounded LLM request per semantic action. No automatic repair purchase."""
     def __init__(self, directory, ledger, transport, *, bank, prices, model="deepseek-flash",
-                 scope="run", max_input_bytes=120000, limits=None):
+                 scope="run", max_input_bytes=120000, limits=None, proposal_protocol=None):
         self.directory = Path(directory); self.directory.mkdir(parents=True, exist_ok=True)
         self.ledger, self.transport, self.bank = ledger, transport, bank
         self.model, self.scope, self.max_input_bytes = model, scope, max_input_bytes
+        self.proposal_protocol = validate_proposal_protocol(proposal_protocol)
         if set(prices) != {"input_miss", "input_hit", "output"} or any(type(v) not in (int,float) or not math.isfinite(v) or v<0 for v in prices.values()):
             raise ValueError("explicit CNY per million token prices required")
         self.prices = dict(prices)
@@ -283,19 +306,26 @@ class StructuredModel:
         self.limits.update(limits or {})
         self.calls = 0
         self.timeout_seconds = 150
-        self.identity = digest({"model":model,"prompts":PROMPTS,"limits":self.limits,
+        self.identity = digest({"model":model,"prompts":proposal_model_prompts(self.proposal_protocol),"limits":self.limits,
                 "max_input_bytes":max_input_bytes,"temperature":0,"thinking":"disabled",
-                "response_format":"json_object","prices":self.prices})
+                "response_format":"json_object","prices":self.prices,
+                **({"proposal_protocol":self.proposal_protocol} if self.proposal_protocol is not None else {})})
 
     def request_body(self, stage, payload):
         if stage not in PROMPTS or not isinstance(payload,dict):
             raise ValueError("unknown semantic action")
+        # Read-only request-shape adapters predate the versioned edit protocol.
+        # Missing metadata keeps their legacy request bytes unchanged.
+        protocol = getattr(self, "proposal_protocol", None)
+        if stage == "develop" and validate_proposal_protocol(payload.get("proposal_protocol")) != protocol:
+            raise ValueError("developer payload protocol differs from frozen model protocol")
+        prompts = proposal_model_prompts(protocol)
         cap = self.limits[stage]
         if type(cap) is not int or not 1 <= cap <= 32768:
             raise ValueError("invalid output bound")
         body = {"model":self.model,"stream":False,"thinking":{"type":"disabled"},
                 "temperature":0,"max_tokens":cap,"response_format":{"type":"json_object"},
-                "messages":[{"role":"system","content":PROMPTS[stage]},
+                "messages":[{"role":"system","content":prompts[stage]},
                             {"role":"user","content":stable(payload)}]}
         return body
 

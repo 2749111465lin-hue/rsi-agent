@@ -17,6 +17,7 @@ from .experience_policy import DEFAULT_MODULES, choose_next, memory_for_action
 from .diagnostics import compact_feedback
 from .edit_scope import observe_edit_scope, validated_scope
 from .edit_policy import validate_edit_policy, check_edit_policy
+from .proposal_protocol import validate_proposal_protocol, source_identity, materialize_edits
 from .fit_literal_audit import audit_fit_literals
 
 
@@ -97,7 +98,15 @@ def program_change(parent, writes):
     return files
 
 
-def _proposal_files(program, decision, proposal):
+def _proposal_files(program, decision, proposal, proposal_protocol=None):
+    protocol = validate_proposal_protocol(proposal_protocol)
+    if protocol is not None and protocol["format"] == "exact_edits":
+        files, _ = materialize_edits(program["files"], proposal, protocol)
+        if proposal["intended_target_module"] != decision.get("intended_target_module", decision["target_module"]):
+            raise ValueError("proposal intent differs from declared action")
+        if proposal["change_status"] == "no_change":
+            raise ValueError("model declared no change")
+        return program_change(program, files)
     if (not isinstance(proposal,dict) or set(proposal) not in
             ({"writes","mechanism","target_module"}, {"writes","mechanism","intended_target_module"})):
         raise ValueError("invalid development proposal")
@@ -223,7 +232,7 @@ def _match_developer_models(projected, actual, payload):
 
 class ProgramDeveloper:
     def __init__(self, model, *, feedback_condition="rich", case_schedule=None,
-                 proposal_model_factory=None, edit_policy=None):
+                 proposal_model_factory=None, edit_policy=None, proposal_protocol=None):
         from .feedback_conditions import CONDITIONS
         if feedback_condition not in ("rich", *CONDITIONS):
             raise ValueError("unknown developer feedback condition")
@@ -240,6 +249,7 @@ class ProgramDeveloper:
             raise ValueError("controlled developer requires a fixed distinct question/repeat schedule")
         self.model = model
         self.edit_policy = validate_edit_policy(edit_policy)
+        self.proposal_protocol = validate_proposal_protocol(proposal_protocol)
         self.feedback_condition = feedback_condition
         self.case_schedule = [] if feedback_condition == "rich" else deepcopy(case_schedule)
         self.proposal_model_factory = proposal_model_factory
@@ -250,7 +260,8 @@ class ProgramDeveloper:
         return {"feedback_condition": self.feedback_condition,
                 "case_schedule": deepcopy(self.case_schedule),
                 "proposal_model_factory_present": self.proposal_model_factory is not None,
-                **({"edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {})}
+                **({"edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {}),
+                **({"proposal_protocol": deepcopy(self.proposal_protocol)} if self.proposal_protocol is not None else {})}
 
     def prepare_request(self, program, decision, experience, result, tasks):
         """Exact outbound request; private references are deliberately not an argument."""
@@ -284,6 +295,15 @@ class ProgramDeveloper:
                     "examples/answers. The host rejects out-of-scope changes before candidate execution; "
                     "rejections still consume a proposal opportunity. Module intent and observed scope do not "
                     "override this frozen edit policy. Existing development-literal checks remain in force.")
+        if self.proposal_protocol is not None:
+            payload["proposal_protocol"] = deepcopy(self.proposal_protocol)
+            if self.proposal_protocol["format"] == "exact_edits":
+                payload["parent_source_sha256"] = source_identity(program["files"])
+                payload["edit_boundary"] = payload["edit_boundary"].replace(
+                    "Return complete changed files.",
+                    "Return literal edits against the supplied read-only parent. The host constructs a separate candidate. "
+                    "Declare change_status='modified' with concrete edits or 'no_change' with edits=[]. "
+                    "Model claims, source text changes and AST changes are recorded separately.")
         if self.feedback_condition == "rich":
             return _fit_development_request(self.model,payload)
         _strict_developer_size(self.model, payload)
@@ -310,7 +330,9 @@ class ProgramDeveloper:
         elif self.feedback_condition != "rich":
             raise ValueError("controlled proposals require distinct slot model factories")
         output=model.complete("develop",payload)
-        _proposal_files(program,decision,output)
+        # Exact edits are saved raw by the host before validation/materialization.
+        if self.proposal_protocol is None or self.proposal_protocol["format"] == "whole_files":
+            _proposal_files(program,decision,output)
         return output
 
 
@@ -449,6 +471,11 @@ class EvolutionRunner:
         manifest,panels,references=deepcopy((manifest,panels,references))
         self.manifest=manifest; self.panels=panels; self.references=references
         self.developer=developer
+        self.proposal_protocol = validate_proposal_protocol(manifest.get("proposal_protocol"))
+        if "proposal_protocol" in manifest and self.proposal_protocol is None:
+            raise ValueError("explicit proposal_protocol cannot be null")
+        if isinstance(developer, ProgramDeveloper) and developer.proposal_protocol != self.proposal_protocol:
+            raise ValueError("developer proposal protocol differs from frozen manifest")
         self.edit_policy = validate_edit_policy(manifest.get("edit_policy"))
         if "edit_policy" in manifest and self.edit_policy is None:
             raise ValueError("explicit edit_policy cannot be null")
@@ -675,10 +702,13 @@ class EvolutionRunner:
                 **({"active_controls": deepcopy(self.controls),
                     "developer_configuration": self.developer.configuration_snapshot()
                         if isinstance(self.developer, ProgramDeveloper) else None}
-                   if self.controlled_run or self.edit_policy is not None else {}),
-                **({"active_edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {})}
+                   if self.controlled_run or self.edit_policy is not None or self.proposal_protocol is not None else {}),
+                **({"active_edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {}),
+                **({"active_proposal_protocol": deepcopy(self.proposal_protocol)} if self.proposal_protocol is not None else {})}
 
     def _assert_frozen(self):
+        if self.proposal_protocol != validate_proposal_protocol(self.manifest.get("proposal_protocol")):
+            raise ValueError("frozen proposal protocol changed")
         if self.edit_policy != validate_edit_policy(self.manifest.get("edit_policy")):
             raise ValueError("frozen edit policy changed")
         if self.shared_root != self.manifest.get("shared_root"):
@@ -693,6 +723,73 @@ class EvolutionRunner:
         if current!=self._frozen_manifest:
             raise ValueError("frozen run inputs or runtime source changed")
         freeze(self.directory/"manifest.json",current)
+
+    @property
+    def exact_edits(self):
+        return self.proposal_protocol is not None and self.proposal_protocol["format"] == "exact_edits"
+
+    def _proposal_rejection(self, error, received):
+        record = {"reason": str(error), "next_step_allowed": True}
+        if self.exact_edits and received is not None:
+            record["received_proposal_sha256"] = digest(received)
+        return record
+
+    def _materialize_received(self, folder, program, decision, received, *, required=False):
+        if not self.exact_edits:
+            return _proposal_files(program, decision, received)
+        proposed, receipt = materialize_edits(program["files"], received, self.proposal_protocol)
+        observation = {"schema": "rag-rsi-source-change-1",
+            "parent_source_sha256": source_identity(program["files"]),
+            "child_source_sha256": source_identity(proposed),
+            "declared_change_status": received["change_status"],
+            "source_changed": proposed != program["files"], "source_valid": True}
+        try:
+            validate_sources(proposed)
+            observation["ast_changed"] = any(
+                ast.dump(ast.parse(proposed[name]), include_attributes=False) !=
+                ast.dump(ast.parse(program["files"][name]), include_attributes=False) for name in proposed)
+        except (ValueError, SyntaxError):
+            observation.update(source_valid=False, ast_changed=None)
+        observation["passes_source_change_gate"] = (
+            received["change_status"] == "modified" and observation["source_valid"]
+            and observation["ast_changed"] is True)
+        observation["receipt_sha256"] = digest(observation)
+        for name, value in (("materialization.json", receipt), ("change_receipt.json", observation)):
+            path = folder/name
+            if required and not path.is_file():
+                raise RuntimeError("saved proposal lacks its " + name)
+            try:
+                freeze(path, value)
+            except ValueError as error:
+                raise RuntimeError("proposal checkpoint mismatch: " + name) from error
+        return _proposal_files(program, decision, received, self.proposal_protocol)
+
+    def _verify_rejected_materialization(self, folder, program, decision, received, rejected):
+        """Return True only for a revalidated structural/no-change rejection."""
+        if not self.exact_edits:
+            return False
+        checkpoints = [folder/"materialization.json", folder/"change_receipt.json"]
+        if received is None:
+            if any(p.exists() for p in checkpoints) or "received_proposal_sha256" in rejected:
+                raise ValueError("rejected proposal lost its raw input")
+            return False  # Provider-level JSON failure is kept in the request cache.
+        if "received_proposal_sha256" in rejected and rejected["received_proposal_sha256"] != digest(received):
+            raise ValueError("rejected raw proposal changed")
+        try:
+            materialize_edits(program["files"], received, self.proposal_protocol)
+        except ValueError as error:
+            if any(p.exists() for p in checkpoints) or rejected != self._proposal_rejection(error, received):
+                raise ValueError("saved patch rejection is unsupported") from error
+            return True
+        try:
+            self._materialize_received(folder, program, decision, received, required=True)
+        except (ValueError, SyntaxError) as error:
+            if rejected != self._proposal_rejection(error, received):
+                raise ValueError("saved source-change rejection is unsupported") from error
+            return True
+        if "received_proposal_sha256" in rejected:
+            raise ValueError("saved structural rejection no longer matches source")
+        return False  # Existing policy/literal/visited checks must still run.
 
     def _audit_edit_policy(self, folder, program, proposed, *, required=False):
         if self.edit_policy is None:
@@ -811,13 +908,16 @@ class EvolutionRunner:
             if rejected:
                 if proposal is not None or child is not None:
                     raise ValueError("rejected attempt also has a proposal or child receipt")
+                if self._verify_rejected_materialization(folder, program, decision, received, rejected):
+                    self._terminal_attempt(folder, decision, step, "rejected", attempts)
+                    continue
                 if self.edit_policy is not None:
                     if received is None and (rejected.get("reason_code") == "edit_policy_violation"
                                              or (folder/"edit_policy.json").exists()):
                         raise ValueError("policy rejection has no received proposal")
                     if received is not None:
                         try:
-                            proposed = _proposal_files(program, decision, received)
+                            proposed = _proposal_files(program, decision, received, self.proposal_protocol)
                         except (ValueError, SyntaxError):
                             if rejected.get("reason_code") == "edit_policy_violation" or (folder/"edit_policy.json").exists():
                                 raise ValueError("policy receipt cannot cover a malformed proposal")
@@ -833,7 +933,7 @@ class EvolutionRunner:
                 if rejected.get("reason_code")=="fit_literal_match" or (folder/"literal_audit.json").exists():
                     if received is None:
                         raise ValueError("literal rejection has no received proposal")
-                    proposed=_proposal_files(program,decision,received)
+                    proposed=_proposal_files(program,decision,received,self.proposal_protocol)
                     audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
                     if audit["status"]=="reject":
                         if rejected!=_literal_rejection(audit):
@@ -854,10 +954,10 @@ class EvolutionRunner:
                         self._assert_frozen()
                         freeze(folder/"received_proposal.json",received)
                     proposal=received
-                    proposed=_proposal_files(program,decision,proposal)
+                    proposed=self._materialize_received(folder,program,decision,proposal)
                 except (ValueError,SyntaxError) as exc:
                     self._assert_frozen()
-                    save(folder/"rejected.json",{"reason":str(exc),"next_step_allowed":True})
+                    save(folder/"rejected.json",self._proposal_rejection(exc,received))
                     self._terminal_attempt(folder,decision,step,"rejected",attempts)
                     continue
                 policy_receipt = self._audit_edit_policy(folder, program, proposed)
@@ -874,7 +974,9 @@ class EvolutionRunner:
                     save(folder/"rejected.json",{"reason":"previously visited program","next_step_allowed":True})
                     self._terminal_attempt(folder,decision,step,"rejected",attempts)
                     continue
-                proposal={"writes":proposal["writes"],"mechanism":proposal["mechanism"],
+                writes = ({name: source for name, source in proposed.items() if source != program["files"][name]}
+                          if self.exact_edits else proposal["writes"])
+                proposal={"writes":writes,"mechanism":proposal["mechanism"],
                           "intended_target_module":decision["target_module"]}
                 save(folder/"proposal.json",proposal)
             else:
@@ -882,7 +984,7 @@ class EvolutionRunner:
                 proposed=_proposal_files(program,decision,proposal)
                 if received is None:
                     raise ValueError("approved proposal has no received proposal checkpoint")
-                if (_proposal_files(program,decision,received)!=proposed or received["mechanism"]!=proposal["mechanism"]):
+                if (self._materialize_received(folder,program,decision,received,required=True)!=proposed or received["mechanism"]!=proposal["mechanism"]):
                     raise ValueError("approved proposal receipt source differs from received proposal")
                 policy_receipt = self._audit_edit_policy(folder, program, proposed, required=True)
                 if policy_receipt is not None and not policy_receipt["allowed"]:
@@ -953,6 +1055,8 @@ class EvolutionRunner:
         if self.controlled_run:
             report.update(search_controls=deepcopy(self.controls),
                 terminal_proposals=len(attempts), rejected_proposals=sum(a["status"] == "rejected" for a in attempts))
+        if self.proposal_protocol is not None:
+            report["proposal_protocol"] = deepcopy(self.proposal_protocol)
         if self.edit_policy is not None:
             report["edit_policy"] = deepcopy(self.edit_policy)
             report["edit_policy_rejections"] = sum(
