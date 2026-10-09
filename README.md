@@ -2,11 +2,11 @@
 
 基于固定大模型的 RAG 程序自改进系统。LLM 负责问题分解、证据阅读、动态查询、答案综合和程序修改；宿主负责语料访问、预算、隔离执行与独立评分。
 
-**当前尚未证明真实 LLM 改程序能带来稳定收益。** BrowseComp 新16题三臂内部 EM 为 0/32、1/32、1/32，一个检索超时使整体比较无效。零 API 诊断显示三个流程只在 0/2/5 道题见过标注答案文档，证据获取偏弱；窗口和引句传输已修，但阅读与综合仍需分开验证。[当前状态与唯一下一步](docs/CURRENT_STATUS.md) · [证据等级表](docs/EVIDENCE_STATUS.md)
+**最新真实结果：MuSiQue开发24题三条件各两次已完成。** 单轮／循环／完整支持原文的F1为22.22%／32.41%／37.38%；主差+10.19个百分点，95%区间[−4.17,+26.09]，尚不能宣称稳定提升。144结果均通过协议核验，350次真实调用，峰时包络账本约¥1.13。[完整报告与链路图](docs/v3_musique_calibration_result_20261009.md) · [聚合结果](docs/v3_musique_calibration_result_20261009.json)
 
-活动代码在 `codex/v3-feedback-grounding`，`main` 的 `be43a19` 保留历史版本。运行源码 `528825f` 的本地 632 项测试全部通过，含真实 WSL 回归；工程验收不等于模型效果。[机器可读验证](docs/v3_validation_summary.json) · [新16题真实结果](docs/v3_new16_result.md) · [检索及任务诊断](docs/v3_task_recalibration_20261008.md)
+这批题已产生非地板信号，但给足材料仍有拒答；新定位包括规划添加额外约束及答案表达与评分不匹配。下一步检验派生判断如何影响终答。本轮不含修改器，**尚未证明LLM改程序或经验选择有稳定收益**。[当前状态](docs/CURRENT_STATUS.md) · [证据等级](docs/EVIDENCE_STATUS.md)
 
-下一项是已经实现并冻结的 **MuSiQue D_fit 24题、三条件、各两次**校准：比较正常单轮与循环，并用完整支持原文单独诊断。本轮已获明确授权并于 2026-10-09 启动，最多 528 次新调用、新增硬上限 ¥135；没有复用已结束的 BrowseComp 额度。MuSiQue 作为机制开发校准，BrowseComp 保留困难检索与迁移。[执行协议](docs/v3_musique_calibration_protocol.md) · [冻结和验收](docs/v3_musique_calibration_preparation.json)
+活动代码在 `codex/v3-feedback-grounding`，`main` 的 `be43a19` 保留历史版本。运行源码 `528825f` 本地632项测试通过，含真实WSL；工程验收不等于模型效果。MuSiQue作为机制开发校准，BrowseComp保留困难检索和迁移；旧new16的无效结果未回写。[冻结协议](docs/v3_musique_calibration_protocol.md) · [旧检索及任务诊断](docs/v3_task_recalibration_20261008.md)
 
 ## 架构
 

@@ -1,0 +1,434 @@
+{
+  "schema": "musique-calibration-public-summary-1",
+  "date": "2026-10-09",
+  "runtime_commit": "528825f3479d0fea628dd5ef350ab5f094ae299d",
+  "launch_commit": "917b9bc506f91d87fbc7308a43c42fb35fc5d4d9",
+  "plan_hash": "a1539cbaf64512a3ce407e13cc024b8026d92b00cb2b04ae2d8f235259d3c697",
+  "question_count": 24,
+  "known_dependency_groups": 23,
+  "repeats": 2,
+  "outcomes": 144,
+  "status": "local_scored",
+  "quality_comparison_valid": true,
+  "all_execution_outcomes_valid": true,
+  "data_role": "D_fit",
+  "question_use": "used_development",
+  "select_report_measured": false,
+  "official_full_benchmark_result": false,
+  "rsi_improvement_tested": false,
+  "arms": {
+    "loop": {
+      "answer_em": 0.2708333333333333,
+      "answer_f1": 0.32407407407407407,
+      "answer_origin_valid_rate": 1.0,
+      "delivery_rate": 1.0,
+      "diagnostic_count_unit": "answer outcome; repeats are not independent observations",
+      "eligible_outcomes": 48,
+      "evidence_stages": {
+        "final_seen": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.8819444444444445,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "full_support_presented": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.8940972222222222,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "presented": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.8940972222222222,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "quoted": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.8819444444444445,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "retrieval": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.8940972222222222,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        }
+      },
+      "logical_model_calls": 216,
+      "model_reported_counts": {
+        "evidence_conflict": 4,
+        "evidence_gap": 35,
+        "evidence_insufficient": 28,
+        "invalid_quote": 9,
+        "no_evidence_progress": 4,
+        "ungrounded_bridge_entity": 6
+      },
+      "model_reports_are_verified_truth": false,
+      "outcomes": 48,
+      "raw_scores_are_diagnostic_if_ineligible": true,
+      "source_valid_rate": 0.8125,
+      "structural_failure_counts": {
+        "empty_retrieval": 2,
+        "missing_answer_citations": 9
+      },
+      "support_f1": 0.662417328042328,
+      "exact_match_count": 13,
+      "f1_positive_count": 18,
+      "all_support_in_final_count": 31,
+      "all_support_in_final_but_not_em_count": 21,
+      "by_hop": {
+        "2": {
+          "outcomes": 16,
+          "answer_em": 0.375,
+          "answer_f1": 0.5347222222222222
+        },
+        "3": {
+          "outcomes": 16,
+          "answer_em": 0.25,
+          "answer_f1": 0.25
+        },
+        "4": {
+          "outcomes": 16,
+          "answer_em": 0.1875,
+          "answer_f1": 0.1875
+        }
+      }
+    },
+    "planned": {
+      "answer_em": 0.1875,
+      "answer_f1": 0.2222222222222222,
+      "answer_origin_valid_rate": 1.0,
+      "delivery_rate": 1.0,
+      "diagnostic_count_unit": "answer outcome; repeats are not independent observations",
+      "eligible_outcomes": 48,
+      "evidence_stages": {
+        "final_seen": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.578125,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "full_support_presented": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.5850694444444444,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "presented": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.5850694444444444,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "quoted": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.578125,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "retrieval": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.5850694444444444,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        }
+      },
+      "logical_model_calls": 144,
+      "model_reported_counts": {
+        "evidence_conflict": 4,
+        "evidence_gap": 38,
+        "evidence_insufficient": 33,
+        "ungrounded_bridge_entity": 5
+      },
+      "model_reports_are_verified_truth": false,
+      "outcomes": 48,
+      "raw_scores_are_diagnostic_if_ineligible": true,
+      "source_valid_rate": 0.8958333333333334,
+      "structural_failure_counts": {
+        "missing_answer_citations": 5
+      },
+      "support_f1": 0.5819113756613756,
+      "exact_match_count": 9,
+      "f1_positive_count": 13,
+      "all_support_in_final_count": 13,
+      "all_support_in_final_but_not_em_count": 6,
+      "by_hop": {
+        "2": {
+          "outcomes": 16,
+          "answer_em": 0.125,
+          "answer_f1": 0.22916666666666666
+        },
+        "3": {
+          "outcomes": 16,
+          "answer_em": 0.3125,
+          "answer_f1": 0.3125
+        },
+        "4": {
+          "outcomes": 16,
+          "answer_em": 0.125,
+          "answer_f1": 0.125
+        }
+      }
+    },
+    "support": {
+      "answer_em": 0.2708333333333333,
+      "answer_f1": 0.37384259259259256,
+      "answer_origin_valid_rate": 1.0,
+      "delivery_rate": 1.0,
+      "diagnostic_count_unit": "answer outcome; repeats are not independent observations",
+      "eligible_outcomes": 48,
+      "evidence_stages": {
+        "final_seen": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.9809027777777778,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "full_support_presented": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 1.0,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "presented": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 1.0,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "quoted": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 0.9809027777777778,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        },
+        "retrieval": {
+          "all_cells_complete": true,
+          "known_cells": 48,
+          "mean_support_document_recall": 1.0,
+          "successful_subset_analysis": false,
+          "total_cells": 48
+        }
+      },
+      "logical_model_calls": 144,
+      "model_reported_counts": {
+        "evidence_conflict": 4,
+        "evidence_gap": 32,
+        "evidence_insufficient": 24,
+        "ungrounded_bridge_entity": 1
+      },
+      "model_reports_are_verified_truth": false,
+      "outcomes": 48,
+      "raw_scores_are_diagnostic_if_ineligible": true,
+      "source_valid_rate": 0.9791666666666666,
+      "structural_failure_counts": {
+        "missing_answer_citations": 1
+      },
+      "support_f1": 0.8859126984126985,
+      "exact_match_count": 13,
+      "f1_positive_count": 22,
+      "all_support_in_final_count": 45,
+      "all_support_in_final_but_not_em_count": 32,
+      "by_hop": {
+        "2": {
+          "outcomes": 16,
+          "answer_em": 0.3125,
+          "answer_f1": 0.5277777777777778
+        },
+        "3": {
+          "outcomes": 16,
+          "answer_em": 0.25,
+          "answer_f1": 0.3125
+        },
+        "4": {
+          "outcomes": 16,
+          "answer_em": 0.25,
+          "answer_f1": 0.28125
+        }
+      }
+    }
+  },
+  "cost": {
+    "logical_calls_by_arm": {
+      "loop": 216,
+      "planned": 144,
+      "support": 144
+    },
+    "per_arm_physical_cost_attribution": "not_identifiable_with_shared_cache",
+    "physical_calls": 350,
+    "physical_cost_cny": 1.1270807599999992,
+    "repeat_is_independent_unit": false,
+    "request_coupling": "shared_exact_request_per_question_repeat",
+    "same_realized_cost": false
+  },
+  "budget": {
+    "calls": 528,
+    "cny": 135
+  },
+  "request_states": {
+    "settled": 350
+  },
+  "response_models": {
+    "deepseek-flash": 350
+  },
+  "system_fingerprints": {
+    "aeb56401ca74e127821c4f9126dcb669": 350
+  },
+  "primary_comparison": {
+    "baseline": "planned",
+    "candidate": "loop",
+    "cluster_count": 23,
+    "confidence_interval": {
+      "coverage": "approximate_familywise_not_finite_sample_guarantee",
+      "expected_bootstrap_tail_count": 250.00000000000023,
+      "family_confidence_level": 0.95,
+      "lower": -0.041666666666666664,
+      "method": "cluster percentile bootstrap with Bonferroni adjustment",
+      "per_comparison_confidence_level": 0.95,
+      "status": "estimated",
+      "tail_resolution_limited": false,
+      "upper": 0.2608871779388081
+    },
+    "design_sensitivity": {
+      "additional_independent_groups": 89,
+      "assumptions": "independent groups; same cluster-size and residual distribution; normal approximation",
+      "availability": "available",
+      "bonferroni_normal_critical_value": 1.9599639845400536,
+      "linearized_cluster_se": 0.07871496406650579,
+      "mde": 0.22052667977301604,
+      "mde_exceeds_unit_effect_range": false,
+      "power": 0.8,
+      "power_is_guaranteed": false,
+      "required_independent_groups": 112,
+      "status": "pilot_variance_approximation",
+      "target_effect": 0.1
+    },
+    "group_sign_counts": {
+      "negative": 2,
+      "positive": 4,
+      "zero": 17
+    },
+    "mean_delta": 0.10185185185185186,
+    "name": "iteration",
+    "question_sign_counts": {
+      "negative": 2,
+      "positive": 4,
+      "zero": 18
+    },
+    "sample_size": 24
+  },
+  "repeat_diagnostics": {
+    "loop": {
+      "adjacent_exact_match_flip_count": 5,
+      "adjacent_exact_match_flip_rate": 0.20833333333333334,
+      "exact_match_state": "answer_em == 1",
+      "mean_repeat_range": 0.17129629629629628,
+      "mean_repeat_sample_stddev": 0.12112477270325121,
+      "mean_score": 0.32407407407407407,
+      "noise_metric": "answer_f1",
+      "questions_with_repeat_variation": 5,
+      "repeat_count_per_question": 2,
+      "repeats_are_independent_questions": false
+    },
+    "planned": {
+      "adjacent_exact_match_flip_count": 1,
+      "adjacent_exact_match_flip_rate": 0.041666666666666664,
+      "exact_match_state": "answer_em == 1",
+      "mean_repeat_range": 0.041666666666666664,
+      "mean_repeat_sample_stddev": 0.029462782549439483,
+      "mean_score": 0.2222222222222222,
+      "noise_metric": "answer_f1",
+      "questions_with_repeat_variation": 1,
+      "repeat_count_per_question": 2,
+      "repeats_are_independent_questions": false
+    }
+  },
+  "shared_prefix": {
+    "all_successful_prefixes_verified": true,
+    "claim": "request/response identity only; missing/failed prefix is unknown, not a quality zero",
+    "mismatched_pairs": 0,
+    "pair_count": 48,
+    "status": "verified",
+    "unknown_pairs": 0,
+    "verified_pairs": 48
+  },
+  "support_diagnostic": {
+    "all_cells_retained": true,
+    "cell_count": 48,
+    "claim": "Support-label-conditioned reading and synthesis; not a deployable policy or a guaranteed ceiling.",
+    "qualified_material_diagnostic": true,
+    "semantic_sufficiency_verified": false,
+    "status": "observed_full_material",
+    "successful_subset_analysis": false,
+    "used_for_selection": false
+  },
+  "local_hashes": {
+    "generation_freeze.json": "878b833190d8a66cbbb06632fe4d9a9983807ca62aa091e4847c466932d19969",
+    "report.json": "7c8f72ecd8bf5c595894bce9a3596b821cf9d4ca7d942908f6914c8995367ff7",
+    "grading/rows.json": "12c065064abfbddff15b3a716bb8212677b369a93f36cd5714b8bfcbf66294f1",
+    "ledger.jsonl": "83d60146e0be26b01e5678f1391986fe833c718a138b31e9685fd552faedc5b1"
+  },
+  "postrun_diagnostics": {
+    "abstention_rule": "output.strip() == Insufficient information",
+    "counts_by_arm": {
+      "planned": {
+        "abstentions": 33,
+        "non_abstention_em_wrong": 6,
+        "non_abstention_f1_zero": 2,
+        "non_abstention_partial_f1": 4,
+        "read_unique_quotes": 150,
+        "read_quotes_in_final": 150,
+        "repeat_prediction_equal": 23,
+        "repeat_em_equal": 23,
+        "repeat_f1_equal": 23
+      },
+      "loop": {
+        "abstentions": 28,
+        "non_abstention_em_wrong": 7,
+        "non_abstention_f1_zero": 2,
+        "non_abstention_partial_f1": 5,
+        "read_unique_quotes": 272,
+        "read_quotes_in_final": 272,
+        "repeat_prediction_equal": 19,
+        "repeat_em_equal": 19,
+        "repeat_f1_equal": 19
+      },
+      "support": {
+        "abstentions": 24,
+        "non_abstention_em_wrong": 11,
+        "non_abstention_f1_zero": 2,
+        "non_abstention_partial_f1": 9,
+        "read_unique_quotes": 156,
+        "read_quotes_in_final": 156,
+        "repeat_prediction_equal": 22,
+        "repeat_em_equal": 23,
+        "repeat_f1_equal": 22
+      }
+    },
+    "causal_failure_proportions_estimated": false
+  },
+  "independent_audit": {
+    "status": "passed",
+    "files": {
+      "independent_audit.py": "6c3ec3837f70a23a12473842b2b5e3e08734f7535c3edb9fc082d92889640839",
+      "independent_audit.json": "417a215f5237a69e05cbbe2f9b02cb93872951d5d71faedf1083b890b1a18de6"
+    },
+    "human_review_claimed": false
+  }
+}
