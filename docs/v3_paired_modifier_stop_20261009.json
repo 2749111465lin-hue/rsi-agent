@@ -1,0 +1,139 @@
+{
+  "schema": "rag-rsi-paired-trial-interruption-1",
+  "status": "stopped_unknown_provider_outcome",
+  "authorization_received": true,
+  "source_commit": "ef870ab002746d31a8eae2b91dd453006a7f535b",
+  "audit": {
+    "actions": {
+      "credential_reads": 0,
+      "external_api_calls": 0,
+      "scores_used_or_reported": false,
+      "source_run_modified": false
+    },
+    "all_body_bank_request_identities_match_ledger": true,
+    "audit_date": "2026-10-09",
+    "audit_scope": "read_only_local_artifact_and_exception_chain_check_no_quality_assessment",
+    "audit_sha256": "7a3edaf7c988017bc02687489fb27c4611e0f95ddb90255c6060c69c371e49ec",
+    "diagnosis": {
+      "candidate_rejection": false,
+      "fine_grained_network_cause": "not_preserved_worker_returns_exception_class_only",
+      "location": "provider transport during root read request",
+      "logged_transport_error": "URLError",
+      "model_answer_quality_failure": false,
+      "not_evidence_of_modifier_failure": true,
+      "outer_failure": "UnknownProviderOutcome",
+      "provider_execution_or_billing_of_unknown_request": "cannot_determine_from_local_artifacts"
+    },
+    "ledger": {
+      "conservative_used_cny": 0.13808112,
+      "not_provider_invoice": true,
+      "reservations": 38,
+      "responded_requests_usage_cny": 0.10389512,
+      "settled_cost_does_not_resolve_physical_outcome": true,
+      "settlements": 38,
+      "unknown_charged_equal_reserved": true,
+      "unknown_request_reserved_and_charged_cny": 0.034186,
+      "unsettled_reservations": 0
+    },
+    "plan_hash": "78562cc67697fc44221ccc4f15bd899184bf5b853cb7100b2ac2e3b3bac03863",
+    "progress": {
+      "completed_cells_answer_origin_valid": 9,
+      "completed_cells_execution_ok": 9,
+      "completed_cells_identity_and_payload_hashes_valid": true,
+      "completed_root_question_cells": 9,
+      "developer_requests": 0,
+      "feedback_gates": 0,
+      "planned_root_questions_per_block": 12,
+      "root_seals": 0,
+      "terminal_schedule_slots": 0
+    },
+    "records_with_provider_response": 37,
+    "recovery": {
+      "additional_tmp_artifacts_found": 0,
+      "automatic_resume_allowed": false,
+      "failed_response_found_locally": false,
+      "may_resume_without_repurchase_only_if": "The actual original provider response is recovered and its provenance is reconciled to the exact failed physical request. A statement that no execution occurred does not supply a response and cannot justify fabricating a settled cache.",
+      "must_not_delete_or_settle_pending_cache_without_response": true,
+      "otherwise": "Keep this run stopped. Any separately approved replacement attempt is a new physical request with new identity and accounting, not recovery or a zero-score observation.",
+      "preserve_known_cells_and_responses": true,
+      "read_only_guard_result": "UnknownProviderOutcome"
+    },
+    "request_state_counts": {
+      "pending": 1,
+      "settled": 37
+    },
+    "requests_total": 38,
+    "response_stage_counts": {
+      "answer": 9,
+      "plan": 10,
+      "read": 18
+    },
+    "schema": "rag-rsi-paid-stop-audit-1",
+    "source_artifacts": {
+      "ledger_sha256": "b1775919957bf7dd9f818d04a705a6cde20efa81b74de0451772a01bd6e51124",
+      "live_status_sha256": "df53955510c149097e9a214e56ca35f70d12ee425c8ca1c7c06e5f88d3e102a9",
+      "paired_plan_sha256": "78562cc67697fc44221ccc4f15bd899184bf5b853cb7100b2ac2e3b3bac03863",
+      "stderr_sha256": "1082caefe9e7c2065b179e097d1d45386cd24ba2f3dab945d3cc0afb961d784a",
+      "unknown_request_sha256": "f1a2befd31b6ec36d26d730423e219bbe9f86058b4655109693054e58abcbed5"
+    },
+    "source_run": "D:\\Codex\\Projects\\rsi-agent-experience\\runs\\stage_one_paper_20261009\\paired_live",
+    "unknown_request": {
+      "has_provider_response_id": false,
+      "has_response": false,
+      "other_successful_response_stages_in_same_question_bank": {
+        "plan": 1,
+        "read": 1
+      },
+      "paired_block": 0,
+      "paired_condition": "root",
+      "question_ordinal_in_fixed_schedule": 10,
+      "request_key": "3e3cb7b8c99e9003fc3f74dc1a79448f4752badd82d93fa3636bfd3ab9582771",
+      "stage": "read",
+      "state": "pending"
+    }
+  },
+  "connectivity_diagnostic": {
+    "host_reachable_now": true,
+    "http_status": 401,
+    "elapsed_seconds": 0.335,
+    "authenticated": false,
+    "chat_completion_calls": 0,
+    "proves_old_request_outcome": false
+  },
+  "replacement": {
+    "D_select_D_report_used": false,
+    "allowed_replacements": 1,
+    "automatic_retries": false,
+    "cumulative_call_ceiling": 1566,
+    "cumulative_hard_cny": 399,
+    "new_authorization_required": "38 additional physical calls in cumulative ceiling (1528 to 1566), and one fresh replacement attempt after frozen stop",
+    "new_conservative_cny_upper_bound": 398.764544,
+    "new_external_api_calls_for_preparation": 0,
+    "new_hard_cny": 398.86,
+    "new_max_calls": 1528,
+    "old_pending_not_cleared": true,
+    "old_unknown_preserved": true,
+    "only_changed_plan_fields": [
+      "output_dir",
+      "search_template.output_dir",
+      "hard_cny"
+    ],
+    "plan_hash": "6f4a0ff13cbc36827a5820500df99369e7e0a3f7e1c9cf6fabfe8cbcaadf61c5",
+    "previous_calls": 38,
+    "previous_conservative_cny": 0.13808112,
+    "previous_plan_hash": "78562cc67697fc44221ccc4f15bd899184bf5b853cb7100b2ac2e3b3bac03863",
+    "proposal_opportunities": 16,
+    "question_count": 12,
+    "reason": "original root measurement stopped with unknown provider outcome before any proposal",
+    "root_measurements": "fresh for both blocks; no transfer of earlier response or cells",
+    "same_source_model_data_controls_as_previous": true,
+    "schema": "rag-rsi-single-replacement-plan-1",
+    "status": "prepared_not_authorized",
+    "sum_of_local_cost_caps_cny": 398.99808112
+  },
+  "real_llm_program_improvement_verified": false,
+  "official_docs_checked": [
+    "https://api-docs.deepseek.com/quick_start/error_codes/",
+    "https://api-docs.deepseek.com/api/create-chat-completion/"
+  ]
+}

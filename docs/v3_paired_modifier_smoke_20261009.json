@@ -267,5 +267,7 @@
     "root_pseudo_candidates",
     "search_run_and_question_group_statistics",
     "unified_CB_R0_H_measurement"
-  ]
+  ],
+  "preparation_snapshot_preserved": true,
+  "execution_update": "v3_paired_modifier_stop_20261009.json"
 }
