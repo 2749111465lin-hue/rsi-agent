@@ -6,7 +6,7 @@
 
 活动代码在 `codex/v3-feedback-grounding`，`main` 的 `be43a19` 保留历史版本。运行源码 `528825f` 的本地 632 项测试全部通过，含真实 WSL 回归；工程验收不等于模型效果。[机器可读验证](docs/v3_validation_summary.json) · [新16题真实结果](docs/v3_new16_result.md) · [检索及任务诊断](docs/v3_task_recalibration_20261008.md)
 
-下一项是已经实现并冻结的 **MuSiQue D_fit 24题、三条件、各两次**校准：比较正常单轮与循环，并用完整支持原文单独诊断。真实调用尚未开始，等待该新范围授权；没有复用已结束的 BrowseComp 额度。MuSiQue 作为机制开发校准，BrowseComp 保留困难检索与迁移。[执行协议](docs/v3_musique_calibration_protocol.md) · [冻结和验收](docs/v3_musique_calibration_preparation.json)
+下一项是已经实现并冻结的 **MuSiQue D_fit 24题、三条件、各两次**校准：比较正常单轮与循环，并用完整支持原文单独诊断。本轮已获明确授权并于 2026-10-09 启动，最多 528 次新调用、新增硬上限 ¥135；没有复用已结束的 BrowseComp 额度。MuSiQue 作为机制开发校准，BrowseComp 保留困难检索与迁移。[执行协议](docs/v3_musique_calibration_protocol.md) · [冻结和验收](docs/v3_musique_calibration_preparation.json)
 
 ## 架构
 
