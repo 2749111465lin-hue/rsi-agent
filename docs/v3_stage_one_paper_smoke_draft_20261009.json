@@ -81,7 +81,6 @@
   },
   "credentials_read": false,
   "execution_blockers": [
-    "search-only phase with no D_select/D_report reference parsing or execution is not implemented",
     "shared root feedback and independent block bindings must be integrated and verified",
     "complete real outgoing cases/trace requests must pass byte limits without asymmetric truncation",
     "new runtime and source plan hash require freezing after changes",
@@ -239,6 +238,9 @@
       "proposal_slot": 3
     }
   ],
+  "resolved_execution_blockers": [
+    "schema3 explicit search-only phase implemented and validated; see v3_evolution_phases_20261009.json"
+  ],
   "resources": {
     "all_calls_conservative_max": 1696,
     "approved": false,
@@ -262,6 +264,46 @@
     "upper_envelope_cny": 442.385408
   },
   "schema": "rag-rsi-stage-one-paper-smoke-draft-1",
+  "single_search_static_preflight": {
+    "conditions": {
+      "cases": {
+        "conservative_cny_upper_bound": 110.596352,
+        "hard_cny": 110.6,
+        "max_calls": 424,
+        "plan_hash": "147829c3c2e78eccb63faba7aa9b12254ba01dfe3e22d90ebfec0a00280f50f1",
+        "question_counts": {
+          "D_fit": 12
+        },
+        "reference_roles_parsed": [],
+        "status": "ready_for_explicit_execution"
+      },
+      "trace": {
+        "conservative_cny_upper_bound": 110.596352,
+        "hard_cny": 110.6,
+        "max_calls": 424,
+        "plan_hash": "d7e8fe0dc07f0dd2e960986783c8886e2a51433c87463e2d45b65965bbc560c3",
+        "question_counts": {
+          "D_fit": 12
+        },
+        "reference_roles_parsed": [],
+        "status": "ready_for_explicit_execution"
+      }
+    },
+    "credentials_read": false,
+    "execution_directory_created": false,
+    "formal_heldout_panels_bound": false,
+    "new_external_api_calls": 0,
+    "preflight_reference_roles_parsed": [],
+    "private_annotations_read_by_trusted_metadata_preparation": true,
+    "remaining_smoke_blockers": [
+      "paired_block_root_measurement_sharing",
+      "full_outgoing_feedback_size",
+      "paired_block_orchestration_and_total_budget",
+      "new_exact_authorization"
+    ],
+    "schema": "rag-rsi-stage-one-phase-entry-preflight-1",
+    "status": "single_search_static_preflight_only_not_approved_or_paired_ready"
+  },
   "smoke_panel": {
     "case_schedule_sha256": "0984a4a50cdf0a18e46d08082679c385721c570e8d93e997519fa4c4a5ec386a",
     "count": 12,

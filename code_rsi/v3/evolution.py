@@ -7,6 +7,7 @@ from __future__ import annotations
 import ast
 from copy import deepcopy
 import json
+import hashlib
 from pathlib import Path
 from ..archive import ProgramArchive, Conflict
 from ..budget import digest, save, stable
@@ -406,17 +407,71 @@ def _literal_rejection(audit):
             "finding_count":len(audit["findings"]),"next_step_allowed":True}
 
 
+PHASE_SCHEMA = "rag-rsi-evolution-phases-1"
+PHASE_ROLES = {"search": "D_fit", "select": "D_select", "report": "D_report"}
+
+
+def _byte_hash(path):
+    value = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            value.update(block)
+    return value.hexdigest()
+
+
+def _reference_group(ref):
+    group = ref.get("pair_group_id", ref.get("source_question_id"))
+    return None if group is None else str(group)
+
+
 class EvolutionRunner:
-    def __init__(self,directory,manifest,panels,references,model_factory,developer,backend_factory=None,scorer=None):
+    def __init__(self,directory,manifest,panels,references,model_factory,developer,backend_factory=None,scorer=None,*,reference_loader=None):
         self.directory=Path(directory)
         manifest,panels,references=deepcopy((manifest,panels,references))
         self.manifest=manifest; self.panels=panels; self.references=references
         self.developer=developer
-        if set(panels)!={"D_fit","D_select","D_report"} or any(not x for x in panels.values()):
+        self.lifecycle = manifest.get("lifecycle")
+        self.reference_loader = reference_loader
+        self._loaded_reference_hashes = {}
+        self._active_phase = None
+        if self.lifecycle is not None:
+            lc = self.lifecycle
+            if (not isinstance(lc, dict) or set(lc) != {"schema", "phase_order", "reference_bindings", "reference_groups"}
+                    or lc["schema"] != PHASE_SCHEMA
+                    or lc["phase_order"] not in (["search"], ["search", "select", "report"])):
+                raise ValueError("invalid explicit evolution lifecycle")
+            roles = {PHASE_ROLES[phase] for phase in lc["phase_order"]}
+            if (set(panels) != roles or references != {} or not callable(reference_loader)
+                    or not isinstance(lc["reference_bindings"], dict) or set(lc["reference_bindings"]) != roles
+                    or not isinstance(lc["reference_groups"], dict) or set(lc["reference_groups"]) != roles):
+                raise ValueError("staged runs require exact panels, unloaded references and a reference loader")
+            groups = {}
+            for role, tasks in panels.items():
+                binding = lc["reference_bindings"][role]
+                if (not isinstance(binding, dict) or set(binding) != {"path", "sha256"}
+                        or not isinstance(binding["path"], str) or not Path(binding["path"]).is_absolute()
+                        or not isinstance(binding["sha256"], str) or len(binding["sha256"]) != 64
+                        or any(ch not in "0123456789abcdef" for ch in binding["sha256"])):
+                    raise ValueError("references require absolute file and SHA256 bindings")
+                mapping = lc["reference_groups"][role]
+                if not isinstance(mapping, dict) or set(mapping) != {t["question_id"] for t in tasks}:
+                    raise ValueError("exact answer-free reference group metadata required")
+                for task in tasks:
+                    group = mapping[task["question_id"]]
+                    if group is not None:
+                        if not isinstance(group, str) or not group:
+                            raise ValueError("invalid reference group identity")
+                        key = (task["dataset"], group)
+                        if key in groups and groups[key] != role:
+                            raise ValueError("source question group crosses roles")
+                        groups[key] = role
+        elif reference_loader is not None or set(panels) != set(PHASE_ROLES.values()):
             raise ValueError("three nonempty independent panels required")
+        if any(not x for x in panels.values()):
+            raise ValueError("nonempty independent panels required")
         for role,tasks in panels.items():
             validate_task_collection(tasks)
-            if set(references[role])!={t["question_id"] for t in tasks}:
+            if self.lifecycle is None and set(references[role])!={t["question_id"] for t in tasks}:
                 raise ValueError("exact role-scoped reference set required")
         seen={}
         for role,tasks in panels.items():
@@ -454,6 +509,9 @@ class EvolutionRunner:
         elif self.controlled_run and self.controls["feedback"] != "rich":
             raise ValueError("controlled feedback requires the host ProgramDeveloper")
         self._frozen_manifest=deepcopy(self._snapshot())
+        if self.lifecycle is not None and self._frozen_manifest["private_reference_file_hashes"] != {
+                r: b["sha256"] for r, b in self.lifecycle["reference_bindings"].items()}:
+            raise ValueError("frozen reference file bytes changed")
         freeze(self.directory/"manifest.json",self._frozen_manifest)
         self.archive=ProgramArchive(self.directory/"archive")
         self.measure=Measurement(self.archive,self.directory/"measurements",model_factory,backend_factory,
@@ -463,7 +521,11 @@ class EvolutionRunner:
     def _snapshot(self):
         return {**deepcopy(self.manifest),
                 "public_panel_hashes":{r:digest(ts) for r,ts in self.panels.items()},
-                "private_reference_hashes":{r:digest(ref) for r,ref in self.references.items()},
+                **({"private_reference_file_hashes": {
+                    role: _byte_hash(binding["path"])
+                    for role, binding in self.lifecycle["reference_bindings"].items()}}
+                   if self.lifecycle is not None else
+                   {"private_reference_hashes":{r:digest(ref) for r,ref in self.references.items()}}),
                 "runtime_source_hashes":_runtime_source_hashes(),
                 **({"active_controls": deepcopy(self.controls),
                     "developer_configuration": self.developer.configuration_snapshot()
@@ -471,6 +533,10 @@ class EvolutionRunner:
                    if self.controlled_run else {})}
 
     def _assert_frozen(self):
+        if self.lifecycle != self.manifest.get("lifecycle"):
+            raise ValueError("frozen lifecycle changed")
+        if self.lifecycle is not None and {r: digest(ref) for r, ref in self.references.items()} != self._loaded_reference_hashes:
+            raise ValueError("loaded reference content changed outside phase loader")
         current=self._snapshot()
         if current!=self._frozen_manifest:
             raise ValueError("frozen run inputs or runtime source changed")
@@ -478,6 +544,8 @@ class EvolutionRunner:
 
     def _measure(self,node,role):
         self._assert_frozen()
+        if self.lifecycle is not None and (self._active_phase is None or PHASE_ROLES[self._active_phase] != role):
+            raise ValueError("measurement role differs from active phase")
         result=self.measure.run(node,deepcopy(self.panels[role]),deepcopy(self.references[role]),
                     role=role,bank="common",repeats=self.manifest.get("repeats",1))
         self._assert_frozen()
@@ -541,7 +609,7 @@ class EvolutionRunner:
         freeze(folder/"literal_audit.json",audit)
         return audit
 
-    def run(self):
+    def _run_search(self):
         self._assert_frozen()
         files=root_files(self.manifest.get("root_config")); validate_sources(files)
         self._assert_frozen()
@@ -644,6 +712,9 @@ class EvolutionRunner:
         # One immutable search freeze, one selection, one report. No shadow judging.
         freeze(self.directory/"search_frozen.json",{"cards":cards,"order":[c["node_id"] for c in cards],
             **({"terminal_attempts": attempts, "controls": self.controls} if self.controlled_run else {})})
+        return root, cards, attempts
+
+    def _run_select(self, root, cards):
         valid=[c for c in cards if c["valid_program"]]
         candidates=[root["node_id"]]
         for card in sorted(valid,key=lambda c:-c["score"]):
@@ -658,7 +729,10 @@ class EvolutionRunner:
         lock={"node_id":winner["node_id"],"program_id":winner["program_id"],
               "selection_score":winner["score"],"candidate_ids":candidates,"tie_rule":"reference then creation order"}
         freeze(self.directory/"delivery_lock.json",lock)
-        delivered=self._measure(self.archive.load_node(winner["node_id"]),"D_report")
+        return lock
+
+    def _run_report(self, root, cards, attempts, lock):
+        delivered=self._measure(self.archive.load_node(lock["node_id"]),"D_report")
         reference=self._measure(root,"D_report")
         delivered_eligible=delivered.get("complete") is True and delivered.get("valid_program") is True
         reference_eligible=reference.get("complete") is True and reference.get("valid_program") is True
@@ -685,3 +759,159 @@ class EvolutionRunner:
                 terminal_proposals=len(attempts), rejected_proposals=sum(a["status"] == "rejected" for a in attempts))
         save(self.directory/"report.json",report)
         return report
+
+    def run(self):
+        """Legacy complete lifecycle, preserving v1/v2 receipts and cache banks."""
+        if self.lifecycle is not None:
+            raise ValueError("staged lifecycle requires explicit run_phase; automatic full run is forbidden")
+        root, cards, attempts = self._run_search()
+        lock = self._run_select(root, cards)
+        return self._run_report(root, cards, attempts, lock)
+
+    def _load_phase_reference(self, phase):
+        role = PHASE_ROLES[phase]
+        self._assert_frozen()
+        if role in self.references:
+            return
+        binding = self.lifecycle["reference_bindings"][role]
+        raw = Path(binding["path"]).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != binding["sha256"]:
+            raise ValueError("frozen reference bytes changed before unlock")
+        refs = deepcopy(self.reference_loader(role))
+        if refs != json.loads(raw):
+            raise ValueError("reference loader differs from frozen file")
+        tasks = self.panels[role]
+        if not isinstance(refs, dict) or set(refs) != {t["question_id"] for t in tasks}:
+            raise ValueError("exact role-scoped reference set required")
+        for task in tasks:
+            qid = task["question_id"]
+            ref = refs[qid]
+            if (not isinstance(ref, dict) or ref.get("question_id") != qid
+                    or ref.get("dataset") != task["dataset"] or ref.get("reference_available") is not True
+                    or not isinstance(ref.get("answers"), list) or not ref["answers"]
+                    or any(not isinstance(a, str) or not a.strip() for a in ref["answers"])
+                    or ref.get("answerable") is False):
+                raise ValueError("complete available answer references required")
+            if _reference_group(ref) != self.lifecycle["reference_groups"][role][qid]:
+                raise ValueError("reference group differs from frozen answer-free metadata")
+        self.references[role] = refs
+        self._loaded_reference_hashes[role] = digest(refs)
+        self._assert_frozen()
+
+    def _tree_inventory(self, name):
+        return sorted(p.relative_to(self.directory).as_posix()
+                      for p in (self.directory/name).rglob("*.json") if p.is_file())
+
+    def _seal_phase(self, phase, result):
+        paths = {"manifest.json", "root.json", "search_frozen.json"}
+        for name in ("archive", "steps", "measurements"):
+            paths.update(self._tree_inventory(name))
+        for previous in self.lifecycle["phase_order"][:self.lifecycle["phase_order"].index(phase)]:
+            paths.add(f"phase_{previous}.json")
+        if phase in ("select", "report"):
+            paths.add("delivery_lock.json")
+        if phase == "report":
+            paths.add("report.json")
+        seal = {"schema": PHASE_SCHEMA, "phase": phase,
+                "manifest_hash": digest(self._frozen_manifest), "result": deepcopy(result),
+                "measurement_files": self._tree_inventory("measurements"),
+                "artifacts": {p: _byte_hash(self.directory/p) for p in sorted(paths)},
+                "immutable_trees": {n: self._tree_inventory(n) for n in ("archive", "steps")}}
+        seal["seal_hash"] = digest(seal)
+        freeze(self.directory/f"phase_{phase}.json", seal)
+        return result
+
+    def _verify_phase(self, phase):
+        seal = read(self.directory/f"phase_{phase}.json")
+        if (not isinstance(seal, dict) or set(seal) != {"schema", "phase", "manifest_hash", "result", "artifacts", "immutable_trees", "measurement_files", "seal_hash"}
+                or seal["seal_hash"] != digest({k: v for k, v in seal.items() if k != "seal_hash"})
+                or seal["schema"] != PHASE_SCHEMA or seal["phase"] != phase
+                or seal["manifest_hash"] != digest(self._frozen_manifest)
+                or not isinstance(seal["artifacts"], dict)
+                or seal["immutable_trees"] != {n: self._tree_inventory(n) for n in ("archive", "steps")}):
+            raise ValueError("missing or invalid frozen phase receipt: " + phase)
+        required = {"manifest.json", "root.json", "search_frozen.json"}
+        if phase in ("select", "report"):
+            required.add("delivery_lock.json")
+        if phase == "report":
+            required.add("report.json")
+        required.update(p for paths in seal["immutable_trees"].values() for p in paths)
+        if (not isinstance(seal["measurement_files"], list) or not seal["measurement_files"]
+                or any(not isinstance(p, str) or not p.startswith("measurements/")
+                       or not p.endswith(".json") for p in seal["measurement_files"])):
+            raise ValueError("frozen phase requires its measurement inventory")
+        required.update(seal["measurement_files"])
+        required.update(f"phase_{previous}.json" for previous in
+                        self.lifecycle["phase_order"][:self.lifecycle["phase_order"].index(phase)])
+        if not required <= set(seal["artifacts"]):
+            raise ValueError("frozen phase receipt omits required artifacts")
+        for name, expected in seal["artifacts"].items():
+            path = self.directory/name
+            if (not isinstance(name, str) or Path(name).is_absolute() or ".." in Path(name).parts
+                    or not path.is_file() or _byte_hash(path) != expected):
+                raise ValueError("frozen phase artifact changed: " + str(name))
+        search = read(self.directory/"search_frozen.json")
+        root = read(self.directory/"root.json")
+        if (not isinstance(search, dict) or not search.get("cards")
+                or search.get("order") != [c["node_id"] for c in search["cards"]]
+                or search["order"][0] != root["node_id"]):
+            raise ValueError("invalid frozen search order")
+        _validate_receipt(self.archive, root, root_files(self.manifest.get("root_config")), {},
+                          session_id="v3-root", attempt=0)
+        for card in search["cards"]:
+            node = self.archive.load_node(card["node_id"])
+            self.archive.load_program(node["program_id"])
+            if node["program_id"] != card["program_id"]:
+                raise ValueError("frozen card differs from archived program")
+        if phase == "search":
+            expected_result = {"schema": "rag-rsi-v3-search-phase-1", "status": "search_frozen", "search": search}
+        elif phase == "select":
+            lock = read(self.directory/"delivery_lock.json")
+            if lock["node_id"] not in search["order"] or lock["node_id"] not in lock["candidate_ids"]:
+                raise ValueError("delivery lock outside frozen candidates")
+            expected_result = {"schema": "rag-rsi-v3-select-phase-1", "status": "delivery_locked", "delivery_lock": lock}
+        else:
+            expected_result = read(self.directory/"report.json")
+            if expected_result.get("delivery_lock") != read(self.directory/"delivery_lock.json"):
+                raise ValueError("report differs from frozen delivery lock")
+        if seal["result"] != expected_result:
+            raise ValueError("frozen phase result differs from its artifacts")
+        return deepcopy(seal["result"])
+
+    def check_phase(self, phase):
+        """Validate predecessors without parsing any private answer references."""
+        self._assert_frozen()
+        if self.lifecycle is None or phase not in self.lifecycle["phase_order"]:
+            raise ValueError("phase is outside frozen lifecycle")
+        for previous in self.lifecycle["phase_order"][:self.lifecycle["phase_order"].index(phase)]:
+            self._verify_phase(previous)
+        if (self.directory/f"phase_{phase}.json").exists():
+            return self._verify_phase(phase)
+        return None
+
+    def run_phase(self, phase):
+        complete = self.check_phase(phase)
+        if complete is not None:
+            return complete
+        self._load_phase_reference(phase)
+        # A loader cannot alter the predecessor checkpoint and then dispatch.
+        self.check_phase(phase)
+        self._active_phase = phase
+        try:
+            if phase == "search":
+                self._run_search()
+                result = {"schema": "rag-rsi-v3-search-phase-1", "status": "search_frozen",
+                          "search": read(self.directory/"search_frozen.json")}
+            else:
+                root = read(self.directory/"root.json")
+                search = read(self.directory/"search_frozen.json")
+                if phase == "select":
+                    result = {"schema": "rag-rsi-v3-select-phase-1", "status": "delivery_locked",
+                              "delivery_lock": self._run_select(root, search["cards"])}
+                else:
+                    result = self._run_report(root, search["cards"], search.get("terminal_attempts", []),
+                                              read(self.directory/"delivery_lock.json"))
+            self._assert_frozen()
+            return self._seal_phase(phase, result)
+        finally:
+            self._active_phase = None

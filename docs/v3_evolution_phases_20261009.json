@@ -1,0 +1,116 @@
+{
+  "base_commit": "565f88a",
+  "branch": "codex/v3-experience-ablation",
+  "credentials_read": false,
+  "date": "2026-10-09",
+  "heldout_model_exposure_added": false,
+  "limitations": [
+    "engineering_evidence_not_real_modifier_gain",
+    "phase_receipts_are_not_cryptographic_signatures",
+    "reference_file_hashing_reads_bytes_without_parsing",
+    "metadata_preparation_reads_used_development_references_locally",
+    "paired_block_root_sharing_and_outgoing_size_still_pending",
+    "new_paid_experiment_not_authorized"
+  ],
+  "new_external_api_calls": 0,
+  "real_llm_improvement_verified": false,
+  "real_wsl_scripted_demonstrations": {
+    "core": {
+      "all_answer_origins_valid": true,
+      "all_execution_ok": true,
+      "completed_resume_additional_unlocks": 0,
+      "completed_resume_results_identical": true,
+      "credentials_read": false,
+      "external_api_calls": 0,
+      "manifest_hash": "386d6a80eba8f5aebcba90f13e9b88c1a90f884b96f2239a7ef12fb049464f13",
+      "phase_unlocks": [
+        "D_fit",
+        "D_select",
+        "D_report"
+      ],
+      "quality_evidence": false,
+      "real_wsl_measurements": 6,
+      "report_used_for_decisions": false,
+      "schema": "rag-rsi-phase-wsl-validation-1",
+      "synthetic": true
+    },
+    "live_entry": {
+      "all_answer_origins_valid": true,
+      "all_execution_ok": true,
+      "credentials_read": false,
+      "external_api_calls": 0,
+      "plan_hash": "34032b547f06c396da27772def7c81b5be1f548066e3dfdafe1985234cf4b1c2",
+      "quality_evidence": false,
+      "real_wsl_measurements": 5,
+      "report_used_for_decisions": false,
+      "resume_new_calls": 0,
+      "resume_new_transport": 0,
+      "schema": "rag-rsi-live-phase-wsl-validation-1",
+      "scripted_model_calls_by_phase": {
+        "report": 2,
+        "search": 7,
+        "select": 6
+      },
+      "synthetic": true
+    }
+  },
+  "schema": "rag-rsi-evolution-phases-validation-1",
+  "scope": "phase_one_paper_P4_stage_split_only",
+  "source_sha256": {
+    "code_rsi/live_evolution.py": "942f20b407084a7ffd237254ada46ae9c90383f21612def390073edf4fcb0f9c",
+    "code_rsi/v3/evolution.py": "2f569c157941f6514b931d1cfcedf38d5e1a070354f0f4615a8ed0653520ffa9",
+    "test_v3_evolution_phases.py": "89d653d5df4168384a24a3da102d35cbebc88abbfbd70915c7462ea9dbd89ab5",
+    "test_v3_live_phases.py": "533ff8ce4b98631715d251e6558644ef3b107efee30527c56e97a73381cd755f"
+  },
+  "tests": {
+    "command": "python -B -m unittest discover -s . -p test_*.py -v",
+    "log_sha256": "16bf916d3fac24c29b91edb5d5c9ce0d36d97f1d00291b13330671891dbebce5",
+    "new_core_phase_tests": 24,
+    "new_live_phase_tests": 16,
+    "passed": 893,
+    "ran": 894,
+    "seconds": 179.226,
+    "skipped": 1,
+    "skipped_reason": "explicit real-WSL regression"
+  },
+  "used12_static_preflight": {
+    "conditions": {
+      "cases": {
+        "conservative_cny_upper_bound": 110.596352,
+        "hard_cny": 110.6,
+        "max_calls": 424,
+        "plan_hash": "147829c3c2e78eccb63faba7aa9b12254ba01dfe3e22d90ebfec0a00280f50f1",
+        "question_counts": {
+          "D_fit": 12
+        },
+        "reference_roles_parsed": [],
+        "status": "ready_for_explicit_execution"
+      },
+      "trace": {
+        "conservative_cny_upper_bound": 110.596352,
+        "hard_cny": 110.6,
+        "max_calls": 424,
+        "plan_hash": "d7e8fe0dc07f0dd2e960986783c8886e2a51433c87463e2d45b65965bbc560c3",
+        "question_counts": {
+          "D_fit": 12
+        },
+        "reference_roles_parsed": [],
+        "status": "ready_for_explicit_execution"
+      }
+    },
+    "credentials_read": false,
+    "execution_directory_created": false,
+    "formal_heldout_panels_bound": false,
+    "new_external_api_calls": 0,
+    "preflight_reference_roles_parsed": [],
+    "private_annotations_read_by_trusted_metadata_preparation": true,
+    "remaining_smoke_blockers": [
+      "paired_block_root_measurement_sharing",
+      "full_outgoing_feedback_size",
+      "paired_block_orchestration_and_total_budget",
+      "new_exact_authorization"
+    ],
+    "schema": "rag-rsi-stage-one-phase-entry-preflight-1",
+    "status": "single_search_static_preflight_only_not_approved_or_paired_ready"
+  }
+}
