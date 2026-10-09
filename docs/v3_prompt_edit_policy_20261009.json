@@ -1,0 +1,53 @@
+{
+  "schema": "rag-rsi-prompt-edit-validation-1",
+  "status": "engineering_validation_passed",
+  "branch": "codex/v3-paper-controls",
+  "separate_worktree_preserves_real_trial": true,
+  "real_trial_runtime_commit": "ef870ab002746d31a8eae2b91dd453006a7f535b",
+  "source_files_sha256": {
+    "code_rsi/v3/edit_policy.py": "72b45361d703da61f413663b6257a31a9fb0e03831634683f58ec188969f7221",
+    "code_rsi/v3/evolution.py": "4f2ca4e4ebe52026c032466f2cd83e51b0452c1381908dc568099d62d91e9a77",
+    "code_rsi/live_evolution.py": "3574fa04369b30c4bcc09884196dc04e54a48d4df271827c5f45d6eb373f0dd2",
+    "test_v3_edit_policy.py": "00e6cdb04cb1db32e9f2ae472b82772742e21de81a39739fac73c0c6ecd23b9e",
+    "test_v3_edit_policy_entry.py": "86c43fbed5f450045ad16e4f1848b47ff51a1f7a536cfe5005e5d66e853411ab"
+  },
+  "unit_policy_tests": 21,
+  "new_entry_tests": 24,
+  "entry_and_compatibility_targeted_tests": 60,
+  "targeted_status": "passed",
+  "wsl": {
+    "all_execution_and_origins_valid": true,
+    "allowed_candidates": 1,
+    "completed_phase_resume_new_calls": 0,
+    "credentials_read": false,
+    "formal_data_used": false,
+    "new_external_api_calls": 0,
+    "plan_hash": "f6f2c71b88d619e06cda41169b0898930fe84f485e4b6ffdf0e1890835977d53",
+    "policy_rejections": 1,
+    "proposal_opportunities": 2,
+    "real_llm_improvement_verified": false,
+    "real_wsl_measurements": 6,
+    "schema": "rag-rsi-edit-policy-wsl-validation-1",
+    "schema4_phases": [
+      "search",
+      "select",
+      "report"
+    ],
+    "scripted_provider_calls": 11,
+    "synthetic": true
+  },
+  "full_regression": {
+    "status": "passed",
+    "tests_run": 973,
+    "passed": 972,
+    "skipped": 1,
+    "seconds": 838.846,
+    "skip_reason": "explicit real-WSL regression",
+    "log_sha256": "290a0b99a935698becb65859568d0de4e2861775464acb555275f5709cd22b3d",
+    "separate_real_wsl_validation_completed": true
+  },
+  "engineering_validation_external_model_calls": 0,
+  "engineering_validation_credential_reads": 0,
+  "quality_gain_verified": false,
+  "full_dual_loop_completed": false
+}

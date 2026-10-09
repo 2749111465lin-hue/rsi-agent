@@ -16,6 +16,7 @@ from .execution import Measurement, root_files, validate_sources
 from .experience_policy import DEFAULT_MODULES, choose_next, memory_for_action
 from .diagnostics import compact_feedback
 from .edit_scope import observe_edit_scope, validated_scope
+from .edit_policy import validate_edit_policy, check_edit_policy
 from .fit_literal_audit import audit_fit_literals
 
 
@@ -222,7 +223,7 @@ def _match_developer_models(projected, actual, payload):
 
 class ProgramDeveloper:
     def __init__(self, model, *, feedback_condition="rich", case_schedule=None,
-                 proposal_model_factory=None):
+                 proposal_model_factory=None, edit_policy=None):
         from .feedback_conditions import CONDITIONS
         if feedback_condition not in ("rich", *CONDITIONS):
             raise ValueError("unknown developer feedback condition")
@@ -238,6 +239,7 @@ class ProgramDeveloper:
               or len({item["question_id"] for item in case_schedule}) != len(case_schedule)):
             raise ValueError("controlled developer requires a fixed distinct question/repeat schedule")
         self.model = model
+        self.edit_policy = validate_edit_policy(edit_policy)
         self.feedback_condition = feedback_condition
         self.case_schedule = [] if feedback_condition == "rich" else deepcopy(case_schedule)
         self.proposal_model_factory = proposal_model_factory
@@ -247,7 +249,8 @@ class ProgramDeveloper:
     def configuration_snapshot(self):
         return {"feedback_condition": self.feedback_condition,
                 "case_schedule": deepcopy(self.case_schedule),
-                "proposal_model_factory_present": self.proposal_model_factory is not None}
+                "proposal_model_factory_present": self.proposal_model_factory is not None,
+                **({"edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {})}
 
     def prepare_request(self, program, decision, experience, result, tasks):
         """Exact outbound request; private references are deliberately not an argument."""
@@ -271,6 +274,16 @@ class ProgramDeveloper:
                 "retain whole-program scores but cannot supply a single-module gain. Scope associations are not causal. "
                 "The host rejects newly embedded development-question literals and sufficiently specific strings "
                 "from feedback already shown; keep fixes reusable rather than task-specific lookup code.")}
+        if self.edit_policy is not None:
+            payload["edit_policy"] = deepcopy(self.edit_policy)
+            if self.edit_policy["mode"] == "prompt_only":
+                payload["edit_boundary"] = (
+                    "Only change literal strings at rag.py CONFIG.prompts for the stages listed in edit_policy. "
+                    "Return complete changed files. Keep rag_core.py byte-identical; keep every other configuration "
+                    "value and wrapper code unchanged. Do not add functions, imports, calls, data, or hardcoded "
+                    "examples/answers. The host rejects out-of-scope changes before candidate execution; "
+                    "rejections still consume a proposal opportunity. Module intent and observed scope do not "
+                    "override this frozen edit policy. Existing development-literal checks remain in force.")
         if self.feedback_condition == "rich":
             return _fit_development_request(self.model,payload)
         _strict_developer_size(self.model, payload)
@@ -407,6 +420,12 @@ def _literal_rejection(audit):
             "finding_count":len(audit["findings"]),"next_step_allowed":True}
 
 
+def _edit_policy_rejection(receipt):
+    return {"reason": "proposal violates frozen edit policy", "reason_code": "edit_policy_violation",
+            "edit_policy_receipt_sha256": receipt["receipt_sha256"],
+            "violations": deepcopy(receipt["reason_codes"]), "next_step_allowed": True}
+
+
 PHASE_SCHEMA = "rag-rsi-evolution-phases-1"
 PHASE_ROLES = {"search": "D_fit", "select": "D_select", "report": "D_report"}
 
@@ -430,6 +449,11 @@ class EvolutionRunner:
         manifest,panels,references=deepcopy((manifest,panels,references))
         self.manifest=manifest; self.panels=panels; self.references=references
         self.developer=developer
+        self.edit_policy = validate_edit_policy(manifest.get("edit_policy"))
+        if "edit_policy" in manifest and self.edit_policy is None:
+            raise ValueError("explicit edit_policy cannot be null")
+        if isinstance(developer, ProgramDeveloper) and developer.edit_policy != self.edit_policy:
+            raise ValueError("developer edit policy differs from frozen manifest")
         self.lifecycle = manifest.get("lifecycle")
         self.reference_loader = reference_loader
         self._loaded_reference_hashes = {}
@@ -651,9 +675,12 @@ class EvolutionRunner:
                 **({"active_controls": deepcopy(self.controls),
                     "developer_configuration": self.developer.configuration_snapshot()
                         if isinstance(self.developer, ProgramDeveloper) else None}
-                   if self.controlled_run else {})}
+                   if self.controlled_run or self.edit_policy is not None else {}),
+                **({"active_edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {})}
 
     def _assert_frozen(self):
+        if self.edit_policy != validate_edit_policy(self.manifest.get("edit_policy")):
+            raise ValueError("frozen edit policy changed")
         if self.shared_root != self.manifest.get("shared_root"):
             raise ValueError("shared root binding changed")
         if self.shared_root is not None:
@@ -666,6 +693,16 @@ class EvolutionRunner:
         if current!=self._frozen_manifest:
             raise ValueError("frozen run inputs or runtime source changed")
         freeze(self.directory/"manifest.json",current)
+
+    def _audit_edit_policy(self, folder, program, proposed, *, required=False):
+        if self.edit_policy is None:
+            return None
+        path = folder / "edit_policy.json"
+        if required and not path.is_file():
+            raise ValueError("saved proposal lacks its edit policy receipt")
+        receipt = check_edit_policy(program["files"], proposed, self.edit_policy)
+        freeze(path, receipt)
+        return receipt
 
     def _measure(self,node,role):
         self._assert_frozen()
@@ -774,6 +811,25 @@ class EvolutionRunner:
             if rejected:
                 if proposal is not None or child is not None:
                     raise ValueError("rejected attempt also has a proposal or child receipt")
+                if self.edit_policy is not None:
+                    if received is None and (rejected.get("reason_code") == "edit_policy_violation"
+                                             or (folder/"edit_policy.json").exists()):
+                        raise ValueError("policy rejection has no received proposal")
+                    if received is not None:
+                        try:
+                            proposed = _proposal_files(program, decision, received)
+                        except (ValueError, SyntaxError):
+                            if rejected.get("reason_code") == "edit_policy_violation" or (folder/"edit_policy.json").exists():
+                                raise ValueError("policy receipt cannot cover a malformed proposal")
+                        else:
+                            receipt = self._audit_edit_policy(folder, program, proposed, required=True)
+                            if not receipt["allowed"]:
+                                if rejected != _edit_policy_rejection(receipt):
+                                    raise ValueError("saved policy rejection differs from observed source")
+                                self._terminal_attempt(folder, decision, step, "rejected", attempts)
+                                continue
+                            if rejected.get("reason_code") == "edit_policy_violation":
+                                raise ValueError("saved policy rejection is not supported")
                 if rejected.get("reason_code")=="fit_literal_match" or (folder/"literal_audit.json").exists():
                     if received is None:
                         raise ValueError("literal rejection has no received proposal")
@@ -804,6 +860,11 @@ class EvolutionRunner:
                     save(folder/"rejected.json",{"reason":str(exc),"next_step_allowed":True})
                     self._terminal_attempt(folder,decision,step,"rejected",attempts)
                     continue
+                policy_receipt = self._audit_edit_policy(folder, program, proposed)
+                if policy_receipt is not None and not policy_receipt["allowed"]:
+                    freeze(folder/"rejected.json", _edit_policy_rejection(policy_receipt))
+                    self._terminal_attempt(folder,decision,step,"rejected",attempts)
+                    continue
                 audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
                 if audit["status"]=="reject":
                     freeze(folder/"rejected.json",_literal_rejection(audit))
@@ -823,6 +884,9 @@ class EvolutionRunner:
                     raise ValueError("approved proposal has no received proposal checkpoint")
                 if (_proposal_files(program,decision,received)!=proposed or received["mechanism"]!=proposal["mechanism"]):
                     raise ValueError("approved proposal receipt source differs from received proposal")
+                policy_receipt = self._audit_edit_policy(folder, program, proposed, required=True)
+                if policy_receipt is not None and not policy_receipt["allowed"]:
+                    raise ValueError("saved accepted proposal violates frozen edit policy")
                 audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
                 if audit["status"]=="reject":
                     raise ValueError("saved accepted proposal fails current literal audit")
@@ -889,6 +953,11 @@ class EvolutionRunner:
         if self.controlled_run:
             report.update(search_controls=deepcopy(self.controls),
                 terminal_proposals=len(attempts), rejected_proposals=sum(a["status"] == "rejected" for a in attempts))
+        if self.edit_policy is not None:
+            report["edit_policy"] = deepcopy(self.edit_policy)
+            report["edit_policy_rejections"] = sum(
+                (read(self.directory/"steps"/str(i)/"rejected.json") or {}).get("reason_code") == "edit_policy_violation"
+                for i in range(self.manifest["expansions"]))
         save(self.directory/"report.json",report)
         return report
 

@@ -33,7 +33,7 @@
 | 修改器与归档 | ProgramDeveloper、EvolutionRunner、live_evolution、隔离、恢复、实际AST归因已存在 | 复用，不重建优化系统 |
 | cases/trace反馈 | 固定案例日程与嵌套白名单已实现 | 当前限制固定根/固定模块/无记忆，连续改进尚不支持 |
 | 搜索阶段独立执行 | schema3已支持显式search/select/report；参考按阶段解析；旧入口语义保留 | 本项已完成工程验收；[实现与验证](v3_evolution_phases_20261009.md)，共享根、交错提案和统一预算编排已实现；真实试跑待新增授权 |
-| 仅提示词 | 有事后归因，无事前编辑限制 | 新增明确edit_policy，不能以模块标签代替约束 |
+| 仅提示词 | 已实现显式edit_policy事前范围检查、出站政策绑定与恢复复验 | schema4工程验收见[报告](v3_prompt_edit_policy_20261009.md)；正式质量比较未执行 |
 | 根伪候选 | 正常去重会拒绝相同源码，普通测量bank会共享相同请求 | 独立对照类型与bank，正常去重不放松 |
 | 完整搜索重复统计 | 已有题组/回答重复分析，没有搜索运行层 | 正式结果前补齐；五次搜索不是五倍独立题目 |
 | 当前付费状态 | 本轮0新API、未读凭据；之前授权对应已完成实验 | 新16提案范围未获授权；配对静态预检已通过，真实根测量后还需联合验收两臂完整请求大小 |
@@ -99,7 +99,7 @@ H只叫人工设计参照；不把其设计归为修改器发现，不预先称�
 |---|---|---|---|
 | 1 | `v3/evolution.py:544`、`live_evolution.py:109,327` | 拆search→freeze→select→report；旧run保留兼容入口；搜索只解析D_fit，保留角色只绑定哈希 | 搜索结束不会读/测保留角色；恢复不重购；后续阶段验证前序冻结 |
 | 2 | `v3/evolution.py:387`、`feedback_conditions.py:98` | 新控制版本允许cases/trace与冻结非经验选父规则、固定模块轮换、none记忆共存 | 相同父测量时共同字段一致；父程序分化时案例日程/反馈规则仍同；无先验从旁路回流 |
-| 3 | `v3/evolution.py:87,267`、`edit_scope.py` | 新edit_policy：prompt_only只许预声明CONFIG.prompts字符串；其他AST/配置不变；program模式保留 | 越界执行前拒收且计机会；实际AST归因继续记录，不冒充编辑限制 |
+| 3 | `v3/edit_policy.py`、`v3/evolution.py`、`live_evolution.py` | 已实现prompt_only只许预声明CONFIG.prompts字符串；program模式保留；live schema4显式冻结 | 新静态与入口测试、6次WSL测量通过；[验收](v3_prompt_edit_policy_20261009.md)，完整回归见机器摘要 |
 | 4 | `v3/evolution.py:479,613` | 根伪候选独立测量身份和bank；普通演化去重不动 | 根相同源码可作为显式null控制独立测量，并经历同样选择和报告；不靠普通缓存假装重复 |
 | 5 | `paired_analysis.py`与运行汇总 | 区分search_repeat与answer_repeat，绑定每次交付锁与共同题组 | 不把题×回答×搜索当独立N；保留所有运行和负收益，跨运行区间与逐运行结果同时报告 |
 | 辅助 | `calibration.py`、`closed_book.py` | 接入CB/R0/H的适当开发/最终参照，不另建运行器 | 完整前缀共享、终答身份明确、空引用记不适用、每角色完整生成后评分 |
