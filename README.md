@@ -2,11 +2,11 @@
 
 基于固定大模型的 RAG 程序自改进系统。LLM 负责问题分解、证据阅读、动态查询、答案综合和程序修改；宿主负责语料访问、预算、隔离执行与独立评分。
 
-**最新真实结果：MuSiQue开发24题三条件各两次已完成。** 单轮／循环／完整支持原文的F1为22.22%／32.41%／37.38%；主差+10.19个百分点，95%区间[−4.17,+26.09]，尚不能宣称稳定提升。144结果均通过协议核验，350次真实调用，峰时包络账本约¥1.13。[完整报告与链路图](docs/v3_musique_calibration_result_20261009.md) · [聚合结果](docs/v3_musique_calibration_result_20261009.json)
+**最新真实结果：24题固定证据终答对照已完成，96次新调用，账本¥0.07725。** 删除中间派生判断后，F1为44.68%→55.56%，EM为16/48→25/48；F1差的95%区间为[−9.95,+30.56]个百分点。非拒答F1零从2增到3，未满足预注册推进条件，因此不部署整块删除。[完整报告与链路图](docs/v3_answer_probe_result_20261009.md) · [聚合与独立复算](docs/v3_answer_probe_result_20261009.json)
 
-这批题已产生非地板信号，但给足材料仍有拒答；新定位包括规划添加额外约束及答案表达与评分不匹配。终答派生判断对照已实现并通过真实WSL脚本演示；24状态、96次新终答、费用硬帽¥2，尚未启动真实测量。[本轮协议](docs/v3_answer_probe_protocol_20261009.md)。本轮不含修改器，**尚未证明LLM改程序或经验选择有稳定收益**。[当前状态](docs/CURRENT_STATUS.md) · [证据等级](docs/EVIDENCE_STATUS.md)
+本轮固定原问题与历史支持引句，只改终答输入；改善与退步并存，不能称正常检索端到端或独立任务提升。此前三条件校准已出现非地板信号，循环平均F1提高但区间跨零。[前轮结果](docs/v3_musique_calibration_result_20261009.md)。**LLM改程序与经验选择有无稳定收益，仍未验证。** [当前状态](docs/CURRENT_STATUS.md) · [证据等级](docs/EVIDENCE_STATUS.md)
 
-活动代码在 `codex/v3-feedback-grounding`，`main` 的 `be43a19` 保留历史版本。运行源码 `528825f` 本地632项测试通过，含真实WSL；工程验收不等于模型效果。MuSiQue作为机制开发校准，BrowseComp保留困难检索和迁移；旧new16的无效结果未回写。[冻结协议](docs/v3_musique_calibration_protocol.md) · [旧检索及任务诊断](docs/v3_task_recalibration_20261008.md)
+真实实验与原冻结源码在 `codex/v3-feedback-grounding`，本开发分支 `codex/v3-experience-ablation` 已接入反馈分层、提案机会覆盖及机制记忆开关。全套750项中749通过、1项跳过；另有5次真实WSL脚本执行与恢复验证通过，外部API为0。这是工程证据，不能作为真实演化收益。[实现与验收](docs/v3_experience_controls_20261009.md)。`main` 的 `be43a19` 为历史版本；MuSiQue保持机制开发校准，BrowseComp保留困难检索和迁移。
 
 ## 架构
 

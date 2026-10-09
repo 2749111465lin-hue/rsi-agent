@@ -12,7 +12,7 @@ from ..archive import ProgramArchive, Conflict
 from ..budget import digest, save, stable
 from .datasets import validate_task_collection
 from .execution import Measurement, root_files, validate_sources
-from .experience_policy import choose_next, memory_for_action
+from .experience_policy import DEFAULT_MODULES, choose_next, memory_for_action
 from .diagnostics import compact_feedback
 from .edit_scope import observe_edit_scope, validated_scope
 from .fit_literal_audit import audit_fit_literals
@@ -175,28 +175,127 @@ def _fit_development_request(model, payload):
     raise ValueError("full source and required development feedback exceed the complete request budget")
 
 
+def _controlled_developer_decision(decision):
+    from .diagnostics import MODULES
+    if (not isinstance(decision, dict) or decision.get("operator") not in ("Draft", "Improve", "Debug")
+            or decision.get("target_module") not in MODULES):
+        raise ValueError("controlled development requires a declared operator and target module")
+    target = decision["target_module"]
+    intended = decision.get("intended_target_module", target)
+    if intended != target:
+        raise ValueError("controlled development target and intended target differ")
+    return {"operator": decision["operator"], "target_module": target,
+            "intended_target_module": intended}
+
+
+def _strict_developer_size(model, payload, *, required=False):
+    size = getattr(model, "request_size", None)
+    limit = getattr(model, "max_input_bytes", None)
+    identity = getattr(model, "identity", None)
+    if size is None and limit is None and identity is None and not required:
+        return None  # Pure scripted preparation; never a paid-dispatch exemption.
+    if (not callable(size) or type(limit) is not int or limit <= 0
+            or (required and (not isinstance(identity, str) or not identity))):
+        raise ValueError("controlled development needs an exact model request-size contract")
+    measured = size("develop", payload)
+    if type(measured) is not int or measured < 0:
+        raise ValueError("invalid complete development request size")
+    if measured > limit:
+        raise ValueError("complete controlled development request exceeds budget; no cases are cropped")
+    return measured
+
+
+def _match_developer_models(projected, actual, payload):
+    projected_size = _strict_developer_size(projected, payload, required=True)
+    actual_size = _strict_developer_size(actual, payload, required=True)
+    if (projected.identity != actual.identity
+            or projected.max_input_bytes != actual.max_input_bytes
+            or projected_size != actual_size):
+        raise ValueError("proposal model differs from the frozen projection contract")
+    left, right = getattr(projected, "request_body", None), getattr(actual, "request_body", None)
+    if callable(left) and callable(right) and digest(left("develop", payload)) != digest(right("develop", payload)):
+        raise ValueError("proposal provider body differs from its projection")
+    if not callable(getattr(actual, "complete", None)):
+        raise ValueError("proposal model must implement complete")
+
+
 class ProgramDeveloper:
-    def __init__(self, model):
-        self.model=model
+    def __init__(self, model, *, feedback_condition="rich", case_schedule=None,
+                 proposal_model_factory=None):
+        from .feedback_conditions import CONDITIONS
+        if feedback_condition not in ("rich", *CONDITIONS):
+            raise ValueError("unknown developer feedback condition")
+        if proposal_model_factory is not None and not callable(proposal_model_factory):
+            raise ValueError("proposal_model_factory must be callable")
+        if feedback_condition == "rich":
+            if case_schedule is not None and case_schedule != []:
+                raise ValueError("rich feedback uses its existing case selection")
+        elif (not isinstance(case_schedule, list) or not 1 <= len(case_schedule) <= 16
+              or any(not isinstance(item, dict) or set(item) != {"question_id", "repeat"}
+                     or not isinstance(item["question_id"], str) or not item["question_id"]
+                     or type(item["repeat"]) is not int or item["repeat"] < 0 for item in case_schedule)
+              or len({item["question_id"] for item in case_schedule}) != len(case_schedule)):
+            raise ValueError("controlled developer requires a fixed distinct question/repeat schedule")
+        self.model = model
+        self.feedback_condition = feedback_condition
+        self.case_schedule = [] if feedback_condition == "rich" else deepcopy(case_schedule)
+        self.proposal_model_factory = proposal_model_factory
+        self._proposal_models = {}
+        self._proposal_payloads = {}
+
+    def configuration_snapshot(self):
+        return {"feedback_condition": self.feedback_condition,
+                "case_schedule": deepcopy(self.case_schedule),
+                "proposal_model_factory_present": self.proposal_model_factory is not None}
 
     def prepare_request(self, program, decision, experience, result, tasks):
         """Exact outbound request; private references are deliberately not an argument."""
         if result["role"]!="D_fit":
             raise ValueError("developer receives D_fit only")
-        feedback=compact_feedback(result,tasks,max_cases=4)
-        payload={"source_files":program["files"],"decision":decision,
-             "experience":experience,"feedback":feedback,
+        if self.feedback_condition == "rich":
+            feedback = compact_feedback(result,tasks,max_cases=4)
+            outbound_decision, outbound_experience = decision, experience
+            if "proposal_slot" in decision:
+                outbound_decision = {key: value for key, value in decision.items() if key != "proposal_slot"}
+        else:
+            from .feedback_conditions import controlled_feedback
+            feedback = controlled_feedback(result, tasks, condition=self.feedback_condition,
+                                           case_schedule=self.case_schedule)
+            outbound_decision, outbound_experience = _controlled_developer_decision(decision), []
+        payload={"source_files":program["files"],"decision":outbound_decision,
+             "experience":outbound_experience,"feedback":feedback,
              "edit_boundary":("Change reusable behavior; do not embed examples/answers. Return complete changed files. "
                 "intended_target_module (legacy target_module) declares intent only. General refactors are allowed. "
                 "The host separately records actual AST scopes and intent mismatches; mixed or unknown edits "
                 "retain whole-program scores but cannot supply a single-module gain. Scope associations are not causal. "
                 "The host rejects newly embedded development-question literals and sufficiently specific strings "
                 "from feedback already shown; keep fixes reusable rather than task-specific lookup code.")}
-        return _fit_development_request(self.model,payload)
+        if self.feedback_condition == "rich":
+            return _fit_development_request(self.model,payload)
+        _strict_developer_size(self.model, payload)
+        return payload
 
     def propose(self, program, decision, experience, result, tasks, references):
         payload=self.prepare_request(program,decision,experience,result,tasks)
-        output=self.model.complete("develop",payload)
+        model = self.model
+        if self.proposal_model_factory is not None:
+            slot = decision.get("proposal_slot")
+            if type(slot) is not int or slot < 0:
+                raise ValueError("proposal factory requires a nonnegative integer proposal_slot")
+            # The slot identifies a host cache bank, never experimental feedback.
+            payload = deepcopy(payload)
+            payload["decision"].pop("proposal_slot", None)
+            payload_hash = digest(payload)
+            if slot in self._proposal_payloads and self._proposal_payloads[slot] != payload_hash:
+                raise ValueError("a proposal slot cannot resume with a different request")
+            if slot not in self._proposal_models:
+                self._proposal_models[slot] = self.proposal_model_factory(slot)
+            model = self._proposal_models[slot]
+            _match_developer_models(self.model, model, payload)
+            self._proposal_payloads[slot] = payload_hash
+        elif self.feedback_condition != "rich":
+            raise ValueError("controlled proposals require distinct slot model factories")
+        output=model.complete("develop",payload)
         _proposal_files(program,decision,output)
         return output
 
@@ -252,6 +351,55 @@ def experience_card(result, parent, *, operator, module, step, mechanism, edit_s
            "proxy_added_to_terminal_quality":False}}
 
 
+CONTROL_FIELDS = {"parent_policy", "module_policy", "fixed_module", "memory", "feedback", "case_schedule"}
+LEGACY_CONTROLS = {"parent_policy": "adaptive", "module_policy": "legacy", "fixed_module": None,
+                   "memory": "legacy", "feedback": "rich", "case_schedule": []}
+
+
+def validate_controls(controls, tasks, repeats, *, allow_legacy=False):
+    """Freeze distinct experimental factors; controlled feedback uses one fixed parent."""
+    if controls is None and allow_legacy:
+        return deepcopy(LEGACY_CONTROLS)
+    if not isinstance(controls, dict) or set(controls) != CONTROL_FIELDS:
+        raise ValueError("exact evolution controls required")
+    c = deepcopy(controls)
+    if (c["parent_policy"] not in ("adaptive", "fixed_root")
+            or c["module_policy"] not in ("legacy", "round_robin_v1", "experience_coverage_v1", "fixed")
+            or c["memory"] not in ("legacy", "none", "mechanism")
+            or c["feedback"] not in ("rich", "aggregate", "cases", "trace")):
+        raise ValueError("unsupported evolution control")
+    if not allow_legacy and (c["module_policy"] == "legacy" or c["memory"] == "legacy"):
+        raise ValueError("new controls cannot silently select legacy behavior")
+    if c["module_policy"] == "fixed":
+        if c["fixed_module"] not in DEFAULT_MODULES:
+            raise ValueError("fixed module must name an available RAG module")
+    elif c["fixed_module"] is not None:
+        raise ValueError("fixed_module requires fixed module policy")
+    if c["parent_policy"] == "fixed_root" and c["module_policy"] != "fixed":
+        raise ValueError("fixed_root currently requires fixed module policy")
+    schedule = c["case_schedule"]
+    if not isinstance(schedule, list):
+        raise ValueError("case schedule must be a frozen list")
+    if c["feedback"] == "rich":
+        if schedule:
+            raise ValueError("rich feedback uses its existing case selection, not case_schedule")
+    else:
+        if (c["parent_policy"], c["module_policy"], c["memory"]) != ("fixed_root", "fixed", "none"):
+            raise ValueError("controlled feedback requires fixed root, fixed module and no memory")
+        if type(repeats) is not int or repeats < 1 or not 1 <= len(schedule) <= 16:
+            raise ValueError("bounded case schedule and repeat count required")
+        qids = {t["question_id"] for t in tasks}
+        seen = set()
+        for item in schedule:
+            if (not isinstance(item, dict) or set(item) != {"question_id", "repeat"}
+                    or not isinstance(item["question_id"], str) or item["question_id"] not in qids
+                    or item["question_id"] in seen or type(item["repeat"]) is not int
+                    or not 0 <= item["repeat"] < repeats):
+                raise ValueError("case schedule must contain distinct D_fit questions and available repeats")
+            seen.add(item["question_id"])
+    return c
+
+
 def _literal_rejection(audit):
     return {"reason":"new development-specific code literals", "reason_code":"fit_literal_match",
             "audit_sha256":digest(audit),"findings":deepcopy(audit["findings"][:8]),
@@ -294,6 +442,17 @@ class EvolutionRunner:
             raise ValueError("explicit supported metric or external scorer required")
         if any(t["dataset"]=="browsecomp-plus" for ts in panels.values() for t in ts) and scorer is None and not manifest.get("allow_proxy_metric"):
             raise ValueError("BCP official judge required, or explicitly label proxy metric")
+        self.controlled_run = "controls" in manifest
+        self.controls = validate_controls(manifest.get("controls"), panels["D_fit"],
+            manifest.get("repeats", 1), allow_legacy=not self.controlled_run)
+        if self.controlled_run and isinstance(developer, ProgramDeveloper):
+            configuration = developer.configuration_snapshot()
+            if (configuration["feedback_condition"] != self.controls["feedback"]
+                    or configuration["case_schedule"] != self.controls["case_schedule"]
+                    or not configuration["proposal_model_factory_present"]):
+                raise ValueError("developer configuration differs from frozen controls or independent proposal banks")
+        elif self.controlled_run and self.controls["feedback"] != "rich":
+            raise ValueError("controlled feedback requires the host ProgramDeveloper")
         self._frozen_manifest=deepcopy(self._snapshot())
         freeze(self.directory/"manifest.json",self._frozen_manifest)
         self.archive=ProgramArchive(self.directory/"archive")
@@ -305,7 +464,11 @@ class EvolutionRunner:
         return {**deepcopy(self.manifest),
                 "public_panel_hashes":{r:digest(ts) for r,ts in self.panels.items()},
                 "private_reference_hashes":{r:digest(ref) for r,ref in self.references.items()},
-                "runtime_source_hashes":_runtime_source_hashes()}
+                "runtime_source_hashes":_runtime_source_hashes(),
+                **({"active_controls": deepcopy(self.controls),
+                    "developer_configuration": self.developer.configuration_snapshot()
+                        if isinstance(self.developer, ProgramDeveloper) else None}
+                   if self.controlled_run else {})}
 
     def _assert_frozen(self):
         current=self._snapshot()
@@ -320,12 +483,56 @@ class EvolutionRunner:
         self._assert_frozen()
         return result
 
+    def _memory(self, cards, decision):
+        if self.controls["memory"] == "none":
+            return []
+        return memory_for_action(cards, decision, include_mechanism=self.controls["memory"] == "mechanism")
+
+    def _decision(self, cards, root, baseline, step, attempts):
+        c = self.controls
+        if c["parent_policy"] == "fixed_root":
+            if not cards[0]["valid_program"]:
+                raise ValueError("fixed-parent feedback experiment requires an eligible root")
+            d = {"parent_node_id": root["node_id"], "operator": "Improve",
+                 "target_module": c["fixed_module"], "intended_target_module": c["fixed_module"],
+                 "reason": "pre_registered_fixed_parent_and_module", "experience_ids": [],
+                 "panel_hash": baseline["panel_hash"], "evaluator_epoch": self.measure.epoch,
+                 "role": "D_fit", "diagnostics": {"module_policy": "fixed", "causal_claim": False}}
+        else:
+            d = choose_next(cards, step=step, panel_hash=baseline["panel_hash"],
+                evaluator_epoch=self.measure.epoch,
+                module_policy="legacy" if c["module_policy"] == "fixed" else c["module_policy"],
+                attempt_history=attempts if self.controlled_run else None)
+            if d["parent_node_id"] is None:
+                d["parent_node_id"] = root["node_id"]
+            if c["module_policy"] == "fixed":
+                d.update(target_module=c["fixed_module"], intended_target_module=c["fixed_module"])
+                d["reason"] = d["reason"].split(";")[0] + "; pre_registered_fixed_module"
+                d["diagnostics"]["module_policy"] = "fixed"
+        if self.controlled_run:
+            d["proposal_slot"] = step
+            d["experience_ids"] = [row["node_id"] for row in self._memory(cards, d)]
+        return d
+
+    def _terminal_attempt(self, folder, decision, step, status, attempts, node_id=None):
+        if not self.controlled_run:
+            return
+        record = {"attempt_id": digest({"panel": decision["panel_hash"],
+                    "epoch": decision["evaluator_epoch"], "step": step}),
+                  "step": step, "role": "D_fit", "panel_hash": decision["panel_hash"],
+                  "evaluator_epoch": decision["evaluator_epoch"],
+                  "parent_node_id": decision["parent_node_id"],
+                  "intended_target_module": decision["target_module"],
+                  "status": status, "node_id": node_id}
+        freeze(folder/"attempt.json", record)
+        attempts.append(record)
+
     def _audit_literals(self, folder, program, proposed, decision, cards, development_result):
         public=[{"question_id":t["question_id"],"question":t["question"]} for t in self.panels["D_fit"]]
         feedback=None
         if isinstance(self.developer,ProgramDeveloper):
             payload=self.developer.prepare_request(deepcopy(program),deepcopy(decision),
-                memory_for_action(cards,decision),deepcopy(development_result),deepcopy(self.panels["D_fit"]))
+                self._memory(cards,decision),deepcopy(development_result),deepcopy(self.panels["D_fit"]))
             feedback=payload["feedback"]
         # Local receipt only; never includes private answers or select/report questions.
         context={"schema":"rag-rsi-v3-literal-context-1","public_tasks":public,"exposed_feedback":feedback}
@@ -344,14 +551,12 @@ class EvolutionRunner:
             save(self.directory/"root.json",root)
         else:
             root=_validate_receipt(self.archive,root,files,{},session_id="v3-root",attempt=0)
-        results={}; cards=[]
+        results={}; cards=[]; attempts=[]
         baseline=self._measure(root,"D_fit"); results[root["node_id"]]=baseline
         cards.append(experience_card(baseline,None,operator="Draft",module="retrieval",step=0,mechanism="frozen root"))
         for step in range(self.manifest["expansions"]):
             folder=self.directory/"steps"/str(step)
-            decision=choose_next(cards,step=step,panel_hash=baseline["panel_hash"],evaluator_epoch=self.measure.epoch)
-            if decision["parent_node_id"] is None:
-                decision["parent_node_id"]=root["node_id"]
+            decision=self._decision(cards,root,baseline,step,attempts)
             decision["recent_rejections"]=[r for i in range(max(0,step-4),step)
                       if (r:=read(self.directory/"steps"/str(i)/"rejected.json"))]
             decision["recent_edit_scopes"]=[{"node_id":c["node_id"],
@@ -381,6 +586,7 @@ class EvolutionRunner:
                     elif (rejected!={"reason":"previously visited program","next_step_allowed":True}
                           or not any(self.archive.load_program(c["program_id"])["files"]==proposed for c in cards)):
                         raise ValueError("saved rejection is not supported by literal audit or visited source")
+                self._terminal_attempt(folder,decision,step,"rejected",attempts)
                 continue
             if proposal is None:
                 if child is not None:
@@ -388,7 +594,7 @@ class EvolutionRunner:
                 try:
                     if received is None:
                         received=deepcopy(self.developer.propose(deepcopy(program),deepcopy(decision),
-                          memory_for_action(cards,decision),deepcopy(development_result),
+                          self._memory(cards,decision),deepcopy(development_result),
                           deepcopy(self.panels["D_fit"]),deepcopy(self.references["D_fit"])))
                         self._assert_frozen()
                         freeze(folder/"received_proposal.json",received)
@@ -397,13 +603,16 @@ class EvolutionRunner:
                 except (ValueError,SyntaxError) as exc:
                     self._assert_frozen()
                     save(folder/"rejected.json",{"reason":str(exc),"next_step_allowed":True})
+                    self._terminal_attempt(folder,decision,step,"rejected",attempts)
                     continue
                 audit=self._audit_literals(folder,program,proposed,decision,cards,development_result)
                 if audit["status"]=="reject":
                     freeze(folder/"rejected.json",_literal_rejection(audit))
+                    self._terminal_attempt(folder,decision,step,"rejected",attempts)
                     continue
                 if any(self.archive.load_program(c["program_id"])["files"]==proposed for c in cards):
                     save(folder/"rejected.json",{"reason":"previously visited program","next_step_allowed":True})
+                    self._terminal_attempt(folder,decision,step,"rejected",attempts)
                     continue
                 proposal={"writes":proposal["writes"],"mechanism":proposal["mechanism"],
                           "intended_target_module":decision["target_module"]}
@@ -431,8 +640,10 @@ class EvolutionRunner:
             measured=self._measure(child,"D_fit"); results[child["node_id"]]=measured
             card=experience_card(measured,results[parent["node_id"]],operator=decision["operator"],module=decision["target_module"],step=step+1,mechanism=proposal["mechanism"],edit_scope=scope)
             cards.append(card); freeze(folder/"experience.json",card)
+            self._terminal_attempt(folder,decision,step,"measured",attempts,child["node_id"])
         # One immutable search freeze, one selection, one report. No shadow judging.
-        freeze(self.directory/"search_frozen.json",{"cards":cards,"order":[c["node_id"] for c in cards]})
+        freeze(self.directory/"search_frozen.json",{"cards":cards,"order":[c["node_id"] for c in cards],
+            **({"terminal_attempts": attempts, "controls": self.controls} if self.controlled_run else {})})
         valid=[c for c in cards if c["valid_program"]]
         candidates=[root["node_id"]]
         for card in sorted(valid,key=lambda c:-c["score"]):
@@ -469,5 +680,8 @@ class EvolutionRunner:
             "synthetic":bool(self.manifest.get("synthetic",False)),
             "quality_claim":("invalid_protocol_no_quality_claim" if not quality_valid else
                 "engineering_fixture_only" if self.manifest.get("synthetic") else "estimate_on_frozen_report_panel")}
+        if self.controlled_run:
+            report.update(search_controls=deepcopy(self.controls),
+                terminal_proposals=len(attempts), rejected_proposals=sum(a["status"] == "rejected" for a in attempts))
         save(self.directory/"report.json",report)
         return report

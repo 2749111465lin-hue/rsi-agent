@@ -7,8 +7,10 @@ Answer quality determines the incumbent. Module utility uses signed, identity-
 matched parent/child answer gains, a descriptive small-sample/dispersion penalty,
 observed failure frequency and same-unit measured cost. Retrieval proxies never
 enter quality or gain. Missing costs are conservatively imputed, never free.
-Every fourth step explores an unmeasured module; every fifth nonzero step may
-expand an underexplored alternative parent. An empty history rotates by step.
+Legacy mode keeps the original schedule. The explicit coverage policy counts
+terminal proposal opportunities separately from measured single-module gains;
+round-robin is its deterministic control. Parent selection is unchanged, and
+Debug is a declared shared exception to module coverage.
 No random state, model calls, disk access or sealed split access is used.
 """
 from __future__ import annotations
@@ -30,6 +32,9 @@ FIT_ROLES = frozenset(("D_fit", "fit"))
 FAILURE_STATUSES = frozenset(("failed", "error", "invalid", "execution_failed"))
 COST_KEYS = ("cny", "usd", "seconds", "calls", "model_invocations", "tokens")
 POLICY_VERSION = "rag-rsi-v3-experience-3"
+MODULE_POLICIES = ("legacy", "round_robin_v1", "experience_coverage_v1")
+ATTEMPT_FIELDS = frozenset(("attempt_id", "step", "role", "panel_hash", "evaluator_epoch",
+                            "parent_node_id", "intended_target_module", "status", "node_id"))
 
 
 def _number(value: Any) -> float | None:
@@ -186,9 +191,83 @@ def _debug_hint(card: Mapping[str, Any], modules: tuple[str, ...]) -> str | None
     return None
 
 
+
+def _attempts(history, legal, *, step, panel_hash, evaluator_epoch, modules):
+    """Count host terminal proposal opportunities separately from measured gains.
+
+    Rejected proposals never become nodes. Duplicate replay of the same receipt
+    has no extra weight; conflicting identities fail closed. The fallback uses
+    the runner convention that child card.step equals proposal step plus one.
+    """
+    by_id = {card["node_id"]: card for card in legal}
+    origin = "explicit_terminal_history"
+    if history is None:
+        origin = "derived_measured_children"
+        history = []
+        for card in legal:
+            parents = _parents(card)
+            if not parents:
+                continue
+            intended = card.get("intended_target_module", card.get("target_module"))
+            child_step = card.get("step")
+            if (type(child_step) is not int or child_step < 1 or intended not in modules
+                    or any(parent not in by_id for parent in parents)):
+                raise ValueError("cannot derive an unambiguous terminal proposal opportunity")
+            history.append({"attempt_id": "measured/" + card["node_id"], "step": child_step - 1,
+                "role": "D_fit", "panel_hash": panel_hash, "evaluator_epoch": evaluator_epoch,
+                "parent_node_id": parents[0], "intended_target_module": intended,
+                "status": "measured", "node_id": card["node_id"]})
+    if isinstance(history, (str, bytes, Mapping)):
+        raise ValueError("attempt_history must be a sequence of host terminal receipts")
+    try:
+        history = list(history)
+    except TypeError as error:
+        raise ValueError("attempt_history must be iterable") from error
+    unique, steps, duplicates = {}, {}, 0
+    for row in history:
+        if (not isinstance(row, Mapping) or set(row) != ATTEMPT_FIELDS
+                or not isinstance(row["attempt_id"], str) or not row["attempt_id"]
+                or type(row["step"]) is not int or not 0 <= row["step"] < step
+                or row["role"] != "D_fit" or row["panel_hash"] != panel_hash
+                or row["evaluator_epoch"] != evaluator_epoch
+                or not isinstance(row["parent_node_id"], str) or row["parent_node_id"] not in by_id
+                or row["intended_target_module"] not in modules
+                or row["status"] not in ("rejected", "measured")):
+            raise ValueError("invalid, foreign, nonterminal or future attempt receipt")
+        if row["status"] == "rejected":
+            if row["node_id"] is not None:
+                raise ValueError("rejected proposal cannot claim an evaluated node")
+        else:
+            if not isinstance(row["node_id"], str) or row["node_id"] not in by_id:
+                raise ValueError("measured attempt requires a real admitted child")
+            child = by_id[row["node_id"]]
+            if (row["parent_node_id"] not in _parents(child)
+                    or type(child.get("step")) is not int or child["step"] != row["step"] + 1
+                    or child.get("intended_target_module", child.get("target_module")) != row["intended_target_module"]):
+                raise ValueError("attempt intent, parent or step differs from measured child")
+        identity = row["attempt_id"]
+        if identity in unique:
+            if unique[identity] != dict(row):
+                raise ValueError("conflicting terminal attempt identity")
+            duplicates += 1
+            continue
+        if row["step"] in steps:
+            raise ValueError("multiple terminal attempts occupy one proposal step")
+        unique[identity] = dict(row)
+        steps[row["step"]] = identity
+    counts = Counter(row["intended_target_module"] for row in unique.values())
+    return {module: counts[module] for module in modules}, {
+        "source": origin, "terminal_attempts": len(unique), "duplicate_replays": duplicates,
+        "rejected_attempts": sum(row["status"] == "rejected" for row in unique.values()),
+        "measured_attempts": sum(row["status"] == "measured" for row in unique.values()),
+        "opportunities_are_not_gain_samples": True,
+    }
+
+
 def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
                 panel_hash: str, evaluator_epoch: str,
-                allowed_modules: Iterable[str] | None = None) -> dict:
+                allowed_modules: Iterable[str] | None = None,
+                module_policy: str = "legacy", attempt_history=None) -> dict:
     """Choose Draft, Debug or Improve, then a module, using legal fit evidence.
 
     Cards need role, panel_hash, evaluator_epoch, node_id, host complete/valid flags
@@ -196,14 +275,26 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
     For module learning, include host actual_edit_scope and parent_node_ids.
     Legacy declarations may select parents but never supply module gain samples.
     Old cards missing evaluator_epoch are rejected rather than silently reused.
+    New experiment manifests must explicitly choose module_policy. Terminal
+    attempt_history contains rejected or measured opportunities, never pending
+    requests; None can derive only measured-child opportunities. Coverage applies
+    to requested modules, not to actual edit scope or causal module effects.
     """
     if isinstance(step, bool) or not isinstance(step, int) or step < 0:
         raise ValueError("step must be a non-negative integer")
     if not isinstance(panel_hash, str) or not panel_hash or not isinstance(evaluator_epoch, str) or not evaluator_epoch:
         raise ValueError("non-empty panel_hash and evaluator_epoch are required")
+    if module_policy not in MODULE_POLICIES:
+        raise ValueError("unknown module policy")
     modules = _modules(allowed_modules)
     legal, rejected = _admit(cards, panel_hash, evaluator_epoch)
     by_id = {c["node_id"]: c for c in legal}
+    if module_policy != "legacy" or attempt_history is not None:
+        opportunity_counts, attempt_summary = _attempts(attempt_history, legal, step=step,
+            panel_hash=panel_hash, evaluator_epoch=evaluator_epoch, modules=modules)
+    else:
+        opportunity_counts = {module: 0 for module in modules}
+        attempt_summary = {"source": "legacy_not_used", "opportunities_are_not_gain_samples": True}
     measured = [c for c in legal if _score(c) is not None]
     # Successful descendants resolve failed ancestors, including chains of repairs.
     resolved = set()
@@ -289,6 +380,24 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
     debug_hint = _debug_hint(parent, modules) if parent and operator == "Debug" else None
     if debug_hint:
         target, module_reason = debug_hint, "failed_module_requires_repair"
+    elif module_policy == "round_robin_v1":
+        target, module_reason = modules[step % len(modules)], "deterministic_round_robin_module"
+    elif module_policy == "experience_coverage_v1":
+        untried = [m for m in modules if opportunity_counts[m] == 0]
+        if untried:
+            target = diagnostic_choice(untried, step)
+            module_reason = "terminal_opportunity_cold_start_coverage"
+        elif not known:
+            least = min(opportunity_counts.values())
+            target = diagnostic_choice([m for m in modules if opportunity_counts[m] == least], step)
+            module_reason = "least_opportunity_without_attributable_gain"
+        elif unknown and (step % 4 == 0 or max(stats[m]["mean_signed_gain"] for m in known) <= 0):
+            least = min(opportunity_counts[m] for m in unknown)
+            target = diagnostic_choice([m for m in unknown if opportunity_counts[m] == least], step // 4)
+            module_reason = "least_opportunity_unmeasured_module_exploration"
+        else:
+            target = max(known, key=lambda m: (stats[m]["utility"], -modules.index(m)))
+            module_reason = "matched_failure_signed_gain_uncertainty_and_cost"
     elif not known:
         target = diagnostic_choice(modules,step)
         module_reason = "observed_failure_cold_start_prior" if priors else "deterministic_cold_start_rotation"
@@ -305,7 +414,12 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
         "experience_ids": [],
         "panel_hash": panel_hash, "evaluator_epoch": evaluator_epoch, "role": "D_fit",
         "diagnostics": {
-            "policy_version": POLICY_VERSION, "step": step, "accepted_cards": len(legal),
+            "policy_version": POLICY_VERSION if module_policy == "legacy" else "rag-rsi-v3-experience-coverage-1",
+            "module_policy": module_policy, "module_opportunity_counts": opportunity_counts,
+            "attempt_history": attempt_summary,
+            "coverage_exception": "debug_repair" if debug_hint else None,
+            "parent_policy": "unchanged_legacy_parent_v3",
+            "step": step, "accepted_cards": len(legal),
             "rejected_cards": rejected, "failure_context": sorted(context),
             "parent_answer_score": _score(parent) if parent else None,
             "incumbent_node_id": incumbent["node_id"] if incumbent else None,
@@ -326,13 +440,18 @@ def choose_next(cards: Iterable[Mapping[str, Any]], *, step: int,
 
 
 def memory_for_action(cards: Iterable[Mapping[str, Any]], decision: Mapping[str, Any],
-                      limit: int = 4) -> list[dict]:
+                      limit: int = 4, *, include_mechanism: bool = False) -> list[dict]:
     """Return newest legal fit records relevant to this exact module/action.
 
     Selected-parent failures and repairs of the same failure family are included.
     Scores remain None for invalid measurements. Full question text is not copied.
     Decision identity is required; report/select cards are rejected again here.
+    include_mechanism adds bounded, explicitly unverified developer hypotheses
+    and admits related mixed/unknown whole-program experiences. The same newest-
+    first capacity applies; negative gains are not filtered or relabeled.
     """
+    if type(include_mechanism) is not bool:
+        raise ValueError("include_mechanism must be boolean")
     if isinstance(limit, bool) or not isinstance(limit, int) or limit < 0:
         raise ValueError("limit must be a non-negative integer")
     if not limit:
@@ -349,7 +468,9 @@ def memory_for_action(cards: Iterable[Mapping[str, Any]], decision: Mapping[str,
         selected_parent = card["node_id"] == parent_id
         module_match = _module(card) == target
         related = bool(_failure_context(card, by_id) & context or set(_failures(card)) & context)
-        if selected_parent or (module_match and related):
+        scope = validated_scope(card.get("actual_edit_scope"))
+        whole_program = bool(_parents(card)) and (scope is None or scope["attribution"] in {"mixed", "unknown"})
+        if selected_parent or (module_match and related) or (include_mechanism and whole_program and related):
             relevant.append(card)
     output = []
     for card in sorted(relevant, key=_order, reverse=True)[:limit]:
@@ -373,4 +494,12 @@ def memory_for_action(cards: Iterable[Mapping[str, Any]], decision: Mapping[str,
             "diagnostics": card.get("diagnostics"),
             "resource_usage": card.get("resource_usage"),
         }))
+        if include_mechanism:
+            hypothesis = card.get("hypothesis")
+            output[-1].update({
+                "hypothesis": hypothesis[:1600] if isinstance(hypothesis, str) else None,
+                "hypothesis_truncated": isinstance(hypothesis, str) and len(hypothesis) > 1600,
+                "hypothesis_status": "developer_claim_not_causal",
+                "mechanism_scope": "single_module_association" if _module(card) else "whole_program_unattributed",
+            })
     return output

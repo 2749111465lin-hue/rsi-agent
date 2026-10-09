@@ -1,5 +1,8 @@
 # v3 真实代码演化入口与离线准备（2026-10-08）
 
+更新：新 `rag-rsi-live-evolution-2` 入口显式冻结反馈／记忆／模块选择 controls，并隔离每次提案缓存；[字段与验收](v3_experience_controls_20261009.md)。以下旧schema示例保留用于历史兼容，新实验须明确选用版本。
+
+
 本页记录独立工作区 `rsi-agent-feedback`、分支 `codex/v3-feedback-grounding` 的入口与当前修复契约；没有新增付费实验结果。主目录 `rsi-agent` 的 `be43a19` 及原上下文轮换复测方案保持冻结，不会自动换用新分支源码。最新修复见[2026-10-08 审查修复记录](v3_review_fixes_20261008.md)，前一轮真实模型结果见[首轮校准报告](v3_calibration_result.md)。
 
 ## 本次补齐什么

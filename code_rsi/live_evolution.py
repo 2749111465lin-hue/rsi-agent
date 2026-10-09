@@ -15,7 +15,8 @@ from pathlib import Path
 from .budget import Ledger, digest, save
 from .v3.calibration import credential_from_plan, run_lock
 from .v3.datasets import validate_task_collection
-from .v3.evolution import EvolutionRunner, ProgramDeveloper, _runtime_source_hashes, freeze
+from .v3.evolution import (EvolutionRunner, ProgramDeveloper, _runtime_source_hashes,
+                           freeze, validate_controls)
 from .v3.execution import HostError
 from .v3.infrastructure import (BrowseCompCorpus, StructuredModel, UnknownProviderOutcome,
                                 deepseek_transport, PROMPTS)
@@ -24,6 +25,8 @@ from .v3.request_recovery import (check_request_recovery as _check_request_recov
                                    check_request_accounting as _check_request_accounting)
 
 SCHEMA = "rag-rsi-live-evolution-1"
+SCHEMA2 = "rag-rsi-live-evolution-2"
+PROPOSAL_BANK_POLICY = "host_proposal_slot_v1"
 ROLES = ("D_fit", "D_select", "D_report")
 STAGES = ("plan", "read", "answer", "develop")
 PROJECT = Path(__file__).resolve().parent.parent
@@ -31,6 +34,7 @@ FIELDS = {"schema", "purpose", "output_dir", "panels", "corpus", "corpus_ref", "
           "root_config", "limits", "repeats", "expansions", "select_candidates", "metric",
           "allow_proxy_metric", "synthetic", "max_calls", "hard_cny", "runtime_source_hashes",
           "entry_sha256", "credential_source"}
+FIELDS_V2 = FIELDS | {"controls"}
 
 
 def _hash(path):
@@ -76,7 +80,11 @@ def _model_identity(model, prompts):
 
 
 def _prepare(plan):
-    if not isinstance(plan, dict) or set(plan) != FIELDS or plan["schema"] != SCHEMA:
+    if not isinstance(plan, dict):
+        raise ValueError("exact live-evolution plan schema required")
+    schema = plan.get("schema")
+    fields = FIELDS if schema == SCHEMA else FIELDS_V2 if schema == SCHEMA2 else None
+    if fields is None or set(plan) != fields:
         raise ValueError("exact live-evolution plan schema required")
     if plan["purpose"] != "development_evolution":
         raise ValueError("explicit development_evolution purpose required")
@@ -156,6 +164,8 @@ def _prepare(plan):
     if min(config["max_model_calls"], plan["limits"]["max_models"]) < root_calls:
         raise ValueError("root profile cannot reserve all declared rounds and final")
     repeats = _integer(plan["repeats"], 1, 8, "repeats")
+    controls = (validate_controls(plan["controls"], panels["D_fit"], repeats, allow_legacy=False)
+                if schema == SCHEMA2 else None)
     expansions = _integer(plan["expansions"], 0, 16, "expansions")
     candidates = _integer(plan["select_candidates"], 1, 17, "select_candidates")
     model = plan["model"]
@@ -187,13 +197,15 @@ def _prepare(plan):
     hard = plan["hard_cny"]
     if type(hard) not in (int, float) or not math.isfinite(hard) or hard <= 0 or worst > hard:
         raise ValueError("hard_cny cannot cover the conservative complete-run envelope")
-    report = {"schema": SCHEMA, "status": "ready_for_explicit_execution", "plan_hash": digest(plan),
+    report = {"schema": schema, "status": "ready_for_explicit_execution", "plan_hash": digest(plan),
               "question_counts": {r: len(panels[r]) for r in ROLES}, "max_calls": calls,
               "qa_call_ceiling": qa_calls, "developer_call_ceiling": expansions,
               "conservative_cny_upper_bound": round(worst, 6), "hard_cny": hard,
               "model_identity": _model_identity(model, PROMPTS), "new_api_calls": 0,
               "credentials_read": False, "private_references_read_locally": True,
               "developer_receives_gold": False, "synthetic": plan["synthetic"]}
+    if controls is not None:
+        report.update(controls=controls, proposal_bank_policy=PROPOSAL_BANK_POLICY)
     return report, panels, references
 
 
@@ -221,6 +233,12 @@ class _BoundModel:
     @property
     def max_input_bytes(self):
         return self._model.max_input_bytes
+
+    def request_body(self, stage, payload):
+        if stage not in self._allowed:
+            raise HostError("model role cannot inspect this stage")
+        self._verify()
+        return self._model.request_body(stage, payload)
 
     def request_size(self, stage, payload):
         if stage not in self._allowed:
@@ -293,9 +311,18 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None):
                     "model_identity": check["model_identity"], "synthetic": plan["synthetic"],
                     **{key: deepcopy(plan[key]) for key in ("metric", "expansions", "repeats", "root_config",
                                                           "select_candidates", "limits", "allow_proxy_metric")}}
+        if plan["schema"] == SCHEMA2:
+            controls = deepcopy(check["controls"])
+            manifest.update(controls=controls, proposal_bank_policy=PROPOSAL_BANK_POLICY)
+            developer = ProgramDeveloper(bound("develop", ("develop",)),
+                feedback_condition=controls["feedback"], case_schedule=controls["case_schedule"],
+                proposal_model_factory=lambda slot: bound(f"develop/proposal/{slot}", ("develop",)))
+        else:
+            # Retain the original manifest and proposal cache identity for v1 resumes.
+            developer = ProgramDeveloper(bound("develop", ("develop",)))
         runner = EvolutionRunner(out, manifest, panels, references,
                                  lambda bank: bound(bank, ("plan", "read", "answer")),
-                                 ProgramDeveloper(bound("develop", ("develop",))), backend_factory=backend_factory)
+                                 developer, backend_factory=backend_factory)
         try:
             result = runner.run()
             check_binding()
