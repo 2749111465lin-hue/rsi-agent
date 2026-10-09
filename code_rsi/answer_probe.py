@@ -12,7 +12,8 @@ from pathlib import Path
 
 from .archive import ProgramArchive
 from .budget import Ledger, digest, save
-from .answer_replay import ARMS, CONTEXT_ARMS, AnswerReplayRouter, project_case_payload, replay_files
+from .answer_replay import (ARMS, CONTEXT_ARMS, AnswerReplayRouter, ProgramAnswerReplayRouter,
+                            project_case_payload, replay_files)
 from .v3.calibration import (run_lock, _verified_bytes, _saved_execution, _execution_facts,
                             _cell_path, credential_from_plan, file_hash)
 from .v3.evolution import freeze, read, recoverable_record, _runtime_source_hashes
@@ -21,16 +22,24 @@ from .v3.infrastructure import StructuredModel, deepseek_transport
 from .v3.reader_probe import (_file_contract, _RequestShape, _order, _relative,
                               _limits, _identity, _accounting)
 from .v3.reader_replay import validate_case
-from .v3.paired_analysis import validate_analysis, paired_analysis, SINGLE_CONTRAST_SCHEMA
+from .v3.paired_analysis import validate_analysis, paired_analysis, SINGLE_CONTRAST_SCHEMA, SPEC_SCHEMA
 from .v3.task_metrics import score_task
 
 SCHEMA = "rag-rsi-answer-probe-1"
 CONTEXT_SCHEMA = "rag-rsi-answer-probe-2"
+PROGRAM_SCHEMA = "rag-rsi-answer-probe-3"
 CONTEXT_ADVANCE = {"mean_f1_gain_gt": 0, "mean_em_gain_gte": 0,
                    "nonabstaining_f1_zero_increase_lte": 0}
 
 
 def _contract(plan):
+    if plan.get("schema") == PROGRAM_SCHEMA and plan.get("purpose") == "fixed_prefix_program_suffix":
+        arms = plan.get("arms")
+        allowed = ["reference", "candidate_1", "candidate_2"]
+        if (not isinstance(arms, list) or len(arms) not in (2, 3)
+                or arms != [{"name": name} for name in allowed[:len(arms)]]):
+            raise ValueError("a reference and one or two archived program arms required")
+        return {"arms": tuple(allowed[:len(arms)]), "source_arm": "paired-root"}
     if plan.get("schema") == SCHEMA and plan.get("purpose") == "fixed_evidence_final_judgment_ablation":
         return {"arms": ARMS, "contrast": "remove_derived_judgments", "source_arm": "support"}
     if (plan.get("schema") == CONTEXT_SCHEMA and plan.get("purpose") == "fixed_evidence_quote_context"
@@ -46,14 +55,16 @@ def _arms(plan):
 HELPERS = ("answer_replay.py", "answer_probe.py", "prepare_answer_probe.py")
 
 
-def helper_hashes():
+def helper_hashes(schema=None):
     root = Path(__file__).resolve().parent
-    return {name: hashlib.sha256((root/name).read_bytes()).hexdigest() for name in HELPERS}
+    names = HELPERS + (("program_answer_prepare.py", "program_answer_artifacts.py")
+                       if schema == PROGRAM_SCHEMA else ())
+    return {name: hashlib.sha256((root/name).read_bytes()).hexdigest() for name in names}
 
 
 def _sources(plan):
     if (plan["runtime_source_hashes"] != _runtime_source_hashes()
-            or plan["helper_source_hashes"] != helper_hashes()):
+            or plan["helper_source_hashes"] != helper_hashes(plan.get("schema"))):
         raise ValueError("runtime or answer-probe source changed after freeze")
 
 
@@ -72,24 +83,62 @@ def _snapshot(plan):
     if plan["question_use"] == "used_diagnostic":
         _file_contract(plan["source_plan_file"])
         source = json.loads(_verified_bytes(plan["source_plan_file"]))
-        from .prepare_answer_probe import build_cases
-        kwargs = ({"source_arm": "loop", "source_checkout": plan["source_checkout"]}
-                  if plan["schema"] == CONTEXT_SCHEMA else {})
-        if build_cases(source, **kwargs) != packet:
+        if plan["schema"] == PROGRAM_SCHEMA:
+            from .program_answer_prepare import build_paired_root_cases
+            reconstructed = build_paired_root_cases(source, source_revision=plan["source_revision"])
+            template = source["search_template"]
+            references = template["panels"]["D_fit"]["references_file"]
+            groups_packet = json.loads(_verified_bytes(template["reference_groups_file"]))
+            groups = groups_packet["groups"]["D_fit"]
+            source_model = template["model"]
+        else:
+            from .prepare_answer_probe import build_cases
+            kwargs = ({"source_arm": "loop", "source_checkout": plan["source_checkout"]}
+                      if plan["schema"] == CONTEXT_SCHEMA else {})
+            reconstructed = build_cases(source, **kwargs)
+            references, groups, source_model = (source["references_file"],
+                source["analysis"]["question_groups"], source["model"])
+        if reconstructed != packet:
             raise ValueError("case packet is not the complete declared source/repeat-0 panel")
-        if plan["references_file"] != source["references_file"]:
+        if plan["references_file"] != references:
             raise ValueError("reference binding differs from source panel")
-        if plan["analysis"]["question_groups"] != source["analysis"]["question_groups"]:
+        if plan["analysis"]["question_groups"] != groups:
             raise ValueError("dependence groups differ from source panel")
-        if any(plan["model"][key] != source["model"][key] for key in
+        if any(plan["model"][key] != source_model[key] for key in
                ("name", "temperature", "thinking", "max_input_bytes", "prices")):
             raise ValueError("model parameters differ from source measurement")
-        if source["model"]["output_limits"]["answer"] != plan["model"]["output_limits"]["answer"]:
+        if source_model["output_limits"]["answer"] != plan["model"]["output_limits"]["answer"]:
             raise ValueError("answer output limit differs")
     elif (plan["source_plan_file"] is not None
-          or (plan["schema"] == CONTEXT_SCHEMA and plan["source_checkout"] is not None)):
+          or (plan["schema"] == CONTEXT_SCHEMA and plan["source_checkout"] is not None)
+          or (plan["schema"] == PROGRAM_SCHEMA and plan["source_revision"] is not None)):
         raise ValueError("synthetic probe cannot claim a real source plan or checkout")
     return cases
+
+
+def _program_artifacts(plan, cases):
+    if plan["schema"] != PROGRAM_SCHEMA:
+        return None
+    from .program_answer_artifacts import validate_program_artifacts
+    artifacts = validate_program_artifacts(plan, cases)
+    if tuple(p["name"] for p in artifacts["programs"]) != _arms(plan):
+        raise ValueError("plan arms must retain the complete archived program set")
+    return artifacts
+
+
+def _files(case, arm, artifacts):
+    return deepcopy(artifacts["files"][arm]) if artifacts is not None else replay_files(case, arm)
+
+
+def _payload(case, arm, artifacts):
+    return (deepcopy(artifacts["payloads"][(case["case_id"], arm)])
+            if artifacts is not None else project_case_payload(case, arm))
+
+
+def _router(case, arm, model, artifacts):
+    if artifacts is not None:
+        return ProgramAnswerReplayRouter(case, model, final_payload=_payload(case, arm, artifacts))
+    return AnswerReplayRouter(case, model, arm)
 
 
 def preflight(plan):
@@ -102,12 +151,14 @@ def preflight(plan):
     contract = _contract(plan)
     if plan["schema"] == CONTEXT_SCHEMA:
         fields |= {"source_arm", "source_checkout", "advance_criteria"}
+    if plan["schema"] == PROGRAM_SCHEMA:
+        fields |= {"programs_file", "projections_file", "source_revision"}
     if (set(plan) != fields or plan["question_use"] not in {"used_diagnostic", "synthetic"}):
         raise ValueError("explicit final-answer diagnostic contract required")
     _sources(plan)
     _file_contract(plan["references_file"])  # Metadata only until complete generation.
     if plan["arms"] != [{"name": name} for name in _arms(plan)]:
-        raise ValueError("exact protocol-specific two-arm contrast required")
+        raise ValueError("exact protocol-specific program contrast required")
     if (type(plan["repeats"]) is not int or not 1 <= plan["repeats"] <= 8
             or type(plan["schedule_seed"]) is not int or plan["schedule_seed"] < 0):
         raise ValueError("invalid repeat/schedule specification")
@@ -123,13 +174,21 @@ def preflight(plan):
             or model["prices"]["input_hit"] > model["prices"]["input_miss"]):
         raise ValueError("frozen model and valid price envelope required")
     cases = _snapshot(plan)
+    artifacts = _program_artifacts(plan, cases)
     validate_analysis(plan["analysis"], question_ids=[c["task"]["question_id"] for c in cases],
                       arm_names=_arms(plan))
-    if (plan["analysis"]["schema"] != SINGLE_CONTRAST_SCHEMA
+    if plan["schema"] == PROGRAM_SCHEMA:
+        expected_comparisons = [{"name": name+"_vs_reference", "baseline": "reference", "candidate": name}
+                                for name in _arms(plan)[1:]]
+        expected_schema = SINGLE_CONTRAST_SCHEMA if len(_arms(plan)) == 2 else SPEC_SCHEMA
+    else:
+        expected_schema = SINGLE_CONTRAST_SCHEMA
+        expected_comparisons = [{"name": contract["contrast"],
+                "baseline": "full_state", "candidate": contract["arms"][1]}]
+    if (plan["analysis"]["schema"] != expected_schema
             or plan["analysis"]["primary_metric"] != "answer_f1"
-            or plan["analysis"]["comparisons"] != [{"name": contract["contrast"],
-                "baseline": "full_state", "candidate": contract["arms"][1]}]):
-        raise ValueError("single predeclared F1 contrast required")
+            or plan["analysis"]["comparisons"] != expected_comparisons):
+        raise ValueError("predeclared baseline-relative F1 contrasts required")
     credential = plan["credential_source"]
     if (set(credential) != {"kind", "path", "variable"} or credential["kind"] != "env_file"
             or credential["variable"] != "DEEPSEEK_API_KEY"
@@ -143,13 +202,13 @@ def preflight(plan):
     bound = 0.0
     for case in cases:
         original = case["events"][-1]["request"]["payload"]
-        if original["additional_guidance"] != "" or original["instructions"] != "":
+        if artifacts is None and (original["additional_guidance"] != "" or original["instructions"] != ""):
             raise ValueError("side-channel prompt guidance is not part of this intervention")
         sizes[case["case_id"]] = {}
         fingerprints[case["case_id"]] = {}
         for arm in _arms(plan):
-            replay_files(case, arm)
-            payload = project_case_payload(case, arm)
+            _files(case, arm, artifacts)
+            payload = _payload(case, arm, artifacts)
             size = shape.request_size("answer", payload)
             if size > model["max_input_bytes"]:
                 raise ValueError("frozen complete answer body exceeds limit")
@@ -167,7 +226,7 @@ def preflight(plan):
             fingerprints[case["case_id"]][arm] = digest(shape.request_body("answer", payload))
             bound += plan["repeats"]*((size+1024)*model["prices"]["input_miss"]
                                      +800*model["prices"]["output"])/1e6
-    calls = len(cases)*2*plan["repeats"]
+    calls = len(cases)*len(_arms(plan))*plan["repeats"]
     if (type(plan["max_calls"]) is not int or plan["max_calls"] != calls
             or type(plan["hard_cny"]) not in (int, float) or not math.isfinite(plan["hard_cny"])
             or plan["hard_cny"] < bound):
@@ -195,7 +254,7 @@ def _model(plan, case, arm, repeat, ledger, transport):
         limits=spec["output_limits"])
 
 
-def _verify_observations(plan, case, arm, repeat, receipt, ledger, records):
+def _verify_observations(plan, case, arm, repeat, receipt, ledger, records, artifacts=None):
     class NoDispatch:
         def send(self, *args):
             raise HostError("verification cannot dispatch")
@@ -206,7 +265,7 @@ def _verify_observations(plan, case, arm, repeat, receipt, ledger, records):
             if key not in records or read(model.directory/(key+".json")) != records[key]:
                 raise HostError("missing or changed settled answer")
             return model.complete(stage, payload)
-    router = AnswerReplayRouter(case, CacheOnly(), arm["name"])
+    router = _router(case, arm["name"], CacheOnly(), artifacts)
     broker = HostBroker(case["task"], router, router, **_limits(case))
     for event in receipt["trace"]:
         broker(event["name"], event["request"])
@@ -220,6 +279,7 @@ def _verify_observations(plan, case, arm, repeat, receipt, ledger, records):
 def _validate_frozen(plan, frozen, *, cases=None):
     _sources(plan)
     cases = _snapshot(plan) if cases is None else cases
+    artifacts = _program_artifacts(plan, cases)
     bycase = {c["case_id"]: c for c in cases}
     out = Path(plan["output_dir"])
     if (not isinstance(frozen, dict)
@@ -249,13 +309,13 @@ def _validate_frozen(plan, frozen, *, cases=None):
         case, arm = bycase[key[0]], {"name": key[1]}
         node = archive.load_node(identity["node_id"])
         if (identity != _identity(plan, case, arm, key[2], node)
-                or archive.load_program(node["program_id"])["files"] != replay_files(case, key[1])
+                or archive.load_program(node["program_id"])["files"] != _files(case, key[1], artifacts)
                 or cell["file"] != _relative(*key)):
             raise ValueError("frozen source/identity/path differs")
         receipt = _saved_execution(_cell_path(out, cell["file"]), identity, sha256=cell["sha256"])
         if receipt is None:
             raise ValueError("missing generated cell")
-        _verify_observations(plan, case, arm, key[2], receipt, ledger, records)
+        _verify_observations(plan, case, arm, key[2], receipt, ledger, records, artifacts)
         result.append({"identity": identity, "payload": receipt})
     return result
 
@@ -266,6 +326,7 @@ def generate(plan, *, approved_plan_hash, transport=None, executor=execute):
     if approved_plan_hash != check["plan_hash"]:
         raise ValueError("execution requires the exact approved plan")
     cases = _snapshot(plan)
+    artifacts = _program_artifacts(plan, cases)
     out = Path(plan["output_dir"])
     with run_lock(out):
         freeze(out/"plan.json", plan)
@@ -278,7 +339,7 @@ def generate(plan, *, approved_plan_hash, transport=None, executor=execute):
         nodes = {}
         for index, (case, arm) in enumerate((c,a) for c in cases for a in plan["arms"]):
             nodes[(case["case_id"], arm["name"])] = recoverable_record(
-                archive, replay_files(case, arm["name"]), {}, session_id="answer-probe", attempt=index)
+                archive, _files(case, arm["name"], artifacts), {}, session_id="answer-probe", attempt=index)
         order = _order(plan, cases)
         freeze(out/"schedule.json", [{"case_id": c["case_id"], "arm": a["name"], "repeat": r}
                                     for c,a,r in order])
@@ -287,6 +348,10 @@ def generate(plan, *, approved_plan_hash, transport=None, executor=execute):
             for case, arm, repeat in order:
                 _sources(plan)
                 _verified_bytes(plan["cases_file"])
+                if artifacts is not None:
+                    # Bound bytes are checked per cell, before any paid dispatch.
+                    _verified_bytes(plan["programs_file"])
+                    _verified_bytes(plan["projections_file"])
                 node = nodes[(case["case_id"], arm["name"])]
                 identity = _identity(plan, case, arm, repeat, node)
                 relative = _relative(case["case_id"], arm["name"], repeat)
@@ -296,7 +361,7 @@ def generate(plan, *, approved_plan_hash, transport=None, executor=execute):
                     if transport is None:
                         transport = deepseek_transport(credential_from_plan(plan))
                     model = _model(plan, case, arm, repeat, ledger, transport)
-                    router = AnswerReplayRouter(case, model, arm["name"])
+                    router = _router(case, arm["name"], model, artifacts)
                     receipt = executor(archive, node["node_id"], case["task"], router, router,
                                        target.parent, limits=_limits(case))
                     router.assert_complete()
@@ -393,6 +458,15 @@ def grade(plan):
             "references_parsed_after_complete_generation": True, "new_search_calls": 0,
             "new_reader_calls": 0, "independent_quality_evidence": False,
             "claim": "Fixed historical " + _contract(plan)["source_arm"] + "-state final-input diagnosis; not RSI or end-to-end improvement."}
+        if plan["schema"] == PROGRAM_SCHEMA:
+            artifacts = _program_artifacts(plan, cases)
+            report["programs"] = [{"arm": row["name"], "files_sha256": digest(row["files"]),
+                "source": row["source"], "is_modified": row["files"] != artifacts["files"]["reference"]}
+                for row in artifacts["programs"]]
+            report["claim"] = ("Exact archived program suffixes on the same fixed root prefix; "
+                "used-question diagnostic, not independent RSI improvement or feedback-arm comparison.")
+            report["old_final_answer_used_as_measurement"] = False
+            report["automatic_deployment"] = False
         if plan["schema"] == CONTEXT_SCHEMA:
             baseline, candidate = summary["full_state"], summary["quote_context"]
             checks = {"all_cells_eligible": valid,

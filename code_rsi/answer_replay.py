@@ -147,3 +147,99 @@ class AnswerReplayRouter(ReplayRouter):
                "read": "replayed_reads"}[name]
         self._counts[key] += 1
         return deepcopy(event["response"])
+
+
+class ProgramAnswerReplayRouter(ReplayRouter):
+    """Replay one frozen prefix for an externally isolated archived program.
+
+    Capture mode records the program's actual final request and returns the old
+    response solely so projection can finish. It is never a new measurement.
+    Live mode requires that separately frozen final payload and permits exactly
+    one answer request. This router never imports or executes candidate source;
+    the existing WSL executor still owns execution and answer-origin checks.
+    """
+    def __init__(self, case, live_model=None, *, final_payload=None, capture=False):
+        if type(capture) is not bool:
+            raise ReplayContractError("capture must be an explicit boolean")
+        if capture:
+            if live_model is not None or final_payload is not None:
+                raise ReplayContractError("capture cannot use a live model or a frozen final payload")
+        elif live_model is None:
+            raise ReplayContractError("program answer measurement requires a live or cache-only model")
+        super().__init__(case, live_model=live_model)
+        self.capture = capture
+        self._final_payload = None if capture else self._validated_payload(final_payload)
+        self._captured_payload = None
+        self.final_response_replayed = False
+        # A router cannot establish program eligibility: the executor also has
+        # to verify the final returned value, origin, isolation and citations.
+        self.measurement_eligible = False if capture else None
+        self.identity = digest({"schema": "rag-rsi-program-answer-replay-1",
+                                "case": digest(self.case), "capture": capture,
+                                "final_payload_sha256": (None if capture else digest(self._final_payload))})
+
+    def _validated_payload(self, payload):
+        if (not isinstance(payload, dict)
+                or payload.get("question") != self.case["task"]["question"]):
+            raise ReplayContractError("program final payload must preserve the original question")
+        try:
+            digest(payload)
+        except (TypeError, ValueError, OverflowError, RecursionError) as error:
+            raise ReplayContractError("program final payload must be finite JSON") from error
+        return deepcopy(payload)
+
+    @property
+    def final_payload(self):
+        return deepcopy(self._final_payload)
+
+    @property
+    def captured_payload(self):
+        return deepcopy(self._captured_payload)
+
+    def _call(self, name, request):
+        if self._fatal is not None:
+            raise self._fatal
+        if self._cursor >= len(self.case["events"]):
+            self._reject("extra call after program replay completion")
+        event = self.case["events"][self._cursor]
+        final = self._cursor == len(self.case["events"]) - 1
+        if final:
+            if (name != "complete" or not isinstance(request, dict)
+                    or set(request) != {"stage", "payload"} or request["stage"] != "answer"):
+                self._reject("program replay must end with exactly one answer")
+            try:
+                payload = self._validated_payload(request["payload"])
+            except ReplayContractError:
+                self._reject("program final payload is invalid or changes the question")
+            if self.capture:
+                self._captured_payload = payload
+                self.final_response_replayed = True
+            else:
+                if digest(payload) != digest(self._final_payload):
+                    self._reject("program final request differs from its frozen projection")
+                self.new_calls += 1
+                self._counts["new_model_calls"] += 1
+                try:
+                    response = self.live_model.complete("answer", deepcopy(self._final_payload))
+                except ModelResponseError:
+                    # A completed billed failure consumes this one opportunity.
+                    self._cursor += 1
+                    raise
+                except BaseException as error:
+                    self._fatal = error
+                    raise
+                self._cursor += 1
+                return deepcopy(response)
+        else:
+            try:
+                matches = name == event["name"] and digest(request) == digest(event["request"])
+            except (TypeError, ValueError, OverflowError, RecursionError):
+                matches = False
+            if not matches:
+                self._reject("program request differs from the exact frozen prefix")
+        self._cursor += 1
+        self.replayed_calls += 1
+        key = {"complete": "replayed_model_calls", "search": "replayed_search_calls",
+               "read": "replayed_reads"}[name]
+        self._counts[key] += 1
+        return deepcopy(event["response"])

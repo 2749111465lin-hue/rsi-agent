@@ -359,13 +359,69 @@ def build_cases(source_plan, *, source_arm="support", source_checkout=None):
     return result
 
 
+def prepare_program_inputs(source_plan, *, source_revision, output_dir):
+    """Freeze all measured archived programs against the same paired-root prefix.
+
+    This is preparation only: candidate execution stays in WSL, old answers are
+    placeholders for capturing requests, and neither API credentials nor answer
+    references are read. The resulting artifacts do not authorize a paid run.
+    """
+    from .archive import ProgramArchive
+    from .program_answer_prepare import build_paired_root_cases
+    from .program_answer_artifacts import (PROGRAMS_SCHEMA, accepted_program_sources,
+                                           capture_programs)
+    target = Path(output_dir).resolve()
+    runs = Path(__file__).resolve().parents[1] / "runs"
+    if runs.resolve() not in target.parents:
+        raise ValueError("program preparation must remain under project runs")
+    source, source_binding = _snapshot_file(source_plan)
+    packet = build_paired_root_cases(source_plan, source_revision=source_revision)
+    programs = []
+    for item in accepted_program_sources(source):
+        origin = item["source"]
+        archive = ProgramArchive(origin["archive_dir"])
+        loaded = archive.load_program(origin["program_id"])
+        programs.append({"name": item["name"], "source": deepcopy(origin), "files": loaded["files"]})
+    bundle = {"schema": PROGRAMS_SCHEMA, "source_plan_hash": digest(source), "programs": programs}
+    model = deepcopy(source["search_template"]["model"])
+    model["output_limits"] = {"answer": model["output_limits"]["answer"]}
+    freeze(target / "cases.json", packet)
+    freeze(target / "programs.json", bundle)
+    projections = capture_programs(packet, bundle, model, target / "captures")
+    freeze(target / "projections.json", projections)
+    _unchanged(source_binding)
+    def binding(name):
+        path = target / name
+        return {"path": str(path), "sha256": cal.file_hash(path)}
+    result = {"schema": "rag-rsi-program-answer-preparation-1", "source_plan_file": source_binding,
+        "source_revision": source_revision, "cases_file": binding("cases.json"),
+        "programs_file": binding("programs.json"), "projections_file": binding("projections.json"),
+        "model": model, "cases": len(packet["cases"]), "programs": len(programs),
+        "captured_requests": len(projections["projections"]),
+        "new_api_calls": 0, "references_parsed": False, "credentials_read": False,
+        "old_answer_is_measurement": False, "paid_execution_authorized": False}
+    freeze(target / "preparation.json", result)
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-plan", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--source-arm", choices=("support", "loop"), default="support")
     parser.add_argument("--source-checkout")
+    parser.add_argument("--paired-programs", action="store_true")
+    parser.add_argument("--source-revision")
     args = parser.parse_args(argv)
+    if args.paired_programs:
+        if args.source_checkout is not None or args.source_arm != "support":
+            raise ValueError("paired program preparation cannot mix calibration source flags")
+        result = prepare_program_inputs(args.source_plan, source_revision=args.source_revision,
+                                        output_dir=args.output)
+        print(json.dumps(result, ensure_ascii=True))
+        return result
+    if args.source_revision is not None:
+        raise ValueError("source_revision requires paired-program preparation")
     target = Path(args.output).resolve()
     runs = Path(__file__).resolve().parents[1] / "runs"
     if runs.resolve() not in target.parents:
