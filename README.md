@@ -8,6 +8,8 @@
 
 真实实验与原冻结源码在 `codex/v3-feedback-grounding`，本开发分支 `codex/v3-experience-ablation` 已接入反馈分层、提案机会覆盖及机制记忆开关。全套750项中749通过、1项跳过；另有5次真实WSL脚本执行与恢复验证通过，外部API为0。这是工程证据，不能作为真实演化收益。[实现与验收](docs/v3_experience_controls_20261009.md)。`main` 的 `be43a19` 为历史版本；MuSiQue保持机制开发校准，BrowseComp保留困难检索和迁移。
 
+**最新离线定位：**引句可能丢失身份、时间和指代，中间判断则有时补足、有时误导。已实现默认关闭的原文邻域模块；全24题78条引句容量检查通过，尚无新模型收益证据。本轮777项测试通过、1项跳过，另有2次真实WSL合成执行通过。[验收记录](docs/v3_quote_context_validation_20261009.json) · [案例复核、架构与论文借鉴](docs/v3_quote_context_review_20261009.md)。
+
 ## 架构
 
 ```mermaid

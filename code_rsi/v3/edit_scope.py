@@ -20,6 +20,7 @@ MODULES = ("query_rewrite", "retrieval", "evidence_selection", "answer_generatio
 FUNCTION_MODULES = {
     ("rag_core.py", "_query_key"): ("query_rewrite", "answer_generation"),
     ("rag_core.py", "ground_quote"): ("evidence_selection",),
+    ("rag_core.py", "quote_context"): ("evidence_selection",),
     ("rag_core.py", "RagEngine.solve.search"): ("retrieval", "evidence_selection"),
     ("rag_core.py", "RagEngine.solve.consume_read"): ("evidence_selection",),
     ("rag_core.py", "RagEngine.solve.final_size"): ("answer_generation",),
@@ -32,6 +33,7 @@ CONFIG_MODULES = {
     "max_source_chars": ("evidence_selection",),
     "max_context_chars": ("evidence_selection",),
     "max_evidence_items": ("evidence_selection",),
+    "final_context_radius": ("evidence_selection",),
     "max_answer_chars": ("answer_generation",),
 }
 STAGE_MODULES = {

@@ -14,7 +14,7 @@ from ..budget import LimitExceeded, digest, save, stable
 from ..sandbox import Sandbox, SandboxExecutionError
 from .datasets import validate_public_task, evaluate_answer, filter_documents
 from .infrastructure import LocalCorpus, UnknownProviderOutcome, ModelResponseError
-from .rag import ground_quote
+from .rag import ground_quote, quote_context
 from .task_metrics import score_task
 
 
@@ -96,6 +96,121 @@ def _matches_source(item, windows, *, quote=False):
                and window["start"] <= lo < hi <= window["end"]
                and window["text"][lo-window["start"]:hi-window["start"]] == text
                for window in windows)
+
+
+
+def _grounded_read_bindings(sources, result):
+    """Recompute only quotes the completed reader actually returned."""
+    claims = result.get("claims", []) if isinstance(result, dict) else []
+    if not isinstance(claims, list):
+        return
+    for claim in claims:
+        citations = claim.get("citations", []) if isinstance(claim, dict) else []
+        if not isinstance(citations, list):
+            continue
+        for citation in citations:
+            if not isinstance(citation, dict) or not isinstance(citation.get("source_id"), str):
+                continue
+            source = sources.get(citation["source_id"])
+            grounded = ground_quote(citation, source)
+            if grounded is not None:
+                item = {**grounded, "docid": source["docid"]}
+                if _matches_source(item, [source], quote=True):
+                    yield item, source
+
+
+def _matches_quote_context(item, source):
+    if not isinstance(item, dict) or "context" not in item:
+        return False
+    citation = {key: item.get(key) for key in ("source_id", "start", "end", "quote")}
+    expected = quote_context(citation, source, radius=256)
+    return expected is not None and stable(item["context"]) == stable(expected)
+
+
+def _same_presented_context(citation, presented):
+    # Context is an exact source attachment, not a candidate's rewrite.
+    if ("context" in citation) != ("context" in presented):
+        return False
+    return ("context" not in presented or
+            (citation.get("source_id") == presented.get("source_id")
+             and stable(citation["context"]) == stable(presented["context"])))
+
+
+def _validate_recorded_quote_contexts(receipt):
+    """Reground context from recorded read inputs/responses, not validity flags.
+
+    These are consistency checks on host records, not external authentication.
+    Legacy receipts without context do not require newly added response records.
+    """
+    host = receipt["host_evidence_trace"]
+    observations = host["final_observations"]
+    contextual = [observed for observed in observations
+                  if any("context" in item for item in observed["evidence"].values())]
+    if not contextual:
+        return
+    trace = receipt["trace"]
+    presentations = host.get("read_presentations")
+    if not isinstance(presentations, list):
+        raise ValueError("quote context requires recorded read provenance")
+    bindings = []
+    seen = set()
+    for presentation in presentations:
+        index = presentation.get("event_index") if isinstance(presentation, dict) else None
+        if type(index) is not int or not 0 <= index < len(trace) or index in seen:
+            raise ValueError("invalid quote context read event identity")
+        seen.add(index)
+        event = trace[index]
+        request = event.get("request", {})
+        response = presentation.get("model_response")
+        if (event.get("name") != "complete" or request.get("stage") != "read"
+                or event.get("model_completed") is not True
+                or not isinstance(response, dict) or digest(response) != event.get("response_hash")):
+            raise ValueError("quote context read response differs from completed event")
+        sources = request["payload"].get("sources", [])
+        if not isinstance(sources, list) or stable(sources) != stable(presentation.get("sources")):
+            raise ValueError("quote context source differs from actual read request")
+        by_id = {}
+        for source in sources:
+            sid = source.get("source_id") if isinstance(source, dict) else None
+            if not isinstance(sid, str) or not sid or sid in by_id or _source_identity(source) is None:
+                raise ValueError("invalid quote context read source")
+            by_id[sid] = source
+        for item, source in _grounded_read_bindings(by_id, response):
+            bindings.append((index, _source_identity(item, quote=True), item["source_id"], source))
+    completed_reads = {index for index, event in enumerate(trace)
+                       if event.get("name") == "complete"
+                       and event.get("request", {}).get("stage") == "read"
+                       and event.get("model_completed") is True}
+    if seen != completed_reads:
+        raise ValueError("quote context read records do not cover completed read events")
+    first_bindings = {}
+    for index, identity, sid, source in sorted(bindings, key=lambda row: row[0]):
+        first_bindings.setdefault(identity, (index, sid, source))
+    for observed in contextual:
+        for item in observed["evidence"].values():
+            if "context" not in item:
+                continue
+            binding = first_bindings.get(_source_identity(item, quote=True))
+            if (binding is None or binding[0] >= observed["event_index"]
+                    or item.get("source_id") != binding[1]
+                    or not _matches_quote_context(item, binding[2])):
+                raise ValueError("final quote context lacks an earlier verified read-window binding")
+    # A falsely claimed valid citation cannot hide a changed returned attachment.
+    if receipt.get("citation_source_valid") is True:
+        presented = observations[-1]["evidence"]
+        citations = receipt.get("citations")
+        raw_ids = observations[-1]["response"].get("citation_ids")
+        if (not isinstance(citations, list) or not isinstance(raw_ids, list)
+                or not all(isinstance(cid, str) for cid in raw_ids)
+                or len(raw_ids) != len(set(raw_ids)) or len(citations) != len(raw_ids)
+                or any(not isinstance(citation, dict)
+                       or citation.get("citation_id") not in presented
+                       or citation.get("citation_id") not in raw_ids
+                       or _source_identity(citation, quote=True) != _source_identity(presented[citation["citation_id"]], quote=True)
+                       or not _same_presented_context(citation, presented[citation["citation_id"]])
+                       for citation in citations)
+                or {citation["citation_id"] for citation in citations} != set(raw_ids)):
+            raise ValueError("returned quote context differs from final presentation")
 
 
 def _answer_origin_receipt(answer, observations, trace, *, execution_ok):
@@ -182,6 +297,7 @@ def validate_answer_origin(receipt):
             or receipt["answer_origin_valid"] is not reconstructed["valid"]
             or receipt["answer_origin_status"] != reconstructed["status"]):
         raise ValueError("declared answer origin differs from host evidence")
+    _validate_recorded_quote_contexts(receipt)
     return reconstructed
 
 
@@ -196,6 +312,7 @@ class HostBroker:
         self.events=[]; self.reported=None; self.source_windows=[]; self.model_errors=[]; self.fatal=None
         self.read_presentations=[]
         self.verified_read_quotes=set()
+        self.verified_read_quote_sources={}
         self.final_observations=[]
 
     def _record_windows(self, value, *, many):
@@ -233,37 +350,29 @@ class HostBroker:
             if (identity not in self.verified_read_quotes
                     or not _matches_source(item, self.source_windows, quote=True)):
                 raise CandidateEvidenceError("answer quote lacks verified read-stage provenance")
+            if "context" in item:
+                binding = self.verified_read_quote_sources.get(identity)
+                if (binding is None or item.get("source_id") != binding[0]
+                        or not _matches_quote_context(item, binding[1])):
+                    raise CandidateEvidenceError("answer context differs from its first verified read window")
             by_id[cid] = _snapshot(item)
         return by_id
 
     def _record_read(self, sources, result):
         verified = []
-        claims = result.get("claims", []) if isinstance(result, dict) else []
-        # Malformed completed responses remain model failures, not host truth.
-        if not isinstance(claims, list):
-            claims = []
-        for claim in claims:
-            citations = claim.get("citations", []) if isinstance(claim, dict) else []
-            if not isinstance(citations, list):
-                continue
-            for citation in citations:
-                if not isinstance(citation, dict) or not isinstance(citation.get("source_id"), str):
-                    continue
-                source = sources.get(citation["source_id"])
-                # This helper is imported from trusted host code, never from the
-                # candidate's mutable rag_core.py. Only this call's window counts.
-                grounded = ground_quote(citation, source)
-                if grounded is None:
-                    continue
-                item = {**grounded, "docid": source["docid"]}
-                if _matches_source(item, [source], quote=True):
-                    identity = _source_identity(item, quote=True)
-                    self.verified_read_quotes.add(identity)
-                    verified.append({"docid": identity[0], "start": identity[1],
-                                     "end": identity[2], "quote": identity[3]})
+        # Only this successful reader response can bind a quote to its window.
+        for item, source in _grounded_read_bindings(sources, result):
+            identity = _source_identity(item, quote=True)
+            self.verified_read_quotes.add(identity)
+            # RagEngine retains the first citation/source for each exact quote;
+            # later windows (even under a new source_id) cannot silently widen it.
+            self.verified_read_quote_sources.setdefault(identity, (item["source_id"], _snapshot(source)))
+            verified.append({"docid": identity[0], "start": identity[1],
+                             "end": identity[2], "quote": identity[3]})
         self.read_presentations.append({"event_index": len(self.events),
                                         "sources": list(sources.values()),
                                         "verified_quotes": verified,
+                                        "model_response": _snapshot(result),
                                         "semantic_support": "model_assessed_only"})
 
     def answer_origin_receipt(self, answer, *, execution_ok=True):
@@ -302,7 +411,8 @@ class HostBroker:
             if not isinstance(cid, str) or cid in supplied or cid not in evidence:
                 return {**record, "status": "candidate_citation_mismatch"}
             if (_source_identity(citation, quote=True) != _source_identity(evidence[cid], quote=True)
-                    or not _matches_source(citation, self.source_windows, quote=True)):
+                    or not _matches_source(citation, self.source_windows, quote=True)
+                    or not _same_presented_context(citation, evidence[cid])):
                 return {**record, "status": "candidate_citation_mismatch"}
             supplied[cid] = citation
         if set(supplied) != set(raw):
@@ -541,7 +651,7 @@ class Measurement:
         self.metric,self.scorer,self.limits=metric,scorer,limits
         self.allow_proxy_metrics=allow_proxy_metrics
         primary="task-rule-"+metric if scorer is None else "external-"+metric
-        self.epoch=primary+"-v5-answer-origin-1-task-metrics-1-proxy-"+str(int(allow_proxy_metrics))
+        self.epoch=primary+"-v5-answer-origin-1-quote-context-1-task-metrics-1-proxy-"+str(int(allow_proxy_metrics))
 
     def backend(self, task):
         if task["corpus_scope"]=="question_local" or task["documents"]:

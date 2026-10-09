@@ -1,0 +1,85 @@
+{
+  "schema": "rag-rsi-quote-context-validation-1",
+  "baseline_commit": "a9c9dbe8a4193ddb2f1601fea13ff09e240164f3",
+  "status": "engineering_passed_not_quality_validated",
+  "new_api_calls": 0,
+  "cost_cny": 0,
+  "credentials_read": false,
+  "suite": {
+    "ran": 778,
+    "passed": 777,
+    "skipped": 1,
+    "seconds": 151.071,
+    "skip": "existing opt-in real WSL test; separate actual WSL execution performed",
+    "log_sha256": "e5720ecdb10f5df358981f95fb828c1a8504a51c32527508d9d91bbeb4f0701d"
+  },
+  "new_tests": {
+    "rag": 9,
+    "host": 19
+  },
+  "default_compatibility": {
+    "schema": "rag-rsi-quote-context-default-compatibility-1",
+    "baseline_commit": "a9c9dbe8a4193ddb2f1601fea13ff09e240164f3",
+    "maintained_baseline_source_sha256": "422fa04344dfe1ca35e3c5fc8b7430e782e6306b560126fe23d16bb390602555",
+    "current_rag_source_sha256": "c912299ce3f6dc0fffc62e3019e8ccf7022c631cdcc252bde6096b8a8a2c4233",
+    "same_all_model_requests": true,
+    "same_result_state_trace_and_usage": true,
+    "synthetic": true,
+    "new_api_calls": 0,
+    "quality_improvement_verified": false,
+    "request_count": 3
+  },
+  "actual_wsl": {
+    "schema": "rag-rsi-quote-context-wsl-validation-1",
+    "status": "passed",
+    "synthetic": true,
+    "actual_wsl_executions": 2,
+    "all_isolation_verified": true,
+    "all_answer_origins_verified": true,
+    "all_citation_sources_verified": true,
+    "same_plan_and_read_requests": true,
+    "same_noncontext_final_fields": true,
+    "same_resource_call_counts": true,
+    "context_return_matches_presentation": true,
+    "per_arm_resource_usage": {
+      "model_calls": 3,
+      "search_calls": 1,
+      "read_calls": 0
+    },
+    "new_external_api_calls": 0,
+    "cost_cny": 0,
+    "credentials_read": false,
+    "real_quality_improvement_verified": false
+  },
+  "actual_wsl_record_sha256": "974536c8ac22138e7c05a1560abcb0f0a8b1902bb5278c63aa9a6e9efb77c7c7",
+  "independent_model_assisted_review": {
+    "remaining_high_priority_findings": 0,
+    "targeted_tests_passed": 50,
+    "default_three_modes_match_previous_maintained_engine": true,
+    "first_window_switch_probe_rejected": true,
+    "cache_reordered_presentations_probe_rejected": true,
+    "public_summary_contains_private_text": false
+  },
+  "workspace_file_sha256": {
+    "code_rsi/v3/rag.py": "c912299ce3f6dc0fffc62e3019e8ccf7022c631cdcc252bde6096b8a8a2c4233",
+    "code_rsi/v3/execution.py": "ff132ae04e2611d84ba3cc9abeb25125a3d3f9003a03f398625e0b6b4a73bbba",
+    "code_rsi/v3/edit_scope.py": "aa7f73aa4c980dc55c145dc744578abbdfad3858615c8b909bfb3fd1ec5f84d4",
+    "test_v3_quote_context.py": "448ace161619a38722b1cb844720ace8e71adb2f768f49990b20d51bcdc062ea",
+    "test_v3_quote_context_host.py": "e93ec35a59449197378b151e169e8d0d67db9b86c60e05f00a78b80dec830c01"
+  },
+  "normalized_lf_source_sha256": {
+    "code_rsi/v3/rag.py": "c912299ce3f6dc0fffc62e3019e8ccf7022c631cdcc252bde6096b8a8a2c4233",
+    "code_rsi/v3/execution.py": "7ab687e2252e3c91ad393dcd628f71656ddf4ad12a98dd062a21365cd0be5587",
+    "code_rsi/v3/edit_scope.py": "aa7f73aa4c980dc55c145dc744578abbdfad3858615c8b909bfb3fd1ec5f84d4",
+    "test_v3_quote_context.py": "99ea193e95c47c21726f50d594cca8358f7e76c97ad7d4a28963c458f2996fa7",
+    "test_v3_quote_context_host.py": "9e8eea02b19d5e49ba36027b3b05b485cae1fa32828d639f49f45a052344c4b0"
+  },
+  "real_quality_improvement_verified": false,
+  "production_default_enabled": false,
+  "limitations": [
+    "Fixed character neighborhoods may cut words or omit required anchors.",
+    "Source validity does not establish semantic sufficiency.",
+    "No new provider request or answer measured for this feature.",
+    "Internal hashes check consistency, not authentication of external evidence."
+  ]
+}

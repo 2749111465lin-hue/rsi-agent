@@ -19,7 +19,7 @@ DEFAULTS = {
     "max_source_chars": 6000, "max_context_chars": 24000,
     "max_output_chars": 30000, "max_payload_chars": 64000,
     "max_answer_chars": 1000, "max_evidence_items": 24,
-    "prompts": {},
+    "prompts": {}, "final_context_radius": 0,
 }
 INSTRUCTIONS = {
     "plan": (
@@ -130,6 +130,28 @@ def ground_quote(citation, source):
     return {"source_id": sid, "start": start, "end": end, "quote": quote}
 
 
+def quote_context(citation, source, radius=256):
+    """Recover exact neighbors only within the window used to ground this quote.
+
+    This is a source-location contract, not semantic verification. It does not
+    read more text, rewrite a quote, resolve a pronoun or infer missing facts.
+    The trusted host recomputes it independently of mutable candidate code.
+    """
+    if type(radius) is not int or radius != 256:
+        return None
+    grounded = ground_quote(citation, source)
+    if grounded is None:
+        return None
+    lo = max(source["start"], grounded["start"] - radius)
+    hi = min(source["end"], grounded["end"] + radius)
+    if (lo, hi) == (grounded["start"], grounded["end"]):
+        return None
+    return {"radius_chars": radius, "start": lo, "end": hi,
+            "text": source["text"][lo-source["start"]:hi-source["start"]],
+            "source_start": source["start"], "source_end": source["end"],
+            "source_sha256": hashlib.sha256(source["text"].encode("utf-8")).hexdigest()}
+
+
 class RagEngine:
     """Run one question with dependency-injected search and model services.
 
@@ -149,11 +171,14 @@ class RagEngine:
         if self.config["mode"] not in {"iterative", "single_pass", "planned_single"}:
             raise RagContractError("unknown mode")
         for key in DEFAULTS:
-            if key in {"mode", "prompts"}:
+            if key in {"mode", "prompts", "final_context_radius"}:
                 continue
             value = self.config[key]
             if type(value) is not int or value < 1 or value > 1000000:
                 raise RagContractError("invalid config " + key)
+        if (type(self.config["final_context_radius"]) is not int
+                or self.config["final_context_radius"] not in {0, 256}):
+            raise RagContractError("final_context_radius must be 0 or 256")
         if self.config["max_model_calls"] < 2:
             raise RagContractError("reserve at least one read/planning call and one final call")
         if self.config["mode"] == "planned_single" and self.config["max_model_calls"] < 3:
@@ -178,6 +203,9 @@ class RagEngine:
                  "peak_context_source_chars": 0, "final_call_reserved": True}
         source_keys, citation_keys, claim_keys = set(), {}, set()
         source_sequence = 0
+        # Preserve the first grounding window when later rounds evict full text.
+        # This material never changes planning, reading or search decisions.
+        citation_contexts = {}
 
         def fail(kind):
             if kind not in failures:
@@ -389,6 +417,10 @@ class RagEngine:
                         state["citations"].append({"citation_id": cid, "source_id": source["source_id"],
                                                   "docid": source["docid"], "start": start, "end": end,
                                                   "quote": quote, "source_verified": True})
+                        if cfg["final_context_radius"]:
+                            context = quote_context(grounded, source, cfg["final_context_radius"])
+                            if context is not None:
+                                citation_contexts[cid] = context
                     accepted.append(citation_keys[key])
                 identity = (claim["text"], tuple(sorted(set(accepted))))
                 if accepted and identity not in claim_keys and len(state["claims"]) < cfg["max_evidence_items"]:
@@ -493,6 +525,26 @@ class RagEngine:
         if any(omitted.values()):
             trace.append({"stage": "final_context_compaction", "omitted": omitted,
                           "presented_citation_ids": [x["citation_id"] for x in final_material["evidence"]]})
+        if cfg["final_context_radius"]:
+            # First compact the unchanged baseline as above. Neighbors may use
+            # spare space only; they never displace original quotes or judgments.
+            included, skipped = [], []
+            base_size = final_size()
+            for item in final_material["evidence"]:
+                cid = item["citation_id"]
+                context = citation_contexts.get(cid)
+                if context is None:
+                    continue
+                item["context"] = context
+                if final_size() > cfg["max_payload_chars"]:
+                    del item["context"]
+                    skipped.append(cid)
+                else:
+                    included.append(cid)
+            trace.append({"stage": "final_quote_context", "radius_chars": cfg["final_context_radius"],
+                          "included_citation_ids": included, "budget_skipped_citation_ids": skipped,
+                          "baseline_payload_chars": base_size, "payload_chars": final_size(),
+                          "semantic_support": "not_verified"})
         final = call("answer", final_material)
         answer, ids, sufficient, usable, valid_citations = None, [], None, False, False
         if final is not None:
