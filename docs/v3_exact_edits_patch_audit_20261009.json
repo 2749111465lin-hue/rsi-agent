@@ -1,0 +1,161 @@
+{
+  "access_scope": {
+    "candidate_execution": false,
+    "credentials_read": false,
+    "private_references_read": false,
+    "real_api_calls": 0,
+    "runtime_or_test_edits": false
+  },
+  "audit_sha256": "229ac6ec8f4d03cb8baab2024b740ee85f94a8da792868b5cd2a1901a71d0f66",
+  "cases_candidates_are_siblings_from_same_root": true,
+  "limitations": [
+    "This is a static program review, not an independent ground-truth adjudication or quality evaluation.",
+    "Both cases proposals are independent same-root proposals; the second is not a sequential repair of the first.",
+    "No claims about semantic support, task correctness, or causal value of feedback condition follow from successful materialization."
+  ],
+  "method": "Independent read-only source reconstruction and AST comparison; archived candidates were never imported or executed.",
+  "public_payload_policy": "No original question, reference answer, quote, document identifier, or raw model prose is included.",
+  "records": [
+    {
+      "arm": "cases",
+      "ast_changed": true,
+      "budget_effect": "No new model-call or retrieval loops; final input is larger within existing caps.",
+      "child_source_sha256": "0df1839f66a8879a90959e92123bd2703c3dd0fc300cba6df7246a984210d20c",
+      "edit_count": 3,
+      "independent_exact_materialization_matches_archive": true,
+      "intent_implementation_alignment": "Partial: the stated forced abstention is not implemented; answer text, answer_usable and abstained remain unchanged by the new guard.",
+      "mechanism": "Stricter answer instructions, bridge-entity input, and an answer-support diagnostic guard.",
+      "normalized_proposal_matches_archive": true,
+      "parent_source_sha256": "359c564942074f62a7d99bc9d722ba011448fec1b6927d6115b8c954d7a5410a",
+      "provenance_sha256": {
+        "attempt.json": "df2fd34f752e731ea4175b1b9a4861e917cdb2d8c8961a57a95544f01aed732d",
+        "change_receipt.json": "242564da9b35c598cda47880d1b168c30e39c50129f86369863da87e1c6dc7df",
+        "child.json": "cf7ca0bcc870d77c5da66b99da114845f33799341f595e1ed840cfc0e306e67b",
+        "materialization.json": "2dc1264ea139a44fd2503d08bce014f7020b11b1fe0963d88ec46a86bcebbbd9",
+        "proposal.json": "89bc6eee07b2fe79126065f77e578239c6546cf333f43476de26b3593f9d0dd9",
+        "received_proposal.json": "9ff5b155861c8891be1aa22f984afeee50e7937241bcb6cb87bee3e043a569a3"
+      },
+      "quality_or_validity_recomputed": false,
+      "search_read_plan_and_config_unchanged": true,
+      "slot": 0,
+      "source_chars_added": {
+        "rag.py": 0,
+        "rag_core.py": 944
+      },
+      "static_risks": [
+        "The new guard is candidate-side diagnostic logic, not a new host-enforced semantic fact check.",
+        "Bridge entities are checked for literal occurrence in the question or read text; this does not validate the intermediate relation.",
+        "Citation count is not hop coverage, and the guard counts stored citations rather than the actual returned or presented subset.",
+        "The added bridge_entities field is not included in compaction order, so it can displace original quotes under a tight payload budget."
+      ],
+      "terminal_status": "measured",
+      "wrapper_unchanged": true
+    },
+    {
+      "arm": "cases",
+      "ast_changed": true,
+      "budget_effect": "No new model-call or retrieval loops; input grows while the existing payload cap and evidence-preserving compaction still apply.",
+      "child_source_sha256": "b40d7961479fc5f7aa72d216a11b473c741e30d109cc4e274b09487613688317",
+      "edit_count": 4,
+      "independent_exact_materialization_matches_archive": true,
+      "intent_implementation_alignment": "The prompt/data-flow changes are implemented. Per-hop correctness remains model-assessed, not mechanically verified.",
+      "mechanism": "Stricter per-hop answer instructions and bridge-entity input with explicit compaction and omission accounting.",
+      "normalized_proposal_matches_archive": true,
+      "parent_source_sha256": "359c564942074f62a7d99bc9d722ba011448fec1b6927d6115b8c954d7a5410a",
+      "provenance_sha256": {
+        "attempt.json": "724685c8263f9081e5622e88fe86581a6fb4ff0601cc5fb798ebdf079f748a2a",
+        "change_receipt.json": "9b8e7113b6dfe42036f7bff32810dd0eaca7725b8b36d9e48bec44bfcfff883d",
+        "child.json": "2db155740cf4f239b70182c0daf73d6db394b93bdbe07fcbf91eedd5d5fabd38",
+        "materialization.json": "7181903dd06dec4ac8a53e8eede64ee8d1468eb07d278714ad2cc5134aa653dd",
+        "proposal.json": "726586f3e14ae076731d58cb38b1afcb34834a4953d6d9886f91678a8e21e4e9",
+        "received_proposal.json": "57952c48adefeb6fa64a09c0b5731918ac8afb9afa7b3e1aeb4186d8893b2ed8"
+      },
+      "quality_or_validity_recomputed": false,
+      "search_read_plan_and_config_unchanged": true,
+      "slot": 1,
+      "source_chars_added": {
+        "rag.py": 0,
+        "rag_core.py": 640
+      },
+      "static_risks": [
+        "Literal occurrence of bridge entities does not establish the relation chain or semantic support.",
+        "More conservative answering may alter abstention and correct-answer rates; static inspection cannot establish the direction.",
+        "Bridge entities enter the final input but are removable before evidence when the payload needs compaction."
+      ],
+      "terminal_status": "measured",
+      "wrapper_unchanged": true
+    },
+    {
+      "arm": "trace",
+      "candidate_executed_by_auditor": false,
+      "child_archived": false,
+      "child_materialized": false,
+      "inference_limit": "The rejection text reports a truncated or missing response; no mechanism or source-change conclusion is inferred from absent code.",
+      "mechanism": "Not assessable: no accepted structured response exists.",
+      "provenance_sha256": {
+        "rejected.json": "c9fdf550c534076e47d5190d76b01dd3af6e5570ce1087f7036c4d1a325e9865"
+      },
+      "raw_structured_proposal_available": false,
+      "reason": "truncated or missing model response",
+      "rejection_consistent_with_frozen_contract": true,
+      "slot": 0,
+      "terminal_status": "rejected"
+    },
+    {
+      "arm": "trace",
+      "candidate_executed_by_auditor": false,
+      "child_archived": false,
+      "child_materialized": false,
+      "edit_count": 5,
+      "extra_edit_keys": [
+        [
+          "old_occurrences"
+        ],
+        [
+          "old_occurrences"
+        ],
+        [
+          "old_occurrences"
+        ],
+        [
+          "old_occurrences"
+        ],
+        [
+          "old_occurrences"
+        ]
+      ],
+      "format_only_repair_is_insufficient": true,
+      "mechanism": "Intended bounded second answer attempt after an initial abstention or unusable answer.",
+      "noop_edit_indices": [
+        2
+      ],
+      "provenance_sha256": {
+        "received_proposal.json": "503df24b484ec9d9db3b6fdaa7160bce04bb4b676ede8239edaa9391c5c9a3f4",
+        "rejected.json": "a9183aa644ccc551b2fa6464c030ae3ea0f1210f72a135c9f810d790a9d0aa2c"
+      },
+      "raw_structured_proposal_available": true,
+      "reason": "exact file/old/new edit fields required",
+      "rejection_consistent_with_frozen_contract": true,
+      "slot": 1,
+      "static_risks": [
+        "Every edit has a forbidden old_occurrences key, and one edit also has identical old/new text.",
+        "The proposed answer_retry semantic action is not accepted by the host complete-stage whitelist.",
+        "No second final-answer slot is actually reserved; it only tries when budget appears to remain, and the existing local non-answer reservation rule can block the attempt.",
+        "The retry predicate does not cover a nonabstaining usable answer with invalid citations, despite the stated intent.",
+        "The proposed retry accepts a nonabstaining parseable response without requiring r_valid or r_sufficient.",
+        "This proposal adds a new control-flow idea, but it was rejected before any candidate measurement."
+      ],
+      "terminal_status": "rejected"
+    }
+  ],
+  "run": "proposal_protocol_20261009/paired_live",
+  "schema": "rag-rsi-static-paid-patch-audit-1",
+  "summary": {
+    "feedback_arm_superiority_inferred": false,
+    "materialized_and_measured": 2,
+    "mechanically_forced_abstention_verified": false,
+    "opportunities": 4,
+    "quality_improvement_verified_by_this_audit": false,
+    "rejected_before_candidate": 2
+  }
+}

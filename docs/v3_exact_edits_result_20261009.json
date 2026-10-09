@@ -1,0 +1,251 @@
+{
+  "schema": "rag-rsi-exact-edits-real-result-1",
+  "date": "2026-10-09",
+  "status": "completed_two_executable_candidates_quality_unconfirmed",
+  "source_commit_short": "c761403",
+  "branch": "codex/v3-paper-controls",
+  "plan_hash": "f66896338a454a2a9302c8a495126ae3ae23c49c406d8b1fae678d7a63ef730a",
+  "process_exit_code": 0,
+  "opportunities": 4,
+  "materialized_ast_changed_candidates": 2,
+  "technically_valid_candidates": 2,
+  "rejections": 2,
+  "role": "D_fit",
+  "exposed_questions": 12,
+  "heldout_roles_used": false,
+  "independent_quality_improvement_verified": false,
+  "cases_vs_trace_effect_verified": false,
+  "full_dual_loop_completed": false,
+  "root": {
+    "questions": 12,
+    "rows": 12,
+    "f1": 0.3101851851851852,
+    "em_hits": 2,
+    "abstentions": 6,
+    "execution_ok": 12,
+    "answer_origin_valid": 12,
+    "citation_source_valid": 11,
+    "valid_program": true,
+    "logical_calls": 51
+  },
+  "slots": [
+    {
+      "condition": "cases",
+      "slot": 0,
+      "status": "measured",
+      "received_proposal_file_sha256": "9ff5b155861c8891be1aa22f984afeee50e7937241bcb6cb87bee3e043a569a3",
+      "materialization_file_sha256": "2dc1264ea139a44fd2503d08bce014f7020b11b1fe0963d88ec46a86bcebbbd9",
+      "change_receipt_file_sha256": "242564da9b35c598cda47880d1b168c30e39c50129f86369863da87e1c6dc7df",
+      "edit_scope_file_sha256": "08e446b058a309820ee3f5c59ac6ecab496f9a4db65fff41ed9a7d9672a54a58",
+      "change": {
+        "declared_change_status": "modified",
+        "source_changed": true,
+        "source_valid": true,
+        "ast_changed": true,
+        "passes_source_change_gate": true,
+        "parent_source_sha256": "359c564942074f62a7d99bc9d722ba011448fec1b6927d6115b8c954d7a5410a",
+        "child_source_sha256": "0df1839f66a8879a90959e92123bd2703c3dd0fc300cba6df7246a984210d20c"
+      },
+      "measurement": {
+        "questions": 12,
+        "rows": 12,
+        "f1": 0.3194444444444445,
+        "em_hits": 3,
+        "abstentions": 6,
+        "execution_ok": 12,
+        "answer_origin_valid": 12,
+        "citation_source_valid": 10,
+        "valid_program": true,
+        "logical_calls": 47
+      },
+      "program_id": "cf166985a3c40deaef6682233d5c0de25762bf18d44c8dbf41e4e88dba718905",
+      "node_id": "c225ba178de2c31044cac5053da9aaf379747c407e5a437a4447acb62cfee309",
+      "paired_gain": 0.009259259259259264,
+      "paired_summary": {
+        "clipped_negative_gains": false,
+        "improved": 2,
+        "max_signed_gain": 1.0,
+        "mean_signed_gain": 0.009259259259259264,
+        "min_signed_gain": -1.0,
+        "paired_questions": 12,
+        "regressed": 1,
+        "unchanged": 9
+      },
+      "module_attribution": "unknown",
+      "associated_module": null,
+      "predictions_changed_vs_root": 3
+    },
+    {
+      "condition": "trace",
+      "slot": 0,
+      "status": "rejected",
+      "rejected_file_sha256": "c9fdf550c534076e47d5190d76b01dd3af6e5570ce1087f7036c4d1a325e9865",
+      "rejection_reason": "truncated or missing model response",
+      "paired_gain": null
+    },
+    {
+      "condition": "trace",
+      "slot": 1,
+      "status": "rejected",
+      "received_proposal_file_sha256": "503df24b484ec9d9db3b6fdaa7160bce04bb4b676ede8239edaa9391c5c9a3f4",
+      "rejected_file_sha256": "a9183aa644ccc551b2fa6464c030ae3ea0f1210f72a135c9f810d790a9d0aa2c",
+      "rejection_reason": "exact file/old/new edit fields required",
+      "paired_gain": null
+    },
+    {
+      "condition": "cases",
+      "slot": 1,
+      "status": "measured",
+      "received_proposal_file_sha256": "57952c48adefeb6fa64a09c0b5731918ac8afb9afa7b3e1aeb4186d8893b2ed8",
+      "materialization_file_sha256": "7181903dd06dec4ac8a53e8eede64ee8d1468eb07d278714ad2cc5134aa653dd",
+      "change_receipt_file_sha256": "9b8e7113b6dfe42036f7bff32810dd0eaca7725b8b36d9e48bec44bfcfff883d",
+      "edit_scope_file_sha256": "e0c8e2a41360bc0b257df79ad6842cc50b91bef3878d23c3107a24877863fc3f",
+      "change": {
+        "declared_change_status": "modified",
+        "source_changed": true,
+        "source_valid": true,
+        "ast_changed": true,
+        "passes_source_change_gate": true,
+        "parent_source_sha256": "359c564942074f62a7d99bc9d722ba011448fec1b6927d6115b8c954d7a5410a",
+        "child_source_sha256": "b40d7961479fc5f7aa72d216a11b473c741e30d109cc4e274b09487613688317"
+      },
+      "measurement": {
+        "questions": 12,
+        "rows": 12,
+        "f1": 0.3194444444444445,
+        "em_hits": 3,
+        "abstentions": 6,
+        "execution_ok": 12,
+        "answer_origin_valid": 12,
+        "citation_source_valid": 9,
+        "valid_program": true,
+        "logical_calls": 47
+      },
+      "program_id": "9b1a03804ca2e6d1d0fb0bc0e88c5a23209a1623a1aa4afc2f9d251dee2d2a6f",
+      "node_id": "b7646a0f42ec5daca53d77efe3612fb10a736d510ec0873ed7e8a89d4220e4a6",
+      "paired_gain": 0.009259259259259264,
+      "paired_summary": {
+        "clipped_negative_gains": false,
+        "improved": 2,
+        "max_signed_gain": 1.0,
+        "mean_signed_gain": 0.009259259259259264,
+        "min_signed_gain": -1.0,
+        "paired_questions": 12,
+        "regressed": 1,
+        "unchanged": 9
+      },
+      "module_attribution": "unknown",
+      "associated_module": null,
+      "predictions_changed_vs_root": 3
+    }
+  ],
+  "candidate_predictions_identical": true,
+  "budget": {
+    "new_calls": 114,
+    "new_cny": 0.59379352,
+    "new_cny_decimal": "0.59379352",
+    "max_calls": 424,
+    "hard_cny": 110.6,
+    "pending": 0,
+    "alerts": [],
+    "prior_calls": 154,
+    "prior_conservative_cny": 1.74111468,
+    "cumulative_calls": 268,
+    "cumulative_conservative_cny": 2.3349082,
+    "cumulative_cap_calls": 1566,
+    "cumulative_cap_cny": 399,
+    "prior_unknown_request_preserved": true,
+    "stages": {
+      "plan": 24,
+      "read": 50,
+      "answer": 36,
+      "develop": 4
+    },
+    "scopes": {
+      "arm:0:cases": {
+        "calls": 61,
+        "cny": 0.19959048000000004,
+        "input": 88673,
+        "output": 9962
+      },
+      "arm:0:trace": {
+        "calls": 2,
+        "cny": 0.22362015999999998,
+        "input": 61776,
+        "output": 20129
+      },
+      "block:0": {
+        "calls": 114,
+        "cny": 0.5937935200000001,
+        "input": 211895,
+        "output": 40725
+      },
+      "root:0": {
+        "calls": 51,
+        "cny": 0.17058288,
+        "input": 61446,
+        "output": 10634
+      },
+      "run": {
+        "calls": 114,
+        "cny": 0.5937935200000001,
+        "input": 211895,
+        "output": 40725
+      }
+    }
+  },
+  "request_window_seconds": 300.62380504608154,
+  "feedback_gate": {
+    "block": 0,
+    "common_payload_equal": true,
+    "conditions": {
+      "cases": {
+        "request_body_hash": "eecb50fe0789661ef00a8fc40db6a9752cd814d49f3a64dd888209fdd0abe6c4",
+        "request_bytes": 46254
+      },
+      "trace": {
+        "request_body_hash": "bd4405bafde7edef1698342b135c73701f73af9195d81b2935f9999009637fec",
+        "request_bytes": 113741
+      }
+    },
+    "root_measurement_hash": "9f522507d77dc8a74259339c3788073a96d1d2d799b75d492206f5bd9ca5b852",
+    "scheduled_cases_not_cropped": true,
+    "schema": "rag-rsi-paired-body-gate-1"
+  },
+  "source_evidence_sha256": {
+    "plan": "f66896338a454a2a9302c8a495126ae3ae23c49c406d8b1fae678d7a63ef730a",
+    "complete": "434d39697784f60fc6ec9ecf44f6a9ba7d4e5bc5033e7497a3782e5617d82a98",
+    "ledger": "a6cdf0b4400c8e29798281ea106acea7504dbf88c4e8c65fb2bd2092c51f6526",
+    "root": "9cf3a8f31964d14bcae01e242d388ee722621e52511d88e8b9ba0cba14d271ff"
+  },
+  "limits": [
+    "12 already used questions, one measurement each",
+    "two candidates same answer predictions, not independent repeated success",
+    "root and children have independent root-vs-arm QA banks, generator randomness remains",
+    "shared identical intermediate requests between same-arm candidates; physical and logical calls differ",
+    "citation source validity is not semantic support",
+    "4 slots not an equal-opportunity comparison with former 16-slot trial",
+    "no manual repair or retry of rejected raw proposals",
+    "no automatic deployment or report-set measurement"
+  ],
+  "independent_audit": {
+    "status": "completed_audit_passed",
+    "file": "v3_exact_edits_independent_audit_20261009.json",
+    "file_sha256": "30d113cf6a53b1fe215fec34fbb1105991fe0b97440e1b6d2ff858797d0e846d",
+    "measured_cells_rechecked": 36
+  },
+  "static_patch_audit": {
+    "file": "v3_exact_edits_patch_audit_20261009.json",
+    "file_sha256": "7d9446f0eb738c40573cf8c517bb7430440d27490398e89aadef29a643ee5126"
+  },
+  "causal_diagnostics": {
+    "sibling_shared_intermediate_requests": 35,
+    "sibling_new_answer_requests": 24,
+    "root_child_equal_final_evidence_questions": 3,
+    "root_child_equal_full_upstream_sequence_questions": 1,
+    "sibling_equal_final_evidence_questions": 12,
+    "sibling_equal_answers_questions": 12,
+    "questions": 12,
+    "patch_only_effect_identified": false
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schema": "rag-rsi-exact-edits-validation-1",
   "date": "2026-10-09",
-  "status": "validated_authorized_ready_to_launch",
+  "status": "completed_real_trial_see_result_report",
   "branch": "codex/v3-paper-controls",
   "live_schema": "rag-rsi-live-evolution-5",
   "paired_schema": "rag-rsi-paired-development-2",
@@ -78,7 +78,7 @@
   "authorized_trial": {
     "authorization": "explicit_human_confirmation_received",
     "requires_repeat_authorization_for_same_scope": false,
-    "execution_status": "not_started_in_this_document_snapshot",
+    "execution_status": "complete",
     "role": "D_fit",
     "already_exposed_questions": 12,
     "hop_quotas": {
@@ -148,7 +148,7 @@
       }
     ]
   },
-  "new_trial_external_model_calls": 0,
+  "new_trial_external_model_calls": 114,
   "engineering_validation_external_model_calls": 0,
   "engineering_credential_reads": 0,
   "quality_gain_verified": false,
@@ -179,5 +179,6 @@
     "log_sha256": "3be057980756b3e8c6a1170a46b33a52684b745e92f5ff1085501638d64c4dd0",
     "source_sha256": "ef2f0f948ff3774eb0796bf382979ee51c934f49d1d0e59a568fb819502e9f87"
   },
-  "postfix_targeted_tests_passed": 165
+  "postfix_targeted_tests_passed": 165,
+  "result_report": "v3_exact_edits_result_20261009.json"
 }
