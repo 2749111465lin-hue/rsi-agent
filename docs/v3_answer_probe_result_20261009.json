@@ -1,0 +1,958 @@
+{
+  "schema": "rag-rsi-answer-probe-public-result-1",
+  "status": "local_diagnostic_complete",
+  "date": "2026-10-09",
+  "runtime_commit": "350195b69fb2c7fdff41cc3c703cca7909658c6f",
+  "plan_hash": "a4c5eda71687f177008397b96d6eb57a53052f857d4a10f91cb477f84116a90b",
+  "question_count": 24,
+  "dependency_groups": 23,
+  "fresh_repeats_per_arm": 2,
+  "new_answer_calls": 96,
+  "new_search_calls": 0,
+  "new_reader_calls": 0,
+  "question_use": "used_D_fit_support_repeat_0_fixed_states",
+  "all_cells_program_eligible": true,
+  "summary": {
+    "evidence_only": {
+      "abstentions": 16,
+      "mean_em": 0.5208333333333334,
+      "mean_f1": 0.5555555555555556,
+      "nonabstaining_em_wrong": 7,
+      "nonabstaining_f1_zero": 3,
+      "outcomes": 48,
+      "repeat_string_consistent_questions": 22,
+      "source_valid": 47
+    },
+    "full_state": {
+      "abstentions": 20,
+      "mean_em": 0.3333333333333333,
+      "mean_f1": 0.44675925925925924,
+      "nonabstaining_em_wrong": 12,
+      "nonabstaining_f1_zero": 2,
+      "outcomes": 48,
+      "repeat_string_consistent_questions": 24,
+      "source_valid": 48
+    }
+  },
+  "comparison": {
+    "baseline": "full_state",
+    "candidate": "evidence_only",
+    "cluster_count": 23,
+    "confidence_interval": {
+      "coverage": "approximate_familywise_not_finite_sample_guarantee",
+      "expected_bootstrap_tail_count": 250.00000000000023,
+      "family_confidence_level": 0.95,
+      "lower": -0.09953703703703703,
+      "method": "cluster percentile bootstrap with Bonferroni adjustment",
+      "per_comparison_confidence_level": 0.95,
+      "status": "estimated",
+      "tail_resolution_limited": false,
+      "upper": 0.30560515873015803
+    },
+    "design_sensitivity": {
+      "additional_independent_groups": 183,
+      "assumptions": "independent groups; same cluster-size and residual distribution; normal approximation",
+      "availability": "available",
+      "bonferroni_normal_critical_value": 1.9599639845400536,
+      "linearized_cluster_se": 0.10680004095673885,
+      "mde": 0.2992094160382591,
+      "mde_exceeds_unit_effect_range": false,
+      "power": 0.8,
+      "power_is_guaranteed": false,
+      "required_independent_groups": 206,
+      "status": "pilot_variance_approximation",
+      "target_effect": 0.1
+    },
+    "group_sign_counts": {
+      "negative": 4,
+      "positive": 6,
+      "zero": 13
+    },
+    "mean_delta": 0.1087962962962963,
+    "name": "remove_derived_judgments",
+    "question_sign_counts": {
+      "negative": 4,
+      "positive": 6,
+      "zero": 14
+    },
+    "sample_size": 24
+  },
+  "per_repeat": {
+    "0": {
+      "full_state": {
+        "answer_em": 0.3333333333333333,
+        "answer_f1": 0.44675925925925924
+      },
+      "evidence_only": {
+        "answer_em": 0.5416666666666666,
+        "answer_f1": 0.576388888888889
+      }
+    },
+    "1": {
+      "full_state": {
+        "answer_em": 0.3333333333333333,
+        "answer_f1": 0.44675925925925924
+      },
+      "evidence_only": {
+        "answer_em": 0.5,
+        "answer_f1": 0.5347222222222222
+      }
+    }
+  },
+  "per_case_anonymous": [
+    {
+      "case_id": "Q01",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q02",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.5,
+          0.5
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.5,
+          0.5
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q03",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 1.0
+    },
+    {
+      "case_id": "Q04",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q05",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.8888888888888888,
+          0.8888888888888888
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.11111111111111116
+    },
+    {
+      "case_id": "Q06",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q07",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q08",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.5,
+          0.5
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          false,
+          true
+        ]
+      },
+      "mean_f1_delta": -0.5
+    },
+    {
+      "case_id": "Q09",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 1.0
+    },
+    {
+      "case_id": "Q10",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": -1.0
+    },
+    {
+      "case_id": "Q11",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q12",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          0.0
+        ],
+        "f1": [
+          1.0,
+          0.0
+        ],
+        "abstained": [
+          false,
+          true
+        ]
+      },
+      "mean_f1_delta": -0.5
+    },
+    {
+      "case_id": "Q13",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q14",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 1.0
+    },
+    {
+      "case_id": "Q15",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q16",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 1.0
+    },
+    {
+      "case_id": "Q17",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q18",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q19",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.5,
+          0.5
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": -0.5
+    },
+    {
+      "case_id": "Q20",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q21",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q22",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 1.0
+    },
+    {
+      "case_id": "Q23",
+      "full_state": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          0.0,
+          0.0
+        ],
+        "f1": [
+          0.0,
+          0.0
+        ],
+        "abstained": [
+          true,
+          true
+        ]
+      },
+      "mean_f1_delta": 0.0
+    },
+    {
+      "case_id": "Q24",
+      "full_state": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "evidence_only": {
+        "em": [
+          1.0,
+          1.0
+        ],
+        "f1": [
+          1.0,
+          1.0
+        ],
+        "abstained": [
+          false,
+          false
+        ]
+      },
+      "mean_f1_delta": 0.0
+    }
+  ],
+  "repeat_noise": {
+    "evidence_only": {
+      "adjacent_exact_match_flip_count": 1,
+      "adjacent_exact_match_flip_rate": 0.041666666666666664,
+      "exact_match_state": "answer_em == 1",
+      "mean_repeat_range": 0.041666666666666664,
+      "mean_repeat_sample_stddev": 0.029462782549439483,
+      "mean_score": 0.5555555555555556,
+      "noise_metric": "answer_f1",
+      "questions_with_repeat_variation": 1,
+      "repeat_count_per_question": 2,
+      "repeats_are_independent_questions": false
+    },
+    "full_state": {
+      "adjacent_exact_match_flip_count": 0,
+      "adjacent_exact_match_flip_rate": 0.0,
+      "exact_match_state": "answer_em == 1",
+      "mean_repeat_range": 0.0,
+      "mean_repeat_sample_stddev": 0.0,
+      "mean_score": 0.44675925925925924,
+      "noise_metric": "answer_f1",
+      "questions_with_repeat_variation": 0,
+      "repeat_count_per_question": 2,
+      "repeats_are_independent_questions": false
+    }
+  },
+  "per_arm_usage_cost": {
+    "evidence_only": {
+      "calls": 48,
+      "cny": 0.04690363999999999,
+      "input": 27518,
+      "output": 1272
+    },
+    "full_state": {
+      "calls": 48,
+      "cny": 0.030342879999999992,
+      "input": 38548,
+      "output": 1303
+    }
+  },
+  "actual_usage_accounted_cny": 0.07724652000000004,
+  "hard_cny": 2,
+  "pending_calls": 0,
+  "ledger_alerts": [],
+  "returned_models": [
+    "deepseek-flash"
+  ],
+  "provider_fingerprints": [
+    "aeb56401ca74e127821c4f9126dcb669"
+  ],
+  "references_parsed_after_complete_generation": true,
+  "advance_rule": {
+    "f1_improves": true,
+    "em_not_lower": true,
+    "nonabstaining_f1_zero_not_higher": false,
+    "all_required_conditions_pass": false,
+    "deploy_deletion": false
+  },
+  "source_exception": {
+    "case_id": "Q08",
+    "arm": "evidence_only",
+    "repeat": 1,
+    "answer_abstained": true,
+    "status": "missing_citations",
+    "answer_origin_valid": true,
+    "included_in_main_panel": true,
+    "not_fabricated_citation_claim": true
+  },
+  "independent_quality_evidence": false,
+  "end_to_end_quality_evidence": false,
+  "rsi_improvement_verified": false,
+  "record_hashes": {
+    "plan.json": "a4c5eda71687f177008397b96d6eb57a53052f857d4a10f91cb477f84116a90b",
+    "generation_freeze.json": "0f3edd133eb2c9019425d314ae85563b9f27a42e2e00c9e95285fda0aa030bd7",
+    "report.json": "c21af44980af2edf44d50ff8675e0661e0236e6470a07715a5065c2fc53f4963",
+    "ledger.jsonl": "5ff5ab5c2cca8c079bfeed86d45991c2d884bddb0636700801363c0f11ebbf51",
+    "schedule.json": "e3d3a53e26e262dadc469108ce417e45fa8b952f0618fdfcba4a70beaad4bfd5"
+  },
+  "independent_recalculation": {
+    "artifact_sha256": "08a7554a3eb103b3f1080a1186a86c45d2d756af4abe587e09edbc18cfa17c2e",
+    "scores_signs_bootstrap_and_accounting_match": true,
+    "ci_10000_draws_recomputed": true,
+    "api_or_credentials_used": false,
+    "raw_messages_or_reference_text_read": false,
+    "scope": "independent recomputation from frozen scored rows, plan grouping and ledger; not independent task confirmation"
+  }
+}
