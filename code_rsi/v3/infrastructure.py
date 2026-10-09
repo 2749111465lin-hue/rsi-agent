@@ -17,6 +17,7 @@ import urllib.request
 from pathlib import Path
 from ..budget import Ledger, LimitExceeded, digest, save, stable
 from .proposal_protocol import validate_proposal_protocol
+from .runtime_contract import build_runtime_contract, validate_runtime_contract
 
 
 def terms(text):
@@ -221,6 +222,19 @@ class ModelResponseError(ValueError):
     """A completed billed response is truncated or malformed."""
 
 
+def _unique_json_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON key")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value):
+    raise ValueError("non-finite JSON constant")
+
+
 def _network_worker(connection, body, key, timeout):
     try:
         request=urllib.request.Request("https://api.deepseek.com/chat/completions",
@@ -294,7 +308,8 @@ def proposal_model_prompts(proposal_protocol=None, base=None):
 class StructuredModel:
     """One bounded LLM request per semantic action. No automatic repair purchase."""
     def __init__(self, directory, ledger, transport, *, bank, prices, model="deepseek-flash",
-                 scope="run", max_input_bytes=120000, limits=None, proposal_protocol=None):
+                 scope="run", max_input_bytes=120000, limits=None, proposal_protocol=None,
+                 runtime_contract=None):
         self.directory = Path(directory); self.directory.mkdir(parents=True, exist_ok=True)
         self.ledger, self.transport, self.bank = ledger, transport, bank
         self.model, self.scope, self.max_input_bytes = model, scope, max_input_bytes
@@ -304,12 +319,21 @@ class StructuredModel:
         self.prices = dict(prices)
         self.limits = {"plan":1200,"read":2200,"answer":800,"develop":18000}
         self.limits.update(limits or {})
+        self.runtime_contract = validate_runtime_contract(runtime_contract)
+        if self.runtime_contract is not None:
+            expected = build_runtime_contract(self.runtime_contract["host_limits"],
+                {"max_input_bytes": max_input_bytes, "output_limits": self.limits},
+                self.proposal_protocol, PROMPTS)
+            if stable(self.runtime_contract) != stable(expected):
+                raise ValueError("runtime contract differs from actual model settings")
+        self._runtime_contract_identity = digest(self.runtime_contract)
         self.calls = 0
         self.timeout_seconds = 150
         self.identity = digest({"model":model,"prompts":proposal_model_prompts(self.proposal_protocol),"limits":self.limits,
                 "max_input_bytes":max_input_bytes,"temperature":0,"thinking":"disabled",
                 "response_format":"json_object","prices":self.prices,
-                **({"proposal_protocol":self.proposal_protocol} if self.proposal_protocol is not None else {})})
+                **({"proposal_protocol":self.proposal_protocol} if self.proposal_protocol is not None else {}),
+                **({"runtime_contract":self.runtime_contract} if self.runtime_contract is not None else {})})
 
     def request_body(self, stage, payload):
         if stage not in PROMPTS or not isinstance(payload,dict):
@@ -319,6 +343,18 @@ class StructuredModel:
         protocol = getattr(self, "proposal_protocol", None)
         if stage == "develop" and validate_proposal_protocol(payload.get("proposal_protocol")) != protocol:
             raise ValueError("developer payload protocol differs from frozen model protocol")
+        contract = getattr(self, "runtime_contract", None)
+        if stage == "develop":
+            supplied = validate_runtime_contract(payload.get("runtime_contract"))
+            if stable(supplied) != stable(contract):
+                raise ValueError("developer payload runtime contract differs from frozen model contract")
+            if contract is not None:
+                expected = build_runtime_contract(contract["host_limits"],
+                    {"max_input_bytes": self.max_input_bytes, "output_limits": self.limits},
+                    protocol, PROMPTS)
+                if (stable(contract) != stable(expected)
+                        or digest(contract) != getattr(self, "_runtime_contract_identity", digest(contract))):
+                    raise ValueError("runtime contract or actual model settings changed")
         prompts = proposal_model_prompts(protocol)
         cap = self.limits[stage]
         if type(cap) is not int or not 1 <= cap <= 32768:
@@ -390,9 +426,15 @@ class StructuredModel:
         if not choices or choices[0].get("finish_reason") != "stop":
             raise ModelResponseError("truncated or missing model response")
         try:
-            result=json.loads(choices[0].get("message",{}).get("content", ""))
+            content = choices[0].get("message",{}).get("content", "")
+            strict_develop = stage == "develop" and getattr(self, "runtime_contract", None) is not None
+            result = (json.loads(content, object_pairs_hook=_unique_json_object,
+                                 parse_constant=_reject_json_constant)
+                      if strict_develop else json.loads(content))
         except (TypeError,ValueError) as exc:
-            raise ModelResponseError("completed response is not valid JSON") from exc
+            message = ("completed response is not valid unique-key JSON" if strict_develop
+                       else "completed response is not valid JSON")
+            raise ModelResponseError(message) from exc
         if not isinstance(result,dict):
             raise ModelResponseError("structured model must return an object")
         return result

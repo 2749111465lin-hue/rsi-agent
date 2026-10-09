@@ -18,6 +18,7 @@ from .diagnostics import compact_feedback
 from .edit_scope import observe_edit_scope, validated_scope
 from .edit_policy import validate_edit_policy, check_edit_policy
 from .proposal_protocol import validate_proposal_protocol, source_identity, materialize_edits
+from .runtime_contract import validate_runtime_contract
 from .fit_literal_audit import audit_fit_literals
 
 
@@ -232,7 +233,7 @@ def _match_developer_models(projected, actual, payload):
 
 class ProgramDeveloper:
     def __init__(self, model, *, feedback_condition="rich", case_schedule=None,
-                 proposal_model_factory=None, edit_policy=None, proposal_protocol=None):
+                 proposal_model_factory=None, edit_policy=None, proposal_protocol=None, runtime_contract=None):
         from .feedback_conditions import CONDITIONS
         if feedback_condition not in ("rich", *CONDITIONS):
             raise ValueError("unknown developer feedback condition")
@@ -250,6 +251,13 @@ class ProgramDeveloper:
         self.model = model
         self.edit_policy = validate_edit_policy(edit_policy)
         self.proposal_protocol = validate_proposal_protocol(proposal_protocol)
+        self.runtime_contract = validate_runtime_contract(runtime_contract)
+        if self.runtime_contract is not None:
+            if self.proposal_protocol is None or self.proposal_protocol["format"] != "exact_edits":
+                raise ValueError("runtime contract requires exact edits")
+            if any(self.runtime_contract["edit_output"][key] != self.proposal_protocol[key]
+                   for key in ("max_edits", "max_edit_chars")):
+                raise ValueError("runtime contract edit bounds differ from the proposal protocol")
         self.feedback_condition = feedback_condition
         self.case_schedule = [] if feedback_condition == "rich" else deepcopy(case_schedule)
         self.proposal_model_factory = proposal_model_factory
@@ -261,7 +269,8 @@ class ProgramDeveloper:
                 "case_schedule": deepcopy(self.case_schedule),
                 "proposal_model_factory_present": self.proposal_model_factory is not None,
                 **({"edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {}),
-                **({"proposal_protocol": deepcopy(self.proposal_protocol)} if self.proposal_protocol is not None else {})}
+                **({"proposal_protocol": deepcopy(self.proposal_protocol)} if self.proposal_protocol is not None else {}),
+                **({"runtime_contract": deepcopy(self.runtime_contract)} if self.runtime_contract is not None else {})}
 
     def prepare_request(self, program, decision, experience, result, tasks):
         """Exact outbound request; private references are deliberately not an argument."""
@@ -304,6 +313,8 @@ class ProgramDeveloper:
                     "Return literal edits against the supplied read-only parent. The host constructs a separate candidate. "
                     "Declare change_status='modified' with concrete edits or 'no_change' with edits=[]. "
                     "Model claims, source text changes and AST changes are recorded separately.")
+        if self.runtime_contract is not None:
+            payload["runtime_contract"] = deepcopy(self.runtime_contract)
         if self.feedback_condition == "rich":
             return _fit_development_request(self.model,payload)
         _strict_developer_size(self.model, payload)
@@ -476,6 +487,13 @@ class EvolutionRunner:
             raise ValueError("explicit proposal_protocol cannot be null")
         if isinstance(developer, ProgramDeveloper) and developer.proposal_protocol != self.proposal_protocol:
             raise ValueError("developer proposal protocol differs from frozen manifest")
+        self.runtime_contract = validate_runtime_contract(manifest.get("runtime_contract"))
+        if "runtime_contract" in manifest and self.runtime_contract is None:
+            raise ValueError("explicit runtime_contract cannot be null")
+        if isinstance(developer, ProgramDeveloper) and developer.runtime_contract != self.runtime_contract:
+            raise ValueError("developer runtime contract differs from frozen manifest")
+        if self.runtime_contract is not None and self.runtime_contract["host_limits"] != manifest.get("limits"):
+            raise ValueError("runtime contract host limits differ from frozen manifest")
         self.edit_policy = validate_edit_policy(manifest.get("edit_policy"))
         if "edit_policy" in manifest and self.edit_policy is None:
             raise ValueError("explicit edit_policy cannot be null")
@@ -702,11 +720,14 @@ class EvolutionRunner:
                 **({"active_controls": deepcopy(self.controls),
                     "developer_configuration": self.developer.configuration_snapshot()
                         if isinstance(self.developer, ProgramDeveloper) else None}
-                   if self.controlled_run or self.edit_policy is not None or self.proposal_protocol is not None else {}),
+                   if self.controlled_run or self.edit_policy is not None or self.proposal_protocol is not None or self.runtime_contract is not None else {}),
                 **({"active_edit_policy": deepcopy(self.edit_policy)} if self.edit_policy is not None else {}),
-                **({"active_proposal_protocol": deepcopy(self.proposal_protocol)} if self.proposal_protocol is not None else {})}
+                **({"active_proposal_protocol": deepcopy(self.proposal_protocol)} if self.proposal_protocol is not None else {}),
+                **({"active_runtime_contract": deepcopy(self.runtime_contract)} if self.runtime_contract is not None else {})}
 
     def _assert_frozen(self):
+        if self.runtime_contract != validate_runtime_contract(self.manifest.get("runtime_contract")):
+            raise ValueError("frozen runtime contract changed")
         if self.proposal_protocol != validate_proposal_protocol(self.manifest.get("proposal_protocol")):
             raise ValueError("frozen proposal protocol changed")
         if self.edit_policy != validate_edit_policy(self.manifest.get("edit_policy")):
@@ -1055,6 +1076,8 @@ class EvolutionRunner:
         if self.controlled_run:
             report.update(search_controls=deepcopy(self.controls),
                 terminal_proposals=len(attempts), rejected_proposals=sum(a["status"] == "rejected" for a in attempts))
+        if self.runtime_contract is not None:
+            report["runtime_contract_sha256"] = digest(self.runtime_contract)
         if self.proposal_protocol is not None:
             report["proposal_protocol"] = deepcopy(self.proposal_protocol)
         if self.edit_policy is not None:

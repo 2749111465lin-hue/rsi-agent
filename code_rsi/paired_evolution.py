@@ -19,6 +19,7 @@ from .v3.infrastructure import StructuredModel, BrowseCompCorpus, PROMPTS
 
 SCHEMA = "rag-rsi-paired-development-1"
 SCHEMA2 = "rag-rsi-paired-development-2"
+SCHEMA3 = "rag-rsi-paired-development-3"
 FIELDS = {"schema", "purpose", "output_dir", "search_template", "blocks", "schedule_policy",
           "max_calls", "hard_cny", "entry_sha256"}
 CONDITIONS = ("cases", "trace")
@@ -35,7 +36,7 @@ def _cost(template, qa_calls, developer_calls):
 
 
 def _prepare(plan):
-    if (not isinstance(plan, dict) or set(plan) != FIELDS or plan["schema"] not in (SCHEMA, SCHEMA2)
+    if (not isinstance(plan, dict) or set(plan) != FIELDS or plan["schema"] not in (SCHEMA, SCHEMA2, SCHEMA3)
             or plan["purpose"] != "paired_development_smoke"
             or plan["schedule_policy"] != SCHEDULE_POLICY):
         raise ValueError("exact paired development plan required")
@@ -46,7 +47,7 @@ def _prepare(plan):
     if (live.PROJECT / "runs").resolve() not in out.parents:
         raise ValueError("paired output must be a project runs child")
     template = plan["search_template"]
-    expected_template = live.SCHEMA3 if plan["schema"] == SCHEMA else live.SCHEMA5
+    expected_template = {SCHEMA: live.SCHEMA3, SCHEMA2: live.SCHEMA5, SCHEMA3: live.SCHEMA6}[plan["schema"]]
     if (not isinstance(template, dict) or template.get("schema") != expected_template
             or template.get("phase_order") != ["search"]
             or Path(template["output_dir"]).resolve() != out / "template_validation_only"):
@@ -199,7 +200,8 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, stop
             model = StructuredModel(out / "requests", _ScopedLedger(ledger, block, condition), transport,
                 bank=f"paired/{block}/{condition}/{bank}", prices=model_config["prices"],
                 model=model_config["name"], max_input_bytes=model_config["max_input_bytes"],
-                limits=model_config["output_limits"], proposal_protocol=template_check.get("proposal_protocol"))
+                limits=model_config["output_limits"], proposal_protocol=template_check.get("proposal_protocol"),
+                runtime_contract=template_check.get("runtime_contract"))
             return _PairedModel(model, template_check["model_identity"], stages, check_binding,
                                 proposal_gate=lambda: gates.get((block, condition)))
 
@@ -225,13 +227,16 @@ def run(plan, *, approved_plan_hash, execute=False, transport_factory=None, stop
                         "reference_groups_file": deepcopy(template["reference_groups_file"]),
                         "shared_root": {"schema": "rag-rsi-shared-root-1", "directory": str(out / "blocks" / str(block) / "root_measurements"),
                                         "block_id": str(block), "bank": f"shared-root/{block}"}}
-            if plan["schema"] == SCHEMA2:
+            if plan["schema"] in (SCHEMA2, SCHEMA3):
                 manifest["edit_policy"] = deepcopy(template_check["edit_policy"])
                 manifest["proposal_protocol"] = deepcopy(template_check["proposal_protocol"])
+            if plan["schema"] == SCHEMA3:
+                manifest["runtime_contract"] = deepcopy(template_check["runtime_contract"])
             developer = ProgramDeveloper(bound(block, condition, "develop", ("develop",)),
                 feedback_condition=condition, case_schedule=controls["case_schedule"],
                 proposal_model_factory=lambda slot: bound(block, condition, f"develop/proposal/{slot}", ("develop",)),
-                edit_policy=template_check.get("edit_policy"), proposal_protocol=template_check.get("proposal_protocol"))
+                edit_policy=template_check.get("edit_policy"), proposal_protocol=template_check.get("proposal_protocol"),
+                runtime_contract=template_check.get("runtime_contract"))
             return EvolutionRunner(out / "blocks" / str(block) / condition, manifest, panels, {},
                 lambda bank: bound(block, condition, bank, ("plan", "read", "answer")), developer,
                 backend_factory=backend_factory,
