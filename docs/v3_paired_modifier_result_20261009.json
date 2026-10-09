@@ -1,0 +1,184 @@
+{
+  "schema": "rag-rsi-paired-modifier-result-1",
+  "date": "2026-10-09",
+  "status": "completed_zero_accepted_candidates",
+  "process_exit_code": 0,
+  "runtime_commit": "ef870ab002746d31a8eae2b91dd453006a7f535b",
+  "plan_hash": "6f4a0ff13cbc36827a5820500df99369e7e0a3f7e1c9cf6fabfe8cbcaadf61c5",
+  "model_identity": {
+    "requested_model": "deepseek-flash",
+    "returned_model": "deepseek-flash"
+  },
+  "thinking": "disabled",
+  "temperature": 0,
+  "exposed_development_questions": 12,
+  "blocks": 2,
+  "planned_opportunities": 16,
+  "completed_opportunities": 16,
+  "accepted_candidates": 0,
+  "new_candidate_measurements": 0,
+  "heldout_roles_used": false,
+  "negative_outcomes_preserved": true,
+  "quality_gain": null,
+  "quality_gain_reason": "no executable new candidate; heldout comparison not run",
+  "real_llm_program_improvement_verified": false,
+  "full_dual_loop_completed": false,
+  "conditions": [
+    {
+      "block": 0,
+      "condition": "cases",
+      "opportunities": 4,
+      "rejections": {
+        "completed response is not valid JSON": 4
+      },
+      "accepted": 0,
+      "calls": 4,
+      "cny": 0.31406144
+    },
+    {
+      "block": 0,
+      "condition": "trace",
+      "opportunities": 4,
+      "rejections": {
+        "completed response is not valid JSON": 2,
+        "patch changes no executable behavior": 2
+      },
+      "accepted": 0,
+      "calls": 4,
+      "cny": 0.35034784
+    },
+    {
+      "block": 1,
+      "condition": "cases",
+      "opportunities": 4,
+      "rejections": {
+        "patch changes no executable behavior": 1,
+        "completed response is not valid JSON": 3
+      },
+      "accepted": 0,
+      "calls": 4,
+      "cny": 0.3108758
+    },
+    {
+      "block": 1,
+      "condition": "trace",
+      "opportunities": 4,
+      "rejections": {
+        "completed response is not valid JSON": 4
+      },
+      "accepted": 0,
+      "calls": 4,
+      "cny": 0.35578719999999997
+    }
+  ],
+  "roots": [
+    {
+      "block": 0,
+      "question_count": 12,
+      "f1": 0.3768518518518518,
+      "em_hits": 2.0,
+      "execution_ok": 12,
+      "answer_origin_valid": 12,
+      "citation_source_valid": 10,
+      "result_identity_hash": "6d495652c0add2ab971c69843035e01cf248d4d83861d6ee1a6fe0359bdde126",
+      "shared_once_across_conditions": true,
+      "calls": 49,
+      "cny": 0.13182255999999998
+    },
+    {
+      "block": 1,
+      "question_count": 12,
+      "f1": 0.22685185185185186,
+      "em_hits": 1.0,
+      "execution_ok": 12,
+      "answer_origin_valid": 12,
+      "citation_source_valid": 9,
+      "result_identity_hash": "9c15c6d2ff8c9ae589d41ce41dc1efbca2935f9bf7df479cd044e730bee35500",
+      "shared_once_across_conditions": true,
+      "calls": 51,
+      "cny": 0.14013872000000002
+    }
+  ],
+  "feedback_gates": [
+    {
+      "block": 0,
+      "common_payload_equal": true,
+      "conditions": {
+        "cases": {
+          "request_body_hash": "364e57a9201d4f7400a9de3211f718c2fccfbb006542c0c2d0a971cf622f492b",
+          "request_bytes": 45100
+        },
+        "trace": {
+          "request_body_hash": "b4014d32a39c8a4adb137d1b121da5ddf06be23d015eda54aa8d61d86bb10be5",
+          "request_bytes": 108335
+        }
+      },
+      "root_measurement_hash": "6e378af4610c1f92a3f92ad274ff8da2732bc99c1e3d574501ddd0c9ba0515a6",
+      "scheduled_cases_not_cropped": true,
+      "schema": "rag-rsi-paired-body-gate-1"
+    },
+    {
+      "block": 1,
+      "common_payload_equal": true,
+      "conditions": {
+        "cases": {
+          "request_body_hash": "3f56d4e4dad194fa2989dc842d2625d0f786f5efa0d689226da5822833d5a642",
+          "request_bytes": 45120
+        },
+        "trace": {
+          "request_body_hash": "9f70b4c2e68b110ac5ea3ff0fb2d83684fb14fbc5147818b149b363cad2db723",
+          "request_bytes": 111843
+        }
+      },
+      "root_measurement_hash": "53d7ac0d70f64c75ee8d7d6d6bfa03e90b529ebe78d67e13579fc66a446b9588",
+      "scheduled_cases_not_cropped": true,
+      "schema": "rag-rsi-paired-body-gate-1"
+    }
+  ],
+  "request_stage_counts": {
+    "plan": 24,
+    "read": 52,
+    "answer": 24,
+    "develop": 16
+  },
+  "fees": {
+    "new_calls": 116,
+    "new_usage_cny": 1.60303356,
+    "prior_calls": 38,
+    "prior_conservative_cny": 0.13808112,
+    "cumulative_calls": 154,
+    "cumulative_conservative_cny": 1.74111468,
+    "new_call_cap": 1528,
+    "new_cny_cap": 398.86,
+    "cumulative_call_cap": 1566,
+    "cumulative_cny_cap": 399,
+    "unknown_old_request_charge_retained_cny": 0.034186,
+    "new_unknown_outcomes": 0,
+    "new_unsettled": 0,
+    "new_ledger_alerts": [],
+    "not_provider_invoice": true
+  },
+  "request_window_seconds": 811.581,
+  "old_pending_preserved": true,
+  "old_ledger_sha256_unchanged": "b1775919957bf7dd9f818d04a705a6cde20efa81b74de0451772a01bd6e51124",
+  "artifact_sha256": {
+    "paired_plan.json": "6f4a0ff13cbc36827a5820500df99369e7e0a3f7e1c9cf6fabfe8cbcaadf61c5",
+    "paired_search_complete.json": "b8e1ffaf0296d147b1c41a046842c7784052bbdad80982de73f0a6b1a1fdc838",
+    "ledger.jsonl": "7cbb6fd022596aec165ee9991a7ed8fa53478373cf08402bd117d762d45d48ba",
+    "live_status.json": "5c2109f6fc30db06aea661ad8e1f2ca7dedaa45a151fec244a5a09ac694af1dc"
+  },
+  "independent_audits": {
+    "v3_paired_modifier_response_audit_20261009.json": "b00314cb0b0c8e01f16740e0ec88b316f4caf868c53e2bde69b1c467ce9b98f4",
+    "v3_paired_modifier_protocol_audit_20261009.json": "49932651cb01b28baec50df21b04034bb3cdbb9c2ba024fae38b37867d9e821e"
+  },
+  "audit_verdict": {
+    "frozen_runtime_and_entry_identities_match": true,
+    "all_16_source_pairs_ast_equal_parent": true,
+    "provider_output_truncation_observed": false,
+    "completed_invalid_json": 13,
+    "completed_valid_json_without_executable_change": 3,
+    "distinct_developer_provider_ids": 16,
+    "distinct_response_texts": 12,
+    "rejections_not_scored_as_zero": true
+  }
+}
