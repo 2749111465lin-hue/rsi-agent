@@ -1,0 +1,192 @@
+{
+  "actions": {
+    "credential_reads": 0,
+    "external_api_calls": 0,
+    "raw_question_answer_source_or_body_in_report": false,
+    "source_or_run_edits": 0
+  },
+  "audit_sha256": "1acf75977dd17a2ad869b925d889726c262391522dfb9d376764e1fcb0f5e72f",
+  "audited_at_utc": "2026-10-09T08:32:53.865065+00:00",
+  "boundaries": [
+    "Costs are local conservative accounting, not a provider invoice.",
+    "Invalid completed JSON and no-behavior-change proposals are terminal rejections, not zero-score QA observations.",
+    "No child was evaluated; this trial cannot compare cases versus trace quality or demonstrate program improvement.",
+    "The old unresolved physical outcome remains unresolved and was not retried as a cache recovery.",
+    "Only 12 previously exposed development questions, two independently measured roots, and 16 proposal opportunities were used."
+  ],
+  "cumulative": {
+    "authorized_calls_cap": 1566,
+    "authorized_cny_cap": 399,
+    "calls": 154,
+    "conservative_accounted_cny": 1.74111468,
+    "old_accounted_plus_replacement_hard_cap_cny": 398.99808112,
+    "within_authorization": true
+  },
+  "failures": [],
+  "old_stopped_run": {
+    "calls": 38,
+    "conservative_accounted_cny": 0.13808112,
+    "groups": {
+      "0:root": {
+        "calls": 38,
+        "cny": 0.13808112
+      }
+    },
+    "ledger_sha256": "b1775919957bf7dd9f818d04a705a6cde20efa81b74de0451772a01bd6e51124",
+    "ledger_stable_during_audit": true,
+    "paired_plan_sha256": "78562cc67697fc44221ccc4f15bd899184bf5b853cb7100b2ac2e3b3bac03863",
+    "provider_response_ids_distinct": 37,
+    "provider_response_ids_present": 37,
+    "request_state_counts": {
+      "pending": 1,
+      "settled": 37
+    },
+    "reservations": 38,
+    "returned_model_names": [
+      "deepseek-flash"
+    ],
+    "settlements": 38,
+    "stage_counts": {
+      "answer": 9,
+      "plan": 10,
+      "read": 19
+    },
+    "unsettled_ledger_reservations": 0
+  },
+  "old_unknown_preserved": {
+    "cache_key_note": "Keys are run-local; overlapping body/bank hashes across separately authorized runs do not establish response reuse.",
+    "cache_state": "pending",
+    "cross_run_request_key_overlap_count": 18,
+    "ledger_reservation_already_conservatively_settled": true,
+    "old_and_new_provider_response_ids_disjoint": true,
+    "provider_execution_and_billing_remain_unknown": true,
+    "unchanged_vs_prior_audit": true
+  },
+  "protocol": {
+    "all_terminal_status_counts": {
+      "rejected": 16
+    },
+    "by_block_arm": {
+      "0:cases": {
+        "rejected": 4
+      },
+      "0:trace": {
+        "rejected": 4
+      },
+      "1:cases": {
+        "rejected": 4
+      },
+      "1:trace": {
+        "rejected": 4
+      }
+    },
+    "complete_request_gate_verified": true,
+    "completed_opportunities": 16,
+    "fixed_root_fixed_module_no_memory": true,
+    "measured_new_children": 0,
+    "no_selection_or_report_started": true,
+    "only_fit_role_used": true,
+    "planned_opportunities": 16,
+    "rejection_reasons": {
+      "completed response is not valid JSON": 13,
+      "patch changes no executable behavior": 3
+    },
+    "schedule_order_verified": true,
+    "shared_roots": [
+      {
+        "block": 0,
+        "case_schedule_retained": true,
+        "common_feedback_identical": true,
+        "provider_body_bytes": {
+          "cases": 45100,
+          "trace": 108335
+        },
+        "provider_body_hashes": {
+          "cases": "364e57a9201d4f7400a9de3211f718c2fccfbb006542c0c2d0a971cf622f492b",
+          "trace": "b4014d32a39c8a4adb137d1b121da5ddf06be23d015eda54aa8d61d86bb10be5"
+        },
+        "root_cells": 12,
+        "root_measurement_hash": "6e378af4610c1f92a3f92ad274ff8da2732bc99c1e3d574501ddd0c9ba0515a6",
+        "root_measurement_identity": "6d495652c0add2ab971c69843035e01cf248d4d83861d6ee1a6fe0359bdde126",
+        "shared_root_seal_sha256": "9f20103b41ff19a5e1c0b027512d13840d833957eff06906a03531839b83096d",
+        "trace_extra_bytes": 63235
+      },
+      {
+        "block": 1,
+        "case_schedule_retained": true,
+        "common_feedback_identical": true,
+        "provider_body_bytes": {
+          "cases": 45120,
+          "trace": 111843
+        },
+        "provider_body_hashes": {
+          "cases": "3f56d4e4dad194fa2989dc842d2625d0f786f5efa0d689226da5822833d5a642",
+          "trace": "9f70b4c2e68b110ac5ea3ff0fb2d83684fb14fbc5147818b149b363cad2db723"
+        },
+        "root_cells": 12,
+        "root_measurement_hash": "53d7ac0d70f64c75ee8d7d6d6bfa03e90b529ebe78d67e13579fc66a446b9588",
+        "root_measurement_identity": "9c15c6d2ff8c9ae589d41ce41dc1efbca2935f9bf7df479cd044e730bee35500",
+        "shared_root_seal_sha256": "52027771a7e76b44030a1166957c084fcd5751ffaaca1cc0fd15944f3a54dd45",
+        "trace_extra_bytes": 66723
+      }
+    ],
+    "source_edit_policy_not_added_to_old_paid_plan": true
+  },
+  "replacement_completed_run": {
+    "calls": 116,
+    "conservative_accounted_cny": 1.60303356,
+    "groups": {
+      "0:cases": {
+        "calls": 4,
+        "cny": 0.31406143999999997
+      },
+      "0:root": {
+        "calls": 49,
+        "cny": 0.13182256
+      },
+      "0:trace": {
+        "calls": 4,
+        "cny": 0.35034784
+      },
+      "1:cases": {
+        "calls": 4,
+        "cny": 0.3108758
+      },
+      "1:root": {
+        "calls": 51,
+        "cny": 0.14013872
+      },
+      "1:trace": {
+        "calls": 4,
+        "cny": 0.3557872
+      }
+    },
+    "ledger_sha256": "7cbb6fd022596aec165ee9991a7ed8fa53478373cf08402bd117d762d45d48ba",
+    "ledger_stable_during_audit": true,
+    "paired_plan_sha256": "6f4a0ff13cbc36827a5820500df99369e7e0a3f7e1c9cf6fabfe8cbcaadf61c5",
+    "provider_response_ids_distinct": 116,
+    "provider_response_ids_present": 116,
+    "request_state_counts": {
+      "settled": 116
+    },
+    "reservations": 116,
+    "returned_model_names": [
+      "deepseek-flash"
+    ],
+    "settlements": 116,
+    "stage_counts": {
+      "answer": 24,
+      "develop": 16,
+      "plan": 24,
+      "read": 52
+    },
+    "unsettled_ledger_reservations": 0
+  },
+  "schema": "rag-rsi-independent-paired-final-audit-1",
+  "sources": {
+    "completion_sha256": "b8e1ffaf0296d147b1c41a046842c7784052bbdad80982de73f0a6b1a1fdc838",
+    "live_status_sha256": "5c2109f6fc30db06aea661ad8e1f2ca7dedaa45a151fec244a5a09ac694af1dc",
+    "previous_stop_audit_sha256": "4e2403902f2f8d3170c389e1e02928c42645c668eec6a2d6b71955f06f156752"
+  },
+  "status": "pass"
+}

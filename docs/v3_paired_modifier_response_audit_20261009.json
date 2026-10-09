@@ -1,0 +1,88 @@
+{
+  "accepted_children": 0,
+  "all_16_finish_reason_stop": true,
+  "all_16_requests_share_frozen_parent_source_identity": true,
+  "all_16_returned_source_pairs_ast_equal_parent": true,
+  "all_wrapper_source_bytes_equal_parent": true,
+  "audit_external_api_calls": 0,
+  "completion_tokens_max": 9176,
+  "completion_tokens_min": 8938,
+  "core_only_added_final_newline_count": 4,
+  "core_raw_equal_parent_count": 12,
+  "diagnosis": "proposal_serialization_and_noop_generation_bottleneck_not_output_cap_or_observed_host_false_rejection",
+  "distinct_developer_request_keys": 16,
+  "distinct_provider_response_ids": 16,
+  "distinct_response_content_hashes": 12,
+  "explicit_implementation_count_method": "Fixed literal markers in mechanism strings; a non-exhaustive lower bound, not a semantic or causal score.",
+  "invalid_complete_json": 13,
+  "live_entry_matches_frozen_plan": true,
+  "mechanism_summary": [
+    "Descriptions discuss changing progress/stopping rules, bridge tracking, reader instructions/schema, follow-up queries and final answer/abstention handling.",
+    "Some descriptions explicitly say functions or instructions/schema were changed; returned code contains none of those claimed AST edits.",
+    "Other descriptions present proposed fixes; these are intentions, not implemented behavior.",
+    "JSON correction alone would not create an executable improvement in the statically extracted code; no correction was applied."
+  ],
+  "mechanism_values_found": 16,
+  "new_run_physical_calls": 116,
+  "new_run_usage_cny": 1.60303356,
+  "output_token_cap": 18000,
+  "output_truncation_observed": false,
+  "paired_entry_matches_frozen_plan": true,
+  "planned_and_completed_opportunities": 16,
+  "private_contents_exported": false,
+  "proposals_with_explicit_implementation_language": 6,
+  "quality_conclusion": "no_accepted_candidate_no_program_improvement_comparison_possible",
+  "rejection_counts": {
+    "completed response is not valid JSON": 13,
+    "patch changes no executable behavior": 3
+  },
+  "repeated_content_slot_groups": [
+    [
+      {
+        "block": 0,
+        "condition": "trace",
+        "slot": 1
+      },
+      {
+        "block": 0,
+        "condition": "trace",
+        "slot": 2
+      }
+    ],
+    [
+      {
+        "block": 1,
+        "condition": "cases",
+        "slot": 1
+      },
+      {
+        "block": 1,
+        "condition": "cases",
+        "slot": 2
+      },
+      {
+        "block": 1,
+        "condition": "cases",
+        "slot": 3
+      }
+    ],
+    [
+      {
+        "block": 1,
+        "condition": "trace",
+        "slot": 2
+      },
+      {
+        "block": 1,
+        "condition": "trace",
+        "slot": 3
+      }
+    ]
+  ],
+  "runtime_source_hash_contract": "Existing runner uses digest(canonical JSON of decoded source text); entry hashes bind raw bytes.",
+  "runtime_source_matches_frozen_plan": true,
+  "schema": "rag-rsi-developer-rejection-public-summary-1",
+  "source_run_modified": false,
+  "status": "complete",
+  "valid_complete_json": 3
+}
