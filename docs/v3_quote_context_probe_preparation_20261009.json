@@ -1,0 +1,100 @@
+{
+  "actual_wsl": {
+    "actual_wsl_executions": 4,
+    "advance_decision_is_synthetic_only": {
+      "automatic_deployment": false,
+      "checks": {
+        "all_cells_eligible": true,
+        "em_not_decreased": true,
+        "f1_increased": false,
+        "nonabstaining_f1_zero_not_increased": true
+      },
+      "criteria": {
+        "mean_em_gain_gte": 0,
+        "mean_f1_gain_gt": 0,
+        "nonabstaining_f1_zero_increase_lte": 0
+      },
+      "independent_confirmation_required": true,
+      "passed": false,
+      "rsi_benefit_verified": false
+    },
+    "all_answer_origins_valid": true,
+    "all_cells_retained": true,
+    "all_citation_sources_valid": true,
+    "all_execution_ok": true,
+    "all_isolation_verified": true,
+    "cost_cny": 0,
+    "credentials_read": false,
+    "generation_freeze_hash": "39297aa52a1b376f859f64dfff1932abf1ea6549cdfef0f7344b1f8e005bd199",
+    "generation_frozen_before_reference_parse": true,
+    "new_external_api_calls": 0,
+    "plan_hash": "7fbf95b24d2604ddecf9bfedfbe3564923bd7e5ffb86ebabf4800a68ed783973",
+    "real_quality_evidence": false,
+    "report_hash": "a19058fa80b15d8f8c7698d0572723035da630431aab952172011e6fc12685b4",
+    "resume_new_calls": 0,
+    "schema": "rag-rsi-quote-context-probe-wsl-1",
+    "scripted_transport_calls": 4,
+    "status": "local_diagnostic_complete",
+    "synthetic": true
+  },
+  "actual_wsl_summary_sha256": "c3b3986c60190b7651d2b3db989108a5701e5df51cba39ccaa36c5817ac86504",
+  "baseline_commit": "a11aa81379a05d48403ea0df668975642493ac59",
+  "bindings": {
+    "case_packet_sha256": "e93d72354c618e67137a078aef60f51f94178b4216a5056e5ebcca6bf8e7caef",
+    "plan_sha256": "5809c2bbd7a2dd4c6f499912eaabaf3af601443b54ac82add59b02073c28078a",
+    "preflight_sha256": "3fa0f7ce6f8efcd458b6b3b0bc13ada516304f868ae7b95fca07b2a894354e34",
+    "source_preparation_sha256": "5ffa438b4be3a13816312dc0d1469e084546c193b1851ad51f13ecafd063bc07"
+  },
+  "closed_book_implemented": false,
+  "cost_cny": 0,
+  "credentials_read": false,
+  "fresh_panel_prepared": false,
+  "independent_model_assisted_review": {
+    "all_138_contexts_independently_checked": true,
+    "references_credentials_transport_guarded": true,
+    "remaining_high_priority_findings": 0,
+    "saved_preflight_matches_recomputed": true
+  },
+  "mechanism_fixture": {
+    "added_contexts": 138,
+    "added_source_chars_summed": 39552,
+    "all_noncontext_fields_equal": true,
+    "conservative_cny_upper_bound": 2.0421,
+    "credentials_read": false,
+    "dependence_groups": 23,
+    "hard_cny": 3,
+    "max_answer_body_bytes": 14876,
+    "max_new_calls": 96,
+    "new_api_calls": 0,
+    "original_quotes": 138,
+    "plan_hash": "5809c2bbd7a2dd4c6f499912eaabaf3af601443b54ac82add59b02073c28078a",
+    "references_parsed": false,
+    "states": 24,
+    "states_without_context_addition": 0
+  },
+  "new_external_api_calls": 0,
+  "new_tests": {
+    "prepare_source_migration": 9,
+    "quote_context_probe": 24
+  },
+  "next_action": "Implement historical exposure exclusion and grouped fresh panels; specify closed-book baseline before paid confirmation.",
+  "real_quality_improvement_verified": false,
+  "real_references_parsed": false,
+  "schema": "rag-rsi-quote-context-probe-preparation-1",
+  "status": "engineering_ready_held_for_fresh_panel",
+  "suite": {
+    "log_sha256": "6edea4b496b2526039c1e4fce93f88a93606d4e9d372ab301e53096314e4d63c",
+    "passed": 810,
+    "ran": 811,
+    "seconds": 146.507,
+    "skip": "existing opt-in WSL test; four separate actual WSL synthetic executions passed",
+    "skipped": 1
+  },
+  "workspace_file_sha256": {
+    "code_rsi/answer_probe.py": "84bf8b384af8ba5f706c8a09786906051bacff9f6b18a49d464a654cd8ae3072",
+    "code_rsi/answer_replay.py": "5dd8d396e2f54e5fabb856ed5c2f1e06c589c27bee3045a0f289cfd13d8cf508",
+    "code_rsi/prepare_answer_probe.py": "a582733a2e5f61b6cc3ab09e790f333b418b786a1a68196aa40ad980405751a3",
+    "test_prepare_answer_probe.py": "17696cfd71ead88fafa454347fbd1572c89c0df5af638a7c6df651b12466eef8",
+    "test_quote_context_probe.py": "add6f5fcde94d576826bcb8ea3f3373c0b4e8aa2a18c3ce12ef61330e7823b79"
+  }
+}

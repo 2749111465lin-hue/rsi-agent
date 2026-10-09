@@ -148,5 +148,121 @@ class PrepareAnswerProbeTests(unittest.TestCase):
         self.assertNotIn("question", lines[0])
 
 
+    def test_loop_selection_has_all_cases_without_opening_references(self):
+        raw = Path.read_bytes
+        protected = Path(self.plan["references_file"]["path"]).resolve()
+        def guard(path):
+            if path.resolve() == protected or path.name == "report.json" or "grading" in path.parts:
+                self.fail("loop preparation opened private references or scores")
+            return raw(path)
+        with patch.object(Path, "read_bytes", guard):
+            packet = prepare.build_cases(self.plan, source_arm="loop")
+        self.assertEqual([c["task"]["question_id"] for c in packet["cases"]], self.plan["question_ids"])
+        self.assertTrue(all(c["source_binding"]["source_identity"]["arm"] == "loop" for c in packet["cases"]))
+        self.assertTrue(all("__loop__repeat_0__" in c["source_binding"]["selection_rule"] for c in packet["cases"]))
+
+    def test_source_arm_and_checkout_are_closed(self):
+        for arm in ("planned", "D_report", "", None):
+            with self.assertRaisesRegex(ValueError, "source_arm"):
+                prepare.build_cases(self.plan, source_arm=arm)
+        with self.assertRaisesRegex(ValueError, "allowlisted"):
+            prepare.build_cases(self.plan, source_arm="loop", source_checkout=self.out)
+
+    def test_maintained_source_guard_binds_raw_bytes_and_original_text_digest(self):
+        root = Path(prepare.__file__).resolve().parents[1]
+        source_plan = deepcopy(self.plan)
+        source_plan["runtime_source_hashes"] = {name: value for name, value in source_plan["runtime_source_hashes"].items()
+            if name.replace(chr(92), "/") in prepare._SOURCE_RUNTIME_NAMES}
+        with patch.object(prepare, "TRUSTED_SOURCE_CHECKOUT", root):
+            bound = prepare._trusted_source_binding(source_plan, root)
+            self.assertEqual(bound["runtime_source_hashes"], source_plan["runtime_source_hashes"])
+            self.assertEqual(set(bound["files"]), prepare._SOURCE_RUNTIME_NAMES | {"__init__.py"})
+            for binding in bound["files"].values():
+                self.assertEqual(hashlib.sha256(Path(binding["path"]).read_bytes()).hexdigest(), binding["sha256"])
+            changed = deepcopy(source_plan)
+            changed["runtime_source_hashes"]["archive.py"] = "0" * 64
+            with self.assertRaisesRegex(ValueError, "changed since"):
+                prepare._trusted_source_binding(changed, root)
+            changed = deepcopy(source_plan)
+            changed["runtime_source_hashes"].pop("archive.py")
+            with self.assertRaisesRegex(ValueError, "import closure"):
+                prepare._trusted_source_binding(changed, root)
+            with patch.object(prepare, "TRUSTED_PACKAGE_INIT_SHA256", "0" * 64):
+                with self.assertRaisesRegex(ValueError, "initializer"):
+                    prepare._trusted_source_binding(source_plan, root)
+
+    def migration_fixture(self):
+        packet = prepare.build_cases(self.plan, source_arm="loop")
+        for case in packet["cases"]:
+            # Unit fixture stands in for the separately authenticated source
+            # engine. All underlying events/receipts remain real synthetic run
+            # records, so target request and full-result checks are exercised.
+            case["engine_sha256"] = "a" * 64
+        helper = Path(prepare.__file__).resolve()
+        return {"packet": packet, "source": {"files": {}},
+                "helper": {"path": str(helper), "sha256": hashlib.sha256(helper.read_bytes()).hexdigest()}}
+
+    def test_migration_requires_identical_every_request_and_complete_result(self):
+        source = self.migration_fixture()
+        with patch.object(prepare, "_source_packet", return_value=source) as child:
+            packet = prepare.build_cases(self.plan, source_arm="loop", source_checkout="explicit-reviewed-source")
+        child.assert_called_once_with(self.plan, "loop", "explicit-reviewed-source")
+        for case in packet["cases"]:
+            proof = case["source_binding"]["runtime_migration"]
+            self.assertEqual(proof["source_engine_sha256"], "a" * 64)
+            self.assertEqual(proof["current_engine_sha256"], case["engine_sha256"])
+            self.assertTrue(proof["all_requests_identical"])
+            self.assertEqual(proof["original_candidate_reported_sha256"], proof["current_candidate_reported_sha256"])
+            self.assertEqual(proof["events_sha256"], digest(case["events"]))
+            self.assertTrue(proof["replay"]["complete"])
+            self.assertEqual(proof["replay"]["new_model_calls"], 0)
+
+    def test_migration_does_not_accept_request_drift_with_same_final_answer(self):
+        source = self.migration_fixture()
+        class DriftEngine(RagEngine):
+            def solve(self, task):
+                return super().solve({"question": task["question"] + " altered"})
+        with patch.object(prepare, "RagEngine", DriftEngine):
+            with self.assertRaisesRegex(Exception, "replay request"):
+                prepare._migrate_packet(self.plan, "loop", source)
+
+    def test_migration_does_not_accept_changed_nonanswer_derived_state(self):
+        source = self.migration_fixture()
+        class DriftEngine(RagEngine):
+            def solve(self, task):
+                result = super().solve(task)
+                result["stop_reason"] = "changed"
+                return result
+        with patch.object(prepare, "RagEngine", DriftEngine):
+            with self.assertRaisesRegex(ValueError, "complete original"):
+                prepare._migrate_packet(self.plan, "loop", source)
+
+    def test_migration_rejects_subset_reorder_and_source_arm_switch(self):
+        for change in (
+            lambda packet: packet["cases"].pop(),
+            lambda packet: packet["cases"].reverse(),
+            lambda packet: packet["cases"][0]["source_binding"]["source_identity"].update(arm="support"),
+        ):
+            source = self.migration_fixture()
+            change(source["packet"])
+            with self.assertRaises(ValueError):
+                prepare._migrate_packet(self.plan, "loop", source)
+
+    def test_migration_rechecks_frozen_cell_and_source_helper_bytes(self):
+        source = self.migration_fixture()
+        source["packet"]["cases"][0]["source_binding"]["source_cell"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source cell"):
+            prepare._migrate_packet(self.plan, "loop", source)
+        source = self.migration_fixture()
+        source["helper"]["sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source artifact changed"):
+            prepare._migrate_packet(self.plan, "loop", source)
+
+    def test_default_same_runtime_packet_does_not_add_migration_fields(self):
+        packet = prepare.build_cases(self.plan)
+        self.assertTrue(all("runtime_migration" not in c["source_binding"] for c in packet["cases"]))
+        self.assertEqual(packet, prepare._build_current_cases(self.plan))
+
+
 if __name__ == "__main__":
     unittest.main()

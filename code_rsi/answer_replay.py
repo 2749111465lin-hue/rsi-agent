@@ -7,12 +7,14 @@ from copy import deepcopy
 
 from .budget import digest
 from .v3.execution import root_files
+from .v3.rag import RagEngine
 from .v3.infrastructure import ModelResponseError
 from .v3.reader_replay import (
     ReplayContractError, ReplayRouter, validate_case,
 )
 
 ARMS = ("full_state", "evidence_only")
+CONTEXT_ARMS = ("full_state", "quote_context")
 HEADERS = ("question", "instructions", "stage_instructions",
            "additional_guidance", "output_schema")
 JUDGMENTS = ("constraints", "claims", "gaps", "conflicts",
@@ -37,9 +39,50 @@ def project_final_payload(payload, arm):
     return {key: deepcopy(value) for key, value in payload.items() if key in keep}
 
 
+def project_case_payload(case, arm):
+    """Render the maintained context option over an exact historical prefix.
+
+    This uses the same engine as the isolated program, without buying a model
+    response or embedding task-specific text in source. The historical answer
+    is only a placeholder to finish rendering, never a new-arm measurement.
+    """
+    case = validate_case(case)
+    original = project_final_payload(case["events"][-1]["request"]["payload"], "full_state")
+    if arm != "quote_context":
+        return project_final_payload(original, arm)
+    if case["config"].get("final_context_radius", 0) != 0:
+        raise ReplayContractError("quote-context baseline must have radius zero")
+
+    class Projector(ReplayRouter):
+        projected = None
+        def _call(self, name, request):
+            if self._cursor != len(self.case["events"]) - 1:
+                return super()._call(name, request)
+            if name != "complete" or request.get("stage") != "answer":
+                self._reject("context projection must end with one answer")
+            self.projected = deepcopy(request["payload"])
+            self._cursor += 1
+            return deepcopy(self.case["events"][-1]["response"])
+
+    router = Projector(case)
+    RagEngine(router, router, config={**case["config"], "final_context_radius": 256}).solve(
+        {"question": case["task"]["question"]})
+    router.assert_complete()
+    if router.projected is None:
+        raise ReplayContractError("context projection did not produce a final payload")
+    stripped = deepcopy(router.projected)
+    for item in stripped.get("evidence", []):
+        item.pop("context", None)
+    if digest(stripped) != digest(original):
+        raise ReplayContractError("context option changed fields beyond source neighborhoods")
+    return router.projected
+
+
 def replay_files(case, arm="full_state"):
     case = validate_case(case)
-    project_final_payload(case["events"][-1]["request"]["payload"], arm)
+    project_case_payload(case, arm)
+    if arm == "quote_context":
+        return root_files({**case["config"], "final_context_radius": 256})
     files = root_files(case["config"])
     original = """class Model:
     def __init__(self, services): self.services = services
@@ -68,8 +111,7 @@ class AnswerReplayRouter(ReplayRouter):
     def __init__(self, case, live_model=None, arm="full_state"):
         super().__init__(case, live_model=live_model)
         self.arm = arm
-        self.projected_payload = project_final_payload(
-            self.case["events"][-1]["request"]["payload"], arm)
+        self.projected_payload = project_case_payload(self.case, arm)
         if live_model is None and arm != "full_state":
             raise ReplayContractError("changed answer input requires a fresh response")
         self.identity = digest({"schema": "rag-rsi-answer-replay-1",

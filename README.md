@@ -10,6 +10,8 @@
 
 **最新离线定位：**引句可能丢失身份、时间和指代，中间判断则有时补足、有时误导。已实现默认关闭的原文邻域模块；全24题78条引句容量检查通过，尚无新模型收益证据。本轮777项测试通过、1项跳过，另有2次真实WSL合成执行通过。[验收记录](docs/v3_quote_context_validation_20261009.json) · [案例复核、架构与论文借鉴](docs/v3_quote_context_review_20261009.md)。
 
+**最新路线调整：**先补闭卷对照和跨实验曝光排除，按依赖组扩大新面板；旧24题不承担独立确认。正常检索邻域验证入口已通过810项测试（1项跳过）和4次实际WSL合成执行，但没有新API结果。状态分层和边界对齐分别检验。[审查回应与下一版计划](docs/v3_independent_evidence_plan_20261009.md) · [工程预检](docs/v3_quote_context_probe_preparation_20261009.json)
+
 ## 架构
 
 ```mermaid
@@ -61,7 +63,7 @@ python -B -m code_rsi.v3 offline-demo --out D:\Codex\Projects\rsi-agent\runs\off
 - `code_rsi/v3/reader_replay.py` 与 `reader_probe.py`：精确回放前缀，隔离末轮阅读提示的局部干预，生成冻结后才做锚点诊断和本地评分。
 - `code_rsi/live_evolution.py`：完整代码演化入口，统一预算、模型身份与恢复保护。
 - `code_rsi/prepare_musique.py`：本地MuSiQue-Ans三角色分组与组成问题去重。
-- `code_rsi/prepare_answer_probe.py`、`answer_replay.py`、`answer_probe.py`：固定历史证据，只改变终答派生判断输入；共用原隔离、预算、恢复和评分接口。
+- `code_rsi/prepare_answer_probe.py`、`answer_replay.py`、`answer_probe.py`：固定历史证据，版本化比较终答派生判断或原文邻域；共用原隔离、预算、恢复和评分接口。
 
 完整演化使用[正式入口与分组说明](docs/v3_live_evolution.md)，内部直接复用 `EvolutionRunner`；固定流程校准使用下列入口。真实模型试跑需冻结具体方案与授权范围。没有默认凭据文件读取，也不在导入时发请求。
 
