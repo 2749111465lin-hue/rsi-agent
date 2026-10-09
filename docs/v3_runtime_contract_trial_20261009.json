@@ -1,0 +1,59 @@
+{
+  "plan_hash": "947367b129789d34362ce6ef3aa31d0c7f7c6296410dc773698e42f14ab63689",
+  "source_commit": "521d8c750b34bba8aa23a4041b6256cd82d58fba",
+  "trial_scope": {
+    "already_used_questions": 12,
+    "blocks": 1,
+    "conditions": [
+      "cases",
+      "trace"
+    ],
+    "dataset": "musique",
+    "hop_counts": {
+      "2": 4,
+      "3": 4,
+      "4": 4
+    },
+    "max_models_per_question": 7,
+    "memory": "none",
+    "new_select_report_questions": 0,
+    "proposals_per_condition": 2,
+    "repeats": 1,
+    "role": "D_fit",
+    "root_fixed": true,
+    "total_opportunities": 4
+  },
+  "budget": {
+    "cumulative_conservative_cost_envelope_cny": "112.99999576",
+    "cumulative_hard_envelope_cny": "113.00364376",
+    "cumulative_max_calls": 764,
+    "envelope_is_not_estimated_invoice": true,
+    "existing_cumulative_call_cap": 1566,
+    "existing_cumulative_cny_cap": "399",
+    "new_call_cap": 424,
+    "new_conservative_cny_upper_bound": "110.596352",
+    "new_hard_cny": "110.60",
+    "prior_calls": 340,
+    "prior_cny": "2.40364376",
+    "prior_cumulative_envelope_is_not_new_trial_authorization": true
+  },
+  "new_protocol": {
+    "exact_edits_unchanged": {
+      "format": "exact_edits",
+      "max_edit_chars": 12000,
+      "max_edits": 8,
+      "schema": "rag-rsi-proposal-protocol-1"
+    },
+    "live_schema": "rag-rsi-live-evolution-6",
+    "paired_schema": "rag-rsi-paired-development-3",
+    "runtime_contract_sha256": "3eb9b72501f265ee21b70944c1d84d2dc640055993c00d05167829b51979c6f7"
+  },
+  "claim": "An engineering trial of whether the explicit runtime contract produces valid actual edits; it is not an independent quality confirmation or a matched-root historical counterfactual effect comparison.",
+  "schema": "rag-rsi-runtime-contract-trial-public-protocol-1",
+  "status": "authorized_and_started",
+  "authorization": "User explicitly approved the prepared trial on 2026-10-09.",
+  "results": "Pending; this file describes the frozen protocol, not a result.",
+  "raw_inputs_published": false,
+  "new_panel_used": false,
+  "source_unchanged_during_run": true
+}

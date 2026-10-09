@@ -1,0 +1,383 @@
+{
+  "schema": "rag-rsi-evidence-feedback-public-review-1",
+  "status": "complete_retrospective_diagnosis_not_independent_ground_truth",
+  "scope": "all12_previously_used_D_fit_questions_and_all72_fixed_prefix_answers",
+  "new_api_calls_for_this_diagnosis": 0,
+  "source_commit": "521d8c750b34bba8aa23a4041b6256cd82d58fba",
+  "local_mechanical_audit_sha256": "438ca09cdd2bd39e947677996ef054492364f5f26ad22b69f4bed4d4a737db72",
+  "prototype_audit_sha256": "d6263d221c986d5b1298bcb1f996a3623a36f13f18f9b9604a5b905a3729fe5b",
+  "mechanical_summary": {
+    "case_denominator": 12,
+    "new_answer_denominator": 72,
+    "arm_count": 3,
+    "repeats": 2,
+    "annotated_support_documents": 36,
+    "support_documents_retrieved": 30,
+    "full_support_document_coverage_all_stages_cases": [
+      "Q01",
+      "Q02",
+      "Q03",
+      "Q04",
+      "Q06",
+      "Q08",
+      "Q11",
+      "Q12"
+    ],
+    "missing_support_docs_at_retrieval": [
+      {
+        "case_id": "Q05",
+        "count": 1
+      },
+      {
+        "case_id": "Q07",
+        "count": 2
+      },
+      {
+        "case_id": "Q09",
+        "count": 2
+      },
+      {
+        "case_id": "Q10",
+        "count": 1
+      }
+    ],
+    "additional_document_membership_loss_after_retrieval": 0,
+    "full_support_documents_and_six_of_six_abstentions": [
+      "Q04",
+      "Q11",
+      "Q12"
+    ],
+    "root_final_quotes": 57,
+    "context_extensions_across_36_final_inputs": 0,
+    "returned_answer_exactly_matches_final_model": 72,
+    "all72_execution_complete": true,
+    "all72_isolation_verified": true,
+    "semantic_reviewed_cases": 0,
+    "semantic_unknown_cases": 12
+  },
+  "feedback_projection": {
+    "sizes": {
+      "active_body_bytes": 119055,
+      "draft_body_bytes": 106820,
+      "reduction_bytes": 12235,
+      "reduction_fraction": 0.10276762840703876,
+      "cap_bytes": 120000,
+      "active_headroom_bytes": 945,
+      "draft_headroom_bytes": 13180,
+      "actual_trusted_request_builder_used": true
+    },
+    "sums": {
+      "trace_grounded_occurrences_recomputed": 64,
+      "per_read_unique_quote_occurrences": 60,
+      "all_read_unique_quotes": 57,
+      "sample_count": 21,
+      "terminal_evidence_count": 57,
+      "terminal_quotes_present_as_full_strings_in_old_case": 23,
+      "terminal_quotes_exactly_present_as_old_quote_samples": 20,
+      "quote_character_omissions_reported": 5738
+    },
+    "all_terminal_state_fields_preserved": true,
+    "terminal_state_fields": [
+      "claims",
+      "conflicts",
+      "constraints",
+      "evidence",
+      "gaps",
+      "stop_reason",
+      "unresolved_conflict_count"
+    ],
+    "terminal_request_headers_not_copied_into_terminal_inputs": [
+      "instructions",
+      "stage_instructions",
+      "additional_guidance",
+      "output_schema"
+    ],
+    "original_question_preserved_in_common_case": true,
+    "differences_and_limits": [
+      "The prior audit feedback_file_sha256 actually identifies the complete old provider body, not a feedback file.",
+      "64 counts citation occurrences including repeated citations within and across read rounds; per-read deduplication gives 60 and per-case all-read deduplication gives 57. It is not 64 distinct facts.",
+      "20 of 57 terminal quotes are exactly present as structured old quote samples. Searching any string anywhere in the old case finds 23 terminal quotes as substrings; do not claim the other 37 are completely invisible in all text.",
+      "The draft preserves all 57 final evidence records exactly, including order and metadata; legality does not prove semantic sufficiency.",
+      "The treatment both adds terminal state information and removes historical trace metadata. It is not lossless compression.",
+      "The case-only arm does not receive these terminal state fields. A future cases-versus-new-trace comparison estimates a feedback-package effect, not compression alone.",
+      "No new model was run; neither smaller input nor complete quote retention establishes improved proposals, answer accuracy, or causality.",
+      "Common case fields and all common aggregate scores remain exactly equal; known prediction-plus-score information remains unchanged."
+    ]
+  },
+  "boundaries": [
+    "This is retrospective development diagnosis, not an independent blind annotation.",
+    "Document identity coverage does not establish full relationship support.",
+    "The proposed feedback changes information and representation; it is not lossless compression.",
+    "The currently authorized paid trial remains unchanged."
+  ],
+  "raw_questions_answers_context_published": false,
+  "verified_projection_audit_sha256": "28bce4ce59197b61dc449aec38d73c99f77b3ff4660186f60d373907cb04f8fd",
+  "posthoc_assistant_semantic_review": {
+    "review_design": "posthoc_nonblind_saw_outcomes_and_references",
+    "case_denominator": 12,
+    "final_quote_sufficiency_counts": {
+      "yes": 4,
+      "ambiguous": 4,
+      "no": 4
+    },
+    "full_actual_read_context_sufficiency_counts": {
+      "yes": 5,
+      "ambiguous": 4,
+      "no": 3
+    },
+    "rows": [
+      {
+        "case_id": "Q01",
+        "actual_full_read_context_sufficiency": "yes",
+        "final_verified_quote_sufficiency": "yes",
+        "complete_annotated_context_sufficiency": "yes",
+        "confidence": "high",
+        "task_reference_issue_pending_independent_adjudication": false,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 0,
+        "supporting_quote_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "case_id": "Q02",
+        "actual_full_read_context_sufficiency": "ambiguous",
+        "final_verified_quote_sufficiency": "ambiguous",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_scope_mismatch",
+        "task_reference_issue_pending_independent_adjudication": true,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 0,
+        "supporting_quote_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "case_id": "Q03",
+        "actual_full_read_context_sufficiency": "yes",
+        "final_verified_quote_sufficiency": "yes",
+        "complete_annotated_context_sufficiency": "yes",
+        "confidence": "high",
+        "task_reference_issue_pending_independent_adjudication": false,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 0,
+        "supporting_quote_indices": [
+          0,
+          4,
+          5
+        ]
+      },
+      {
+        "case_id": "Q04",
+        "actual_full_read_context_sufficiency": "yes",
+        "final_verified_quote_sufficiency": "no",
+        "complete_annotated_context_sufficiency": "yes",
+        "confidence": "high",
+        "task_reference_issue_pending_independent_adjudication": false,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 6,
+        "supporting_quote_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "case_id": "Q05",
+        "actual_full_read_context_sufficiency": "no",
+        "final_verified_quote_sufficiency": "no",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_missing_current_facts",
+        "task_reference_issue_pending_independent_adjudication": true,
+        "support_document_recall": 0.6666666666666666,
+        "new_answer_count": 6,
+        "new_abstention_count": 6,
+        "supporting_quote_indices": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "case_id": "Q06",
+        "actual_full_read_context_sufficiency": "yes",
+        "final_verified_quote_sufficiency": "yes",
+        "complete_annotated_context_sufficiency": "yes",
+        "confidence": "high_for_year_level_answer",
+        "task_reference_issue_pending_independent_adjudication": false,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 5,
+        "supporting_quote_indices": [
+          0,
+          1,
+          3
+        ]
+      },
+      {
+        "case_id": "Q07",
+        "actual_full_read_context_sufficiency": "ambiguous",
+        "final_verified_quote_sufficiency": "ambiguous",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_entity_join_question",
+        "task_reference_issue_pending_independent_adjudication": true,
+        "support_document_recall": 0.3333333333333333,
+        "new_answer_count": 6,
+        "new_abstention_count": 0,
+        "supporting_quote_indices": [
+          0,
+          1
+        ]
+      },
+      {
+        "case_id": "Q08",
+        "actual_full_read_context_sufficiency": "yes",
+        "final_verified_quote_sufficiency": "yes",
+        "complete_annotated_context_sufficiency": "yes",
+        "confidence": "high",
+        "task_reference_issue_pending_independent_adjudication": false,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 0,
+        "supporting_quote_indices": [
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "case_id": "Q09",
+        "actual_full_read_context_sufficiency": "no",
+        "final_verified_quote_sufficiency": "no",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_absent_spouse_and_office_scope",
+        "task_reference_issue_pending_independent_adjudication": true,
+        "support_document_recall": 0.5,
+        "new_answer_count": 6,
+        "new_abstention_count": 6,
+        "supporting_quote_indices": [
+          0,
+          2,
+          3,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "case_id": "Q10",
+        "actual_full_read_context_sufficiency": "no",
+        "final_verified_quote_sufficiency": "no",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_missing_term_and_country_mismatch",
+        "task_reference_issue_pending_independent_adjudication": true,
+        "support_document_recall": 0.75,
+        "new_answer_count": 6,
+        "new_abstention_count": 6,
+        "supporting_quote_indices": [
+          0,
+          1,
+          2,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "case_id": "Q11",
+        "actual_full_read_context_sufficiency": "ambiguous",
+        "final_verified_quote_sufficiency": "ambiguous",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_literal_premise_ambiguity",
+        "task_reference_issue_pending_independent_adjudication": true,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 6,
+        "supporting_quote_indices": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      {
+        "case_id": "Q12",
+        "actual_full_read_context_sufficiency": "ambiguous",
+        "final_verified_quote_sufficiency": "ambiguous",
+        "complete_annotated_context_sufficiency": "ambiguous",
+        "confidence": "high_for_false_gap_moderate_for_full_chain",
+        "task_reference_issue_pending_independent_adjudication": false,
+        "support_document_recall": 1.0,
+        "new_answer_count": 6,
+        "new_abstention_count": 6,
+        "supporting_quote_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      }
+    ],
+    "old_scores_changed": false,
+    "samples_excluded": 0,
+    "new_gold_created": false,
+    "deployed": false,
+    "boundaries": [
+      "These are assistant judgments after reading frozen references/results, not independent blind review or new gold.",
+      "The yes/no/ambiguous values are diagnostics only and must not enter training, selection, filtering, or deployment.",
+      "No causal effect of gaps/conflicts or context restoration has been established.",
+      "Sentence truth, full constraint satisfaction, and a matching answer string remain distinct."
+    ]
+  },
+  "semantic_summary_raw_sha256": "3041025f1756d6c2400e8abb9622a8b4fa96eb6c13869013c370eac5ccf7cfc9",
+  "semantic_private_review_raw_sha256": "ee37db55b15946fa4857aa946303b843103ad819fce6562c503324f8a105bd07",
+  "context_capacity": {
+    "audit_sha256": "d6d76dd82e287f212ced2df46348558e5a63f8a923b20be492b6c9a2f0641d61",
+    "summary": {
+      "case_count": 12,
+      "total_quotes": 57,
+      "potential_contexts": 56,
+      "added_contexts": 56,
+      "budget_skipped_contexts": 0,
+      "total_added_source_chars": 14232,
+      "provider_body_bytes": {
+        "full_state": {
+          "min": 2489,
+          "max": 7130,
+          "mean": 4412.833333333333
+        },
+        "quote_context": {
+          "min": 3191,
+          "max": 11799,
+          "mean": 7112.916666666667
+        }
+      },
+      "answer_complete_request_cap_bytes": 120000,
+      "conservative_cny_bound_12_cases_each_arm_one_repeat": {
+        "full_state": 0.20728400000000002,
+        "quote_context": 0.272086
+      },
+      "hypothetical_two_arms_two_repeats": {
+        "new_answer_calls": 48,
+        "conservative_cny_upper_bound": 0.95874,
+        "authorized_by_this_diagnostic": false
+      }
+    },
+    "limits": [
+      "This checks mechanical source recovery and capacity, not semantic sufficiency or answer accuracy.",
+      "Price fields are inherited from the frozen plan, not a new provider pricing claim. Bounds are conservative bytes-as-tokens plus1024 and output800, not expected invoice.",
+      "No new retrieval, source title, changed query, or judge is introduced. No paid run is requested or changed."
+    ],
+    "effect_measured": false,
+    "new_calls": 0
+  },
+  "q04_span_check_sha256": "d49937f3102cb91b64aa5ba5f5ac182415877213b0ee7be0fb12d3923af66af4"
+}
